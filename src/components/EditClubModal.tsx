@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
+import { uploadToCloudinary } from '../utils/cloudinary';
 import type { MyClubWithOrder, MileageConfig } from '../services/clubService';
 
 interface Props {
@@ -15,11 +16,25 @@ export const EditClubModal = ({ club, onClose, onSuccess }: Props) => {
   const [description, setDescription] = useState(club.description || '');
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(club.logo_url || null);
 
   const defaultConfig = clubService.getDefaultMileageConfig();
   const [mileageConfig, setMileageConfig] = useState<MileageConfig>(
     club.mileage_config || defaultConfig
   );
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,10 +47,23 @@ export const EditClubModal = ({ club, onClose, onSuccess }: Props) => {
     setUpdating(true);
 
     try {
+      let logoUrl = club.logo_url;
+
+      // 새 로고 파일이 있으면 업로드
+      if (logoFile) {
+        try {
+          logoUrl = await uploadToCloudinary(logoFile);
+        } catch (uploadError) {
+          console.error('로고 업로드 실패:', uploadError);
+          alert('로고 업로드에 실패했습니다. 로고 없이 저장하시겠습니까?');
+        }
+      }
+
       await clubService.updateClub(club.id, {
         name: name.trim(),
         description: description.trim(),
         mileage_config: mileageConfig,
+        logo_url: logoUrl,
       });
 
       alert('클럽 정보가 수정되었습니다.');
@@ -107,6 +135,23 @@ export const EditClubModal = ({ club, onClose, onSuccess }: Props) => {
                 required
                 maxLength={30}
               />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="logo">클럽 로고</label>
+              <input
+                id="logo"
+                type="file"
+                accept="image/*"
+                onChange={handleLogoChange}
+                className="file-input"
+              />
+              {logoPreview && (
+                <div className="logo-preview">
+                  <img src={logoPreview} alt="클럽 로고" />
+                </div>
+              )}
+              <p className="form-hint">클럽을 대표하는 로고 이미지를 업로드하세요. (선택)</p>
             </div>
 
             <div className="form-group">

@@ -8,6 +8,7 @@ export interface Club {
   created_at: string;
   invite_code: string;
   mileage_config: MileageConfig;
+  logo_url?: string;
   member_count?: number;
   is_member?: boolean;
 }
@@ -275,12 +276,13 @@ class ClubService {
   // 클럽 정보 수정
   async updateClub(
     clubId: string,
-    data: { name?: string; description?: string; mileage_config?: MileageConfig }
+    data: { name?: string; description?: string; mileage_config?: MileageConfig; logo_url?: string }
   ): Promise<Club> {
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.mileage_config !== undefined) updateData.mileage_config = data.mileage_config;
+    if (data.logo_url !== undefined) updateData.logo_url = data.logo_url;
 
     const { data: club, error } = await supabase
       .from('clubs')

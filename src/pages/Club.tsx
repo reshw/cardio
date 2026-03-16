@@ -49,6 +49,15 @@ function SortableClubItem({ club, isSelected, onSelect }: {
       <div className="drag-handle" {...attributes} {...listeners}>
         ⋮⋮
       </div>
+      {club.logo_url ? (
+        <div className="club-item-logo">
+          <img src={club.logo_url} alt={club.name} />
+        </div>
+      ) : (
+        <div className="club-item-logo-placeholder">
+          {club.name[0]}
+        </div>
+      )}
       <div className="club-item-content">
         <div className="club-item-name">{club.name}</div>
       </div>
@@ -208,6 +217,15 @@ export const Club = () => {
             className="club-dropdown-trigger"
             onClick={() => setShowDropdown(!showDropdown)}
           >
+            {selectedClub?.logo_url ? (
+              <div className="dropdown-trigger-logo">
+                <img src={selectedClub.logo_url} alt={selectedClub.name} />
+              </div>
+            ) : (
+              <div className="dropdown-trigger-logo-placeholder">
+                {selectedClub?.name[0] || '?'}
+              </div>
+            )}
             <div className="dropdown-trigger-content">
               <div className="dropdown-trigger-name">{selectedClub?.name || '클럽 선택'}</div>
             </div>
