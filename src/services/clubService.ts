@@ -399,7 +399,7 @@ class ClubService {
   // 클럽 랭킹 조회 (월별)
   async getClubRanking(clubId: string, month?: { year: number; month: number }): Promise<ClubRanking[]> {
     // 클럽 정보 조회 (마일리지 설정 포함)
-    const { data: club, error: clubError } = await supabase
+    const { data: club } = await supabase
       .from('clubs')
       .select('mileage_config')
       .eq('id', clubId)
@@ -576,20 +576,23 @@ class ClubService {
 
     // 상세 통계 생성
     const stats: ClubDetailedStats[] = (users || [])
-      .map((user) => ({
-        user_id: user.id,
-        display_name: user.display_name,
-        rank: 0,
-        total_mileage: userStatsMap[user.id]?.total || 0,
-        by_workout: userStatsMap[user.id]?.byWorkout || {
-          '달리기-트레드밀': 0,
-          '달리기-러닝': 0,
-          '사이클-실외': 0,
-          '사이클-실내': 0,
-          '수영': 0,
-          '계단': 0,
-        },
-      }))
+      .map((user) => {
+        const userStats = userStatsMap[user.id];
+        return {
+          user_id: user.id,
+          display_name: user.display_name,
+          rank: 0,
+          total_mileage: userStats?.total || 0,
+          by_workout: {
+            '달리기-트레드밀': userStats?.byWorkout['달리기-트레드밀'] || 0,
+            '달리기-러닝': userStats?.byWorkout['달리기-러닝'] || 0,
+            '사이클-실외': userStats?.byWorkout['사이클-실외'] || 0,
+            '사이클-실내': userStats?.byWorkout['사이클-실내'] || 0,
+            '수영': userStats?.byWorkout['수영'] || 0,
+            '계단': userStats?.byWorkout['계단'] || 0,
+          },
+        };
+      })
       .sort((a, b) => b.total_mileage - a.total_mileage)
       .map((item, index) => ({ ...item, rank: index + 1 }));
 
