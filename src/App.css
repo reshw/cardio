@@ -1953,29 +1953,57 @@ html {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  min-width: 700px;
 }
 
 .stats-table thead {
-  background: var(--gradient-light);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
 }
 
 .stats-table th {
-  padding: 12px 8px;
+  padding: 14px 12px;
   text-align: center;
   font-weight: 600;
-  color: var(--text-primary);
-  border-bottom: 2px solid var(--border-color);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
   white-space: nowrap;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stats-table th:first-child {
+  width: 50px;
+  min-width: 50px;
+}
+
+.stats-table th:nth-child(2) {
+  width: 100px;
+  min-width: 100px;
+  text-align: left;
+}
+
+.stats-table th:not(:first-child):not(:nth-child(2)):not(:last-child) {
+  min-width: 75px;
+}
+
+.stats-table th:last-child {
+  width: 95px;
+  min-width: 95px;
 }
 
 .stats-table td {
-  padding: 12px 8px;
+  padding: 14px 12px;
   text-align: center;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.stats-table tbody tr:nth-child(even) {
+  background: #fafafa;
 }
 
 .stats-table tbody tr:hover {
-  background: var(--card-hover-bg);
+  background: #f0f4ff;
 }
 
 .stats-table tbody tr:last-child td {
@@ -1985,18 +2013,24 @@ html {
 .rank-cell {
   font-weight: 700;
   font-size: 16px;
+  width: 50px;
 }
 
 .name-cell {
   font-weight: 600;
   text-align: left;
   color: var(--text-primary);
+  width: 100px;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .total-cell {
   font-weight: 700;
   color: var(--primary-color);
   font-size: 15px;
+  width: 95px;
 }
 
 .action-button.secondary {
@@ -2013,11 +2047,39 @@ html {
 @media (max-width: 768px) {
   .stats-table {
     font-size: 11px;
+    min-width: 600px;
   }
 
   .stats-table th,
   .stats-table td {
-    padding: 8px 4px;
+    padding: 10px 6px;
+  }
+
+  .stats-table th:first-child {
+    width: 40px;
+    min-width: 40px;
+  }
+
+  .stats-table th:nth-child(2) {
+    width: 80px;
+    min-width: 80px;
+  }
+
+  .stats-table th:not(:first-child):not(:nth-child(2)):not(:last-child) {
+    min-width: 60px;
+  }
+
+  .stats-table th:last-child {
+    width: 75px;
+    min-width: 75px;
+  }
+
+  .rank-cell {
+    font-size: 14px;
+  }
+
+  .total-cell {
+    font-size: 13px;
   }
 
   .large-modal {
@@ -2694,4 +2756,286 @@ html {
   padding: 8px 12px;
   border-radius: 6px;
   text-align: center;
+}
+
+/* ============================================
+   어드민 관련 스타일
+   ============================================ */
+
+.admin-menu-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-menu-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.admin-club-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-club-card {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s;
+}
+
+.admin-club-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: var(--primary-color);
+}
+
+.admin-club-header {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.admin-club-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.admin-club-logo-placeholder {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  background: var(--gradient-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.admin-club-info {
+  flex: 1;
+}
+
+.admin-club-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.admin-club-description {
+  margin: 0 0 8px 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.admin-club-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+}
+
+.admin-club-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.admin-approve-button,
+.admin-reject-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-approve-button {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  color: white;
+}
+
+.admin-approve-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(67, 233, 123, 0.3);
+}
+
+.admin-reject-button {
+  background: white;
+  color: #e53935;
+  border: 2px solid #e53935;
+}
+
+.admin-reject-button:hover {
+  background: #e53935;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3);
+}
+
+@media (max-width: 768px) {
+  .admin-club-header {
+    flex-direction: column;
+  }
+
+  .admin-club-logo,
+  .admin-club-logo-placeholder {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
+  }
+
+  .admin-club-info {
+    text-align: center;
+  }
+
+  .admin-club-actions {
+    flex-direction: column;
+  }
+}
+
+.club-pending-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: #ff9800;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+.admin-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 20px;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.admin-menu-item:hover {
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
+  transform: translateX(4px);
+}
+
+.admin-menu-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-menu-text {
+  flex: 1;
+}
+
+.admin-menu-text h3 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.admin-menu-text p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.admin-menu-arrow {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 768px) {
+  .admin-menu-item {
+    padding: 16px;
+  }
+
+  .admin-menu-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .admin-menu-text h3 {
+    font-size: 15px;
+  }
+
+  .admin-menu-text p {
+    font-size: 12px;
+  }
+}
+
+/* 클럽 미리보기 카드 */
+.club-preview-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.club-preview-info h2 {
+  margin: 0 0 12px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+}
+
+.club-preview-owner {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.club-preview-owner strong {
+  color: white;
+  font-weight: 600;
+}
+
+.club-preview-description {
+  margin: 12px 0 0 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.95);
 }

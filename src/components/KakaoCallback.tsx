@@ -20,7 +20,16 @@ const KakaoCallback = () => {
       const code = url.searchParams.get('code');
       const stateStr = url.searchParams.get('state');
 
+      // 1순위: sessionStorage의 redirect_after_login
+      // 2순위: state의 from
+      // 3순위: 기본값 '/'
       const from = (() => {
+        const redirectPath = sessionStorage.getItem('redirect_after_login');
+        if (redirectPath) {
+          sessionStorage.removeItem('redirect_after_login');
+          return redirectPath;
+        }
+
         try {
           return JSON.parse(decodeURIComponent(stateStr || ''))?.from || '/';
         } catch {

@@ -173,7 +173,7 @@ class AuthService {
   async getUserByKakaoId(kakaoId: string) {
     const { data, error } = await supabase
       .from('users')
-      .select('id, username, display_name, email, kakao_id, provider, profile_image')
+      .select('id, username, display_name, email, kakao_id, provider, profile_image, is_admin')
       .eq('kakao_id', kakaoId)
       .single();
 

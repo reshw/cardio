@@ -10,6 +10,7 @@ interface User {
   kakao_id?: string;
   provider?: string;
   profile_image?: string;
+  is_admin?: boolean;
 }
 
 interface AuthContextType {
@@ -125,6 +126,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setUser(null);
     localStorage.removeItem('current_user');
+
+    // sessionStorage도 모두 초기화 (카카오 코드 캐시 등)
+    sessionStorage.clear();
   };
 
   return (

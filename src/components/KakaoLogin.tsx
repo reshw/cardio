@@ -23,7 +23,8 @@ export const KakaoLogin = () => {
       `https://kauth.kakao.com/oauth/authorize?client_id=${REST_API_KEY}` +
       `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
       `&response_type=code` +
-      `&state=${state}`;
+      `&state=${state}` +
+      `&prompt=login`; // 계정 선택 강제 (로그아웃 후 다른 계정으로 로그인 가능)
 
     window.location.href = kakaoURL;
   };

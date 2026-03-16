@@ -37,6 +37,7 @@ export const CreateClubModal = ({ onClose, onSuccess }: Props) => {
         club_nickname: nickname.trim(),
       });
 
+      alert('클럽 생성이 신청되었습니다.\n어드민 승인 후 활성화됩니다.');
       onSuccess();
       onClose();
     } catch (error) {

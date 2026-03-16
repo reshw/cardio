@@ -58,7 +58,12 @@ function SortableClubItem({ club, isSelected, onSelect }: {
         </div>
       )}
       <div className="club-item-content">
-        <div className="club-item-name">{club.name}</div>
+        <div className="club-item-name">
+          {club.name}
+          {club.status === 'pending' && (
+            <span className="club-pending-badge">승인대기</span>
+          )}
+        </div>
       </div>
     </div>
   );

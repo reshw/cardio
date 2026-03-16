@@ -11,6 +11,8 @@ import { ClubMileageSettings } from './pages/ClubMileageSettings';
 import { ClubMySettings } from './pages/ClubMySettings';
 import { ClubTransferOwnership } from './pages/ClubTransferOwnership';
 import { More } from './pages/More';
+import { AdminPage } from './pages/AdminPage';
+import { AdminClubApproval } from './pages/AdminClubApproval';
 import { JoinClub } from './pages/JoinClub';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
@@ -52,6 +54,8 @@ function ProtectedRoutes() {
           <Route path="/join" element={<JoinClub />} />
           <Route path="/join/:code" element={<JoinClub />} />
           <Route path="/more" element={<More />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/club-approval" element={<AdminClubApproval />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

@@ -11,6 +11,10 @@ export interface Club {
   logo_url?: string;
   member_count?: number;
   is_member?: boolean;
+  status?: 'pending' | 'active' | 'closed';
+  rejection_reason?: string;
+  approved_at?: string;
+  approved_by?: string;
 }
 
 export interface MileageConfig {
@@ -123,6 +127,7 @@ class ClubService {
         description: data.description,
         created_by: data.created_by,
         invite_code: inviteCode,
+        status: 'pending', // 어드민 승인 대기
       })
       .select()
       .single();
@@ -154,6 +159,49 @@ class ClubService {
     }
 
     return club;
+  }
+
+  // 초대 코드로 클럽 정보 미리보기 (방장 정보 포함)
+  async getClubPreviewByInviteCode(inviteCode: string): Promise<{
+    club: Club;
+    ownerName: string;
+  } | null> {
+    const { data: club, error } = await supabase
+      .from('clubs')
+      .select(`
+        *,
+        owner:users!clubs_created_by_fkey(display_name)
+      `)
+      .eq('invite_code', inviteCode)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('클럽 미리보기 조회 실패:', error);
+      throw error;
+    }
+
+    if (!club) return null;
+
+    // 방장 club_nickname 조회
+    const { data: ownerMember, error: memberError } = await supabase
+      .from('club_members')
+      .select('club_nickname')
+      .eq('club_id', club.id)
+      .eq('user_id', club.created_by)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    if (memberError && memberError.code !== 'PGRST116') {
+      console.error('방장 닉네임 조회 실패:', memberError);
+    }
+
+    const ownerName = ownerMember?.club_nickname || (club.owner as any)?.display_name || '알 수 없음';
+
+    return {
+      club,
+      ownerName,
+    };
   }
 
   // 초대 코드로 클럽 가입
@@ -228,14 +276,26 @@ class ClubService {
     }
 
     // 클럽 정보와 순서 정보 병합
-    const clubsWithOrder: MyClubWithOrder[] = members.map((member) => {
-      const club = clubs?.find((c) => c.id === member.club_id);
-      return {
-        ...club!,
-        display_order: member.display_order,
-        member_id: member.id,
-      };
-    });
+    // active 클럽 또는 자신이 만든 pending 클럽만 표시
+    const clubsWithOrder: MyClubWithOrder[] = members
+      .map((member) => {
+        const club = clubs?.find((c) => c.id === member.club_id);
+        if (!club) return null;
+
+        // active 클럽이거나, 자신이 만든 pending 클럽만 표시
+        const isActive = !club.status || club.status === 'active';
+        const isPendingOwner = club.status === 'pending' && club.created_by === userId;
+
+        if (isActive || isPendingOwner) {
+          return {
+            ...club,
+            display_order: member.display_order,
+            member_id: member.id,
+          };
+        }
+        return null;
+      })
+      .filter((c): c is MyClubWithOrder => c !== null);
 
     return clubsWithOrder;
   }
@@ -850,6 +910,80 @@ class ClubService {
     // 나눗셈 방식: 거리 / 계수 = 마일리지
     // 예: 3km / 3 = 1 마일리지
     return value / coefficient;
+  }
+
+  // ============================================
+  // 어드민 관련 메서드
+  // ============================================
+
+  // 승인 대기 중인 클럽 목록 조회
+  async getPendingClubs(): Promise<Club[]> {
+    const { data, error } = await supabase
+      .from('clubs')
+      .select(`
+        *,
+        users!clubs_created_by_fkey(display_name, profile_image)
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('승인 대기 클럽 조회 실패:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  // 클럽 승인
+  async approveClub(clubId: string, adminUserId: string): Promise<void> {
+    const { error } = await supabase
+      .from('clubs')
+      .update({
+        status: 'active',
+        approved_at: new Date().toISOString(),
+        approved_by: adminUserId,
+      })
+      .eq('id', clubId);
+
+    if (error) {
+      console.error('클럽 승인 실패:', error);
+      throw error;
+    }
+  }
+
+  // 클럽 거부
+  async rejectClub(clubId: string, reason: string): Promise<void> {
+    const { error } = await supabase
+      .from('clubs')
+      .update({
+        status: 'closed',
+        rejection_reason: reason,
+      })
+      .eq('id', clubId);
+
+    if (error) {
+      console.error('클럽 거부 실패:', error);
+      throw error;
+    }
+  }
+
+  // 모든 클럽 조회 (어드민용 - 상태 무관)
+  async getAllClubsForAdmin(): Promise<Club[]> {
+    const { data, error } = await supabase
+      .from('clubs')
+      .select(`
+        *,
+        users!clubs_created_by_fkey(display_name, profile_image)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('전체 클럽 조회 실패:', error);
+      throw error;
+    }
+
+    return data || [];
   }
 }
 
