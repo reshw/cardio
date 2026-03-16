@@ -1,0 +1,48 @@
+.footer {
+  background-color: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+  padding: 1rem;
+  margin-top: auto;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.business-info {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #666;
+  line-height: 1.5;
+}
+
+.company-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.separator {
+  margin: 0 0.5rem;
+  color: #ccc;
+}
+
+/* 모바일 대응 */
+@media (max-width: 768px) {
+  .footer {
+    padding: 0.75rem;
+    margin-bottom: 60px; /* BottomNav 공간 확보 */
+  }
+
+  .business-info {
+    font-size: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .separator {
+    display: none;
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh repo view:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(git restore:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "WebSearch",
+      "Bash(git fetch:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(git stash:*)",
+      "Bash(git push:*)",
+      "Bash(ls:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git rm:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(schema must be a JSON Schema of 'type: \"\"object\"\"', got 'type: \"\"string\"\"'\"\n\nThis was NOT a schema definition problem - the schema was correct.\nThe issue was Zod v4 incompatibility with OpenAI SDK v4.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}
