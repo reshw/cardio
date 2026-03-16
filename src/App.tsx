@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Login } from './pages/Login';
 import { History } from './pages/History';
+import { WorkoutDetail } from './pages/WorkoutDetail';
 import { Club } from './pages/Club';
 import { ClubMemberDetail } from './pages/ClubMemberDetail';
 import { More } from './pages/More';
@@ -35,6 +36,7 @@ function ProtectedRoutes() {
       <div className="main-content">
         <Routes>
           <Route path="/" element={<History />} />
+          <Route path="/workout/:id" element={<WorkoutDetail />} />
           <Route path="/club" element={<Club />} />
           <Route path="/club/member/:clubId/:userId/:userName" element={<ClubMemberDetail />} />
           <Route path="/join" element={<JoinClub />} />

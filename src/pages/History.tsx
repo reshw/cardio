@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import workoutService from '../services/workoutService';
 import { AddWorkoutModal } from '../components/AddWorkoutModal';
-import { WorkoutDetailModal } from '../components/WorkoutDetailModal';
 import type { Workout } from '../services/workoutService';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
@@ -11,11 +11,11 @@ type TabType = 'calendar' | 'list' | 'stats';
 
 export const History = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('list');
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // 운동 기록 불러오기
@@ -36,17 +36,6 @@ export const History = () => {
   useEffect(() => {
     loadWorkouts();
   }, [user]);
-
-  // 운동 기록 삭제
-  const handleDelete = async (workoutId: string) => {
-    try {
-      await workoutService.deleteWorkout(workoutId);
-      loadWorkouts();
-    } catch (error) {
-      console.error('운동 기록 삭제 실패:', error);
-      alert('운동 기록 삭제에 실패했습니다.');
-    }
-  };
 
   // 날짜 포맷팅
   const formatDate = (dateString: string) => {
@@ -173,6 +162,7 @@ export const History = () => {
           <div className="calendar-container">
             <Calendar
               locale="ko-KR"
+              calendarType="gregory"
               tileClassName={({ date }) =>
                 hasWorkoutOnDate(date) ? 'has-workout' : ''
               }
@@ -193,7 +183,7 @@ export const History = () => {
                     <div
                       key={workout.id}
                       className="workout-item clickable"
-                      onClick={() => setSelectedWorkout(workout)}
+                      onClick={() => navigate(`/workout/${workout.id}`, { state: { workout } })}
                     >
                       <div className="workout-item-content">
                         <div className="workout-item-left">
@@ -239,7 +229,7 @@ export const History = () => {
                 <div
                   key={workout.id}
                   className="workout-item clickable"
-                  onClick={() => setSelectedWorkout(workout)}
+                  onClick={() => navigate(`/workout/${workout.id}`, { state: { workout } })}
                 >
                   <div className="workout-item-content">
                     <div className="workout-item-left">
@@ -255,15 +245,6 @@ export const History = () => {
                       <div className="workout-date">
                         {formatDate(workout.created_at)}
                       </div>
-                      <button
-                        className="delete-button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(workout.id);
-                        }}
-                      >
-                        🗑️
-                      </button>
                     </div>
                   </div>
                   {workout.proof_image && (
@@ -327,15 +308,6 @@ export const History = () => {
         <AddWorkoutModal
           onClose={() => setShowAddModal(false)}
           onSuccess={loadWorkouts}
-        />
-      )}
-
-      {selectedWorkout && (
-        <WorkoutDetailModal
-          workout={selectedWorkout}
-          onClose={() => setSelectedWorkout(null)}
-          onDelete={handleDelete}
-          onUpdate={loadWorkouts}
         />
       )}
     </div>

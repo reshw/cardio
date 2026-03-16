@@ -51,7 +51,6 @@ function SortableClubItem({ club, isSelected, onSelect }: {
       </div>
       <div className="club-item-content">
         <div className="club-item-name">{club.name}</div>
-        <div className="club-item-code">{club.invite_code}</div>
       </div>
     </div>
   );
@@ -211,7 +210,6 @@ export const Club = () => {
           >
             <div className="dropdown-trigger-content">
               <div className="dropdown-trigger-name">{selectedClub?.name || '클럽 선택'}</div>
-              <div className="dropdown-trigger-code">{selectedClub?.invite_code}</div>
             </div>
             <span className="dropdown-arrow">
               {showDropdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -260,43 +258,38 @@ export const Club = () => {
         </div>
       )}
 
+      {/* 클럽 액션 버튼 */}
+      {selectedClub && (
+        <div className="club-actions">
+          <button className="action-button-compact secondary" onClick={() => setShowMileageConfig(true)}>
+            <Info size={14} />
+            <span>계수</span>
+          </button>
+          <button className="action-button-compact secondary" onClick={() => setShowDetailedStats(true)}>
+            <Table size={14} />
+            <span>통계</span>
+          </button>
+          <button
+            className="action-button-compact"
+            onClick={(e) => copyInviteCode(selectedClub.invite_code, e)}
+          >
+            <Copy size={14} />
+            <span>초대</span>
+          </button>
+          {isAdmin && (
+            <button className="action-button-compact" onClick={() => setShowEditModal(true)}>
+              <Settings size={14} />
+              <span>설정</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* 클럽 랭킹 */}
       {selectedClub ? (
         <div className="club-dashboard">
           <div className="dashboard-header">
             <h2>이번 달 랭킹</h2>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button
-                className="action-button secondary"
-                onClick={() => setShowMileageConfig(true)}
-              >
-                <Info size={16} />
-                계수 보기
-              </button>
-              <button
-                className="action-button secondary"
-                onClick={() => setShowDetailedStats(true)}
-              >
-                <Table size={16} />
-                상세 통계
-              </button>
-              <button
-                className="action-button"
-                onClick={(e) => copyInviteCode(selectedClub.invite_code, e)}
-              >
-                <Copy size={16} />
-                초대 코드 복사
-              </button>
-              {isAdmin && (
-                <button
-                  className="action-button"
-                  onClick={() => setShowEditModal(true)}
-                >
-                  <Settings size={16} />
-                  설정
-                </button>
-              )}
-            </div>
           </div>
 
           {loading ? (
