@@ -4,6 +4,14 @@
 # Dependencies
 node_modules/
 
+# Build output
+dist/
+.vite/
+
+# Environment variables
+.env
+.env.local
+
 # Temporary files
 tmpclaude-*
 nul

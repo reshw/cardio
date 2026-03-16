@@ -1,0 +1,98 @@
+import { supabase } from '../lib/supabase';
+
+// 주 카테고리
+export type WorkoutCategory = '달리기' | '사이클' | '수영' | '계단';
+
+// 세부 카테고리
+export type RunningSubType = '트레드밀' | '러닝';
+export type CycleSubType = '실외' | '실내';
+
+export type WorkoutSubType = RunningSubType | CycleSubType | null;
+
+// 단위
+export type WorkoutUnit = 'km' | 'm' | '층';
+
+export interface Workout {
+  id: string;
+  user_id: string;
+  category: WorkoutCategory;
+  sub_type: WorkoutSubType;
+  value: number;
+  unit: WorkoutUnit;
+  proof_image?: string;
+  created_at: string;
+}
+
+export interface CreateWorkoutData {
+  user_id: string;
+  category: WorkoutCategory;
+  sub_type: WorkoutSubType;
+  value: number;
+  unit: WorkoutUnit;
+  proof_image?: string;
+}
+
+class WorkoutService {
+  // 운동 기록 추가
+  async createWorkout(data: CreateWorkoutData): Promise<Workout> {
+    console.log('📝 운동 기록 추가 데이터:', data);
+    console.log('🔧 Supabase client 확인:', !!supabase);
+
+    const insertData = {
+      user_id: data.user_id,
+      category: data.category,
+      sub_type: data.sub_type,
+      value: data.value,
+      unit: data.unit,
+      proof_image: data.proof_image || null,
+    };
+
+    console.log('📤 Insert 데이터:', insertData);
+
+    const { data: workout, error } = await supabase
+      .from('workouts')
+      .insert(insertData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ 운동 기록 추가 실패:', error);
+      console.error('에러 상세:', JSON.stringify(error, null, 2));
+      throw error;
+    }
+
+    console.log('✅ 운동 기록 추가 성공:', workout);
+    return workout;
+  }
+
+  // 사용자의 운동 기록 조회
+  async getWorkoutsByUserId(userId: string): Promise<Workout[]> {
+    const { data, error } = await supabase
+      .from('workouts')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('운동 기록 조회 실패:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  // 특정 운동 기록 삭제
+  async deleteWorkout(workoutId: string): Promise<void> {
+    const { error } = await supabase
+      .from('workouts')
+      .delete()
+      .eq('id', workoutId);
+
+    if (error) {
+      console.error('운동 기록 삭제 실패:', error);
+      throw error;
+    }
+  }
+}
+
+export default new WorkoutService();
