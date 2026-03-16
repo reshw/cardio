@@ -196,14 +196,6 @@ html {
   margin-bottom: 40px;
 }
 
-.login-business-info {
-  margin-top: 40px;
-  padding: 20px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
 /* Kakao Login Button */
 .kakao-login-button {
   width: 100%;
