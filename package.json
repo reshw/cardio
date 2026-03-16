@@ -13,6 +13,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@supabase/supabase-js": "^2.89.0",
+    "html2canvas": "^1.4.1",
     "lucide-react": "^0.577.0",
     "react": "^19.2.0",
     "react-calendar": "^6.0.0",

@@ -48,6 +48,21 @@ export interface ClubRanking {
   rank: number;
 }
 
+export interface ClubDetailedStats {
+  user_id: string;
+  display_name: string;
+  rank: number;
+  total_mileage: number;
+  by_workout: {
+    '달리기-트레드밀': number;
+    '달리기-러닝': number;
+    '사이클-실외': number;
+    '사이클-실내': number;
+    '수영': number;
+    '계단': number;
+  };
+}
+
 class ClubService {
   // 초대 코드 생성 (중복 방지)
   private async generateUniqueInviteCode(): Promise<string> {
@@ -476,6 +491,109 @@ class ClubService {
       .map((item, index) => ({ ...item, rank: index + 1 }));
 
     return ranking;
+  }
+
+  // 클럽 상세 통계 조회 (운동별 마일리지)
+  async getClubDetailedStats(
+    clubId: string,
+    month?: { year: number; month: number }
+  ): Promise<ClubDetailedStats[]> {
+    // 클럽 정보 조회
+    const { data: club } = await supabase
+      .from('clubs')
+      .select('mileage_config')
+      .eq('id', clubId)
+      .single();
+
+    const mileageConfig = club?.mileage_config || this.getDefaultMileageConfig();
+
+    // 클럽 멤버 조회
+    const { data: members } = await supabase
+      .from('club_members')
+      .select('user_id')
+      .eq('club_id', clubId);
+
+    if (!members || members.length === 0) {
+      return [];
+    }
+
+    const userIds = members.map((m) => m.user_id);
+
+    // 운동 기록 조회
+    let query = supabase
+      .from('workouts')
+      .select('user_id, category, sub_type, value')
+      .in('user_id', userIds);
+
+    if (month) {
+      const startDate = new Date(month.year, month.month - 1, 1);
+      const endDate = new Date(month.year, month.month, 0, 23, 59, 59);
+      query = query
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString());
+    }
+
+    const { data: workouts } = await query;
+
+    // 사용자별 운동별 마일리지 집계
+    const userStatsMap: Record<
+      string,
+      {
+        total: number;
+        byWorkout: Record<string, number>;
+      }
+    > = {};
+
+    (workouts || []).forEach((workout) => {
+      if (!userStatsMap[workout.user_id]) {
+        userStatsMap[workout.user_id] = {
+          total: 0,
+          byWorkout: {
+            '달리기-트레드밀': 0,
+            '달리기-러닝': 0,
+            '사이클-실외': 0,
+            '사이클-실내': 0,
+            '수영': 0,
+            '계단': 0,
+          },
+        };
+      }
+
+      const key = workout.sub_type ? `${workout.category}-${workout.sub_type}` : workout.category;
+      const mileage = this.calculateMileage(workout.category, workout.sub_type, workout.value, mileageConfig);
+
+      userStatsMap[workout.user_id].total += mileage;
+      if (userStatsMap[workout.user_id].byWorkout[key] !== undefined) {
+        userStatsMap[workout.user_id].byWorkout[key] += mileage;
+      }
+    });
+
+    // 사용자 정보 조회
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, display_name')
+      .in('id', userIds);
+
+    // 상세 통계 생성
+    const stats: ClubDetailedStats[] = (users || [])
+      .map((user) => ({
+        user_id: user.id,
+        display_name: user.display_name,
+        rank: 0,
+        total_mileage: userStatsMap[user.id]?.total || 0,
+        by_workout: userStatsMap[user.id]?.byWorkout || {
+          '달리기-트레드밀': 0,
+          '달리기-러닝': 0,
+          '사이클-실외': 0,
+          '사이클-실내': 0,
+          '수영': 0,
+          '계단': 0,
+        },
+      }))
+      .sort((a, b) => b.total_mileage - a.total_mileage)
+      .map((item, index) => ({ ...item, rank: index + 1 }));
+
+    return stats;
   }
 
   // 기본 마일리지 계수

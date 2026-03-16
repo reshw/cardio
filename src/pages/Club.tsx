@@ -4,8 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 import { CreateClubModal } from '../components/CreateClubModal';
 import { EditClubModal } from '../components/EditClubModal';
+import { MileageConfigModal } from '../components/MileageConfigModal';
+import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
-import { Settings, Copy, ChevronDown, ChevronUp } from 'lucide-react';
+import { Settings, Copy, ChevronDown, ChevronUp, Info, Table } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -66,6 +68,8 @@ export const Club = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showMileageConfig, setShowMileageConfig] = useState(false);
+  const [showDetailedStats, setShowDetailedStats] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -259,7 +263,21 @@ export const Club = () => {
         <div className="club-dashboard">
           <div className="dashboard-header">
             <h2>이번 달 랭킹</h2>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                className="action-button secondary"
+                onClick={() => setShowMileageConfig(true)}
+              >
+                <Info size={16} />
+                계수 보기
+              </button>
+              <button
+                className="action-button secondary"
+                onClick={() => setShowDetailedStats(true)}
+              >
+                <Table size={16} />
+                상세 통계
+              </button>
               <button
                 className="action-button"
                 onClick={(e) => copyInviteCode(selectedClub.invite_code, e)}
@@ -354,6 +372,25 @@ export const Club = () => {
               loadClubRanking(selectedClub.id);
             }
           }}
+        />
+      )}
+
+      {showMileageConfig && selectedClub && (
+        <MileageConfigModal
+          config={selectedClub.mileage_config || clubService.getDefaultMileageConfig()}
+          onClose={() => setShowMileageConfig(false)}
+        />
+      )}
+
+      {showDetailedStats && selectedClub && (
+        <ClubDetailedStatsModal
+          clubId={selectedClub.id}
+          clubName={selectedClub.name}
+          month={{
+            year: new Date().getFullYear(),
+            month: new Date().getMonth() + 1,
+          }}
+          onClose={() => setShowDetailedStats(false)}
         />
       )}
     </div>

@@ -1879,3 +1879,148 @@ html {
   color: var(--text-secondary);
   margin-top: 6px;
 }
+
+/* Mileage Config Modal */
+.config-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.config-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--input-bg);
+  border-radius: 8px;
+}
+
+.config-label {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.config-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+/* Detailed Stats Modal */
+.large-modal {
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.stats-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.download-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.download-button:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.stats-table-container {
+  overflow-x: auto;
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.stats-table thead {
+  background: var(--gradient-light);
+}
+
+.stats-table th {
+  padding: 12px 8px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.stats-table td {
+  padding: 12px 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.stats-table tbody tr:hover {
+  background: var(--card-hover-bg);
+}
+
+.stats-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.rank-cell {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.name-cell {
+  font-weight: 600;
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.total-cell {
+  font-weight: 700;
+  color: var(--primary-color);
+  font-size: 15px;
+}
+
+.action-button.secondary {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.action-button.secondary:hover {
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+  .stats-table {
+    font-size: 11px;
+  }
+
+  .stats-table th,
+  .stats-table td {
+    padding: 8px 4px;
+  }
+
+  .large-modal {
+    max-width: 98vw;
+  }
+}
