@@ -5,7 +5,7 @@ import clubService from '../services/clubService';
 import { CreateClubModal } from '../components/CreateClubModal';
 import { EditClubModal } from '../components/EditClubModal';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
-import { Settings, Copy, Plus, UserPlus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Settings, Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
