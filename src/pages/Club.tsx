@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 import { CreateClubModal } from '../components/CreateClubModal';
 import { EditClubModal } from '../components/EditClubModal';
+import { ClubMemberDetailModal } from '../components/ClubMemberDetailModal';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
 import { Settings, Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import {
@@ -66,6 +67,7 @@ export const Club = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<ClubRanking | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -291,7 +293,11 @@ export const Club = () => {
           ) : (
             <div className="ranking-list">
               {ranking.map((member) => (
-                <div key={member.user_id} className="ranking-item">
+                <div
+                  key={member.user_id}
+                  className="ranking-item clickable"
+                  onClick={() => setSelectedMember(member)}
+                >
                   <div className="ranking-left">
                     <div className={`rank-badge rank-${member.rank}`}>
                       {member.rank === 1 ? '🥇' : member.rank === 2 ? '🥈' : member.rank === 3 ? '🥉' : `${member.rank}위`}
@@ -346,6 +352,18 @@ export const Club = () => {
               loadClubRanking(selectedClub.id);
             }
           }}
+        />
+      )}
+
+      {selectedMember && selectedClub && (
+        <ClubMemberDetailModal
+          userId={selectedMember.user_id}
+          userName={selectedMember.display_name}
+          month={{
+            year: new Date().getFullYear(),
+            month: new Date().getMonth() + 1,
+          }}
+          onClose={() => setSelectedMember(null)}
         />
       )}
     </div>
