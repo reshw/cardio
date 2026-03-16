@@ -127,7 +127,7 @@ class ClubService {
     const { data: club, error } = await supabase
       .from('clubs')
       .select('*')
-      .eq('invite_code', inviteCode.toUpperCase())
+      .eq('invite_code', inviteCode)
       .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {

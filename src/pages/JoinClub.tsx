@@ -8,13 +8,13 @@ export const JoinClub = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [inviteCode, setInviteCode] = useState(code?.toUpperCase() || '');
+  const [inviteCode, setInviteCode] = useState(code || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (code) {
-      setInviteCode(code.toUpperCase());
+      setInviteCode(code);
     }
   }, [code]);
 
@@ -65,7 +65,7 @@ export const JoinClub = () => {
               placeholder="예: aB3xY9"
               value={inviteCode}
               onChange={(e) => {
-                setInviteCode(e.target.value.toUpperCase());
+                setInviteCode(e.target.value);
                 setError('');
               }}
               className="invite-code-input"

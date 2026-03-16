@@ -1342,7 +1342,6 @@ html {
   font-family: 'Courier New', monospace;
   color: var(--text-primary);
   transition: all 0.2s;
-  text-transform: uppercase;
 }
 
 .invite-code-input:focus {
