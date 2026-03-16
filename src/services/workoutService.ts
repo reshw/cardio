@@ -87,6 +87,59 @@ class WorkoutService {
     return data || [];
   }
 
+  // 운동 기록 수정
+  async updateWorkout(
+    workoutId: string,
+    data: {
+      value?: number;
+      created_at?: string;
+      proof_image?: string;
+    }
+  ): Promise<Workout> {
+    const updateData: any = {};
+
+    if (data.value !== undefined) {
+      updateData.value = data.value;
+      // 값이 변경되면 마일리지도 재계산해야 함
+      // 하지만 category, sub_type이 필요하므로 먼저 조회
+      const { data: workout } = await supabase
+        .from('workouts')
+        .select('category, sub_type')
+        .eq('id', workoutId)
+        .single();
+
+      if (workout) {
+        updateData.mileage = clubService.calculateMileage(
+          workout.category,
+          workout.sub_type,
+          data.value
+        );
+      }
+    }
+
+    if (data.created_at !== undefined) {
+      updateData.created_at = data.created_at;
+    }
+
+    if (data.proof_image !== undefined) {
+      updateData.proof_image = data.proof_image;
+    }
+
+    const { data: updated, error } = await supabase
+      .from('workouts')
+      .update(updateData)
+      .eq('id', workoutId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('운동 기록 수정 실패:', error);
+      throw error;
+    }
+
+    return updated;
+  }
+
   // 특정 운동 기록 삭제
   async deleteWorkout(workoutId: string): Promise<void> {
     const { error } = await supabase

@@ -335,6 +335,7 @@ export const History = () => {
           workout={selectedWorkout}
           onClose={() => setSelectedWorkout(null)}
           onDelete={handleDelete}
+          onUpdate={loadWorkouts}
         />
       )}
     </div>
