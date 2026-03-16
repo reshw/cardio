@@ -9,6 +9,7 @@ export const JoinClub = () => {
   const navigate = useNavigate();
 
   const [inviteCode, setInviteCode] = useState(code || '');
+  const [nickname, setNickname] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -31,11 +32,16 @@ export const JoinClub = () => {
       return;
     }
 
+    if (!nickname.trim()) {
+      setError('클럽에서 사용할 별명을 입력해주세요.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      const club = await clubService.joinClubByInviteCode(inviteCode, user.id);
+      const club = await clubService.joinClubByInviteCode(inviteCode, user.id, nickname.trim());
       alert(`${club.name}에 가입했습니다! 🎉`);
       navigate('/club');
     } catch (err) {
@@ -79,8 +85,27 @@ export const JoinClub = () => {
               maxLength={6}
               required
             />
-            {error && <p className="error-message">{error}</p>}
           </div>
+
+          <div className="form-group">
+            <label htmlFor="nickname">클럽에서 사용할 별명 *</label>
+            <input
+              id="nickname"
+              type="text"
+              placeholder="예: 아침러너"
+              value={nickname}
+              onChange={(e) => {
+                setNickname(e.target.value);
+                setError('');
+              }}
+              className="value-input"
+              maxLength={20}
+              required
+            />
+            <p className="form-hint">클럽 멤버들에게 표시될 이름입니다. 나중에 변경할 수 있습니다.</p>
+          </div>
+
+          {error && <p className="error-message">{error}</p>}
 
           <button type="submit" className="primary-button" disabled={loading}>
             {loading ? '가입 처리 중...' : '클럽 가입하기'}

@@ -6,6 +6,28 @@ interface Props {
   onClose: () => void;
 }
 
+// 마일리지 계산 예시 생성 (나눗셈 방식)
+const getExplanation = (coefficient: number, unit: string = 'km'): string => {
+  if (coefficient === 0) return '마일리지 없음';
+
+  // 나눗셈 방식: coefficient 자체가 "X 단위당 1 마일리지"
+  if (unit === 'km') {
+    if (coefficient === 1) {
+      return '1km당 1 마일리지';
+    } else if (coefficient < 1) {
+      return `${coefficient.toFixed(2)}km당 1 마일리지`;
+    } else {
+      return `${coefficient.toFixed(1)}km당 1 마일리지`;
+    }
+  } else if (unit === 'm') {
+    return `${Math.round(coefficient)}m당 1 마일리지`;
+  } else if (unit === '층') {
+    return `${Math.round(coefficient)}층당 1 마일리지`;
+  }
+
+  return '';
+};
+
 export const MileageConfigModal = ({ config, onClose }: Props) => {
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -18,40 +40,89 @@ export const MileageConfigModal = ({ config, onClose }: Props) => {
         </div>
 
         <div className="modal-body">
-          <p className="form-hint" style={{ marginBottom: '16px' }}>
-            현재 클럽의 운동별 마일리지 계산 계수입니다.
+          <p className="form-hint" style={{ marginBottom: '20px' }}>
+            현재 클럽의 운동별 마일리지 계산 방식입니다.
           </p>
 
-          <div className="config-list">
-            <div className="config-item">
-              <span className="config-label">달리기 - 트레드밀</span>
-              <span className="config-value">{config['달리기-트레드밀']}</span>
+          <div className="mileage-explanation-list">
+            <div className="mileage-explanation-item">
+              <div className="mileage-explanation-header">
+                <span className="mileage-explanation-emoji">🏃</span>
+                <span className="mileage-explanation-label">달리기 - 트레드밀</span>
+              </div>
+              <div className="mileage-explanation-detail">
+                <span className="mileage-explanation-example">
+                  {getExplanation(config['달리기-트레드밀'], 'km')}
+                </span>
+                <span className="mileage-explanation-coefficient">계수: {config['달리기-트레드밀']}</span>
+              </div>
             </div>
-            <div className="config-item">
-              <span className="config-label">달리기 - 러닝</span>
-              <span className="config-value">{config['달리기-러닝']}</span>
+
+            <div className="mileage-explanation-item">
+              <div className="mileage-explanation-header">
+                <span className="mileage-explanation-emoji">🏃‍♂️</span>
+                <span className="mileage-explanation-label">달리기 - 러닝</span>
+              </div>
+              <div className="mileage-explanation-detail">
+                <span className="mileage-explanation-example">
+                  {getExplanation(config['달리기-러닝'], 'km')}
+                </span>
+                <span className="mileage-explanation-coefficient">계수: {config['달리기-러닝']}</span>
+              </div>
             </div>
-            <div className="config-item">
-              <span className="config-label">사이클 - 실외</span>
-              <span className="config-value">{config['사이클-실외']}</span>
+
+            <div className="mileage-explanation-item">
+              <div className="mileage-explanation-header">
+                <span className="mileage-explanation-emoji">🚴</span>
+                <span className="mileage-explanation-label">사이클 - 실외</span>
+              </div>
+              <div className="mileage-explanation-detail">
+                <span className="mileage-explanation-example">
+                  {getExplanation(config['사이클-실외'], 'km')}
+                </span>
+                <span className="mileage-explanation-coefficient">계수: {config['사이클-실외']}</span>
+              </div>
             </div>
-            <div className="config-item">
-              <span className="config-label">사이클 - 실내</span>
-              <span className="config-value">{config['사이클-실내']}</span>
+
+            <div className="mileage-explanation-item">
+              <div className="mileage-explanation-header">
+                <span className="mileage-explanation-emoji">🚴‍♀️</span>
+                <span className="mileage-explanation-label">사이클 - 실내</span>
+              </div>
+              <div className="mileage-explanation-detail">
+                <span className="mileage-explanation-example">
+                  {getExplanation(config['사이클-실내'], 'km')}
+                </span>
+                <span className="mileage-explanation-coefficient">계수: {config['사이클-실내']}</span>
+              </div>
             </div>
-            <div className="config-item">
-              <span className="config-label">수영</span>
-              <span className="config-value">{config['수영']}</span>
+
+            <div className="mileage-explanation-item">
+              <div className="mileage-explanation-header">
+                <span className="mileage-explanation-emoji">🏊</span>
+                <span className="mileage-explanation-label">수영</span>
+              </div>
+              <div className="mileage-explanation-detail">
+                <span className="mileage-explanation-example">
+                  {getExplanation(config['수영'], 'm')}
+                </span>
+                <span className="mileage-explanation-coefficient">계수: {config['수영']}</span>
+              </div>
             </div>
-            <div className="config-item">
-              <span className="config-label">계단</span>
-              <span className="config-value">{config['계단']}</span>
+
+            <div className="mileage-explanation-item">
+              <div className="mileage-explanation-header">
+                <span className="mileage-explanation-emoji">🪜</span>
+                <span className="mileage-explanation-label">계단</span>
+              </div>
+              <div className="mileage-explanation-detail">
+                <span className="mileage-explanation-example">
+                  {getExplanation(config['계단'], '층')}
+                </span>
+                <span className="mileage-explanation-coefficient">계수: {config['계단']}</span>
+              </div>
             </div>
           </div>
-
-          <p className="form-hint" style={{ marginTop: '16px' }}>
-            💡 예시: 계수 0.33은 거리의 33%가 마일리지로 계산됩니다.
-          </p>
         </div>
       </div>
     </div>

@@ -29,6 +29,7 @@ export interface ClubMember {
   role: 'admin' | 'member';
   joined_at: string;
   display_order: number;
+  club_nickname?: string;
   user?: {
     display_name: string;
     profile_image?: string;
@@ -107,6 +108,7 @@ class ClubService {
     name: string;
     description: string;
     created_by: string;
+    club_nickname?: string;
   }): Promise<Club> {
     console.log('🏢 클럽 생성 시작:', data);
 
@@ -133,7 +135,7 @@ class ClubService {
     console.log('✅ 클럽 생성 성공:', club);
 
     // 생성자를 admin으로 자동 가입
-    await this.joinClub(club.id, data.created_by, 'admin');
+    await this.joinClub(club.id, data.created_by, 'admin', data.club_nickname);
 
     return club;
   }
@@ -155,7 +157,7 @@ class ClubService {
   }
 
   // 초대 코드로 클럽 가입
-  async joinClubByInviteCode(inviteCode: string, userId: string): Promise<Club> {
+  async joinClubByInviteCode(inviteCode: string, userId: string, clubNickname?: string): Promise<Club> {
     const club = await this.findClubByInviteCode(inviteCode);
 
     if (!club) {
@@ -168,7 +170,7 @@ class ClubService {
       throw new Error('이미 가입한 클럽입니다.');
     }
 
-    await this.joinClub(club.id, userId);
+    await this.joinClub(club.id, userId, 'member', clubNickname);
     return club;
   }
 
@@ -339,11 +341,12 @@ class ClubService {
   }
 
   // 클럽 가입
-  async joinClub(clubId: string, userId: string, role: 'admin' | 'member' = 'member'): Promise<void> {
+  async joinClub(clubId: string, userId: string, role: 'admin' | 'member' = 'member', clubNickname?: string): Promise<void> {
     const { error } = await supabase.from('club_members').insert({
       club_id: clubId,
       user_id: userId,
       role,
+      club_nickname: clubNickname,
     });
 
     if (error) {
@@ -363,6 +366,107 @@ class ClubService {
     if (error) {
       console.error('클럽 탈퇴 실패:', error);
       throw error;
+    }
+  }
+
+  // 클럽 닉네임 업데이트
+  async updateClubNickname(clubId: string, userId: string, nickname: string): Promise<void> {
+    const { error } = await supabase
+      .from('club_members')
+      .update({ club_nickname: nickname })
+      .eq('club_id', clubId)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('클럽 닉네임 업데이트 실패:', error);
+      throw error;
+    }
+  }
+
+  // 클럽 닉네임 조회
+  async getClubNickname(clubId: string, userId: string): Promise<string | null> {
+    const { data, error } = await supabase
+      .from('club_members')
+      .select('club_nickname')
+      .eq('club_id', clubId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      console.error('클럽 닉네임 조회 실패:', error);
+      return null;
+    }
+
+    return data?.club_nickname || null;
+  }
+
+  // 클럽 멤버 목록 조회
+  async getClubMembers(clubId: string): Promise<ClubMember[]> {
+    const { data: members, error } = await supabase
+      .from('club_members')
+      .select('id, club_id, user_id, role, joined_at, display_order, club_nickname')
+      .eq('club_id', clubId);
+
+    if (error) {
+      console.error('클럽 멤버 조회 실패:', error);
+      throw error;
+    }
+
+    if (!members || members.length === 0) {
+      return [];
+    }
+
+    // 사용자 정보 조회
+    const userIds = members.map((m) => m.user_id);
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, display_name, profile_image')
+      .in('id', userIds);
+
+    // 멤버와 사용자 정보 병합
+    return members.map((member) => {
+      const user = users?.find((u) => u.id === member.user_id);
+      return {
+        ...member,
+        user: user
+          ? {
+              display_name: user.display_name,
+              profile_image: user.profile_image,
+            }
+          : undefined,
+      };
+    });
+  }
+
+  // 클럽장 위임
+  async transferClubOwnership(clubId: string, currentOwnerId: string, newOwnerId: string): Promise<void> {
+    // 트랜잭션처럼 처리: 현재 관리자를 멤버로, 새 관리자를 admin으로 변경
+    const { error: currentOwnerError } = await supabase
+      .from('club_members')
+      .update({ role: 'member' })
+      .eq('club_id', clubId)
+      .eq('user_id', currentOwnerId);
+
+    if (currentOwnerError) {
+      console.error('현재 관리자 권한 해제 실패:', currentOwnerError);
+      throw currentOwnerError;
+    }
+
+    const { error: newOwnerError } = await supabase
+      .from('club_members')
+      .update({ role: 'admin' })
+      .eq('club_id', clubId)
+      .eq('user_id', newOwnerId);
+
+    if (newOwnerError) {
+      console.error('새 관리자 권한 부여 실패:', newOwnerError);
+      // 롤백: 현재 관리자 권한 복구
+      await supabase
+        .from('club_members')
+        .update({ role: 'admin' })
+        .eq('club_id', clubId)
+        .eq('user_id', currentOwnerId);
+      throw newOwnerError;
     }
   }
 
@@ -412,7 +516,7 @@ class ClubService {
     // 클럽 멤버 조회
     const { data: members, error: membersError } = await supabase
       .from('club_members')
-      .select('user_id')
+      .select('user_id, club_nickname')
       .eq('club_id', clubId);
 
     if (membersError || !members || members.length === 0) {
@@ -422,6 +526,14 @@ class ClubService {
 
     const userIds = members.map((m) => m.user_id);
     console.log('📊 클럽 멤버:', userIds);
+
+    // 닉네임 맵 생성
+    const nicknameMap: Record<string, string> = {};
+    members.forEach((m) => {
+      if (m.club_nickname) {
+        nicknameMap[m.user_id] = m.club_nickname;
+      }
+    });
 
     // 운동 기록 조회
     let query = supabase
@@ -479,11 +591,11 @@ class ClubService {
       throw usersError;
     }
 
-    // 랭킹 생성
+    // 랭킹 생성 (클럽 닉네임 우선, 없으면 users.display_name 사용)
     const ranking: ClubRanking[] = (users || [])
       .map((user) => ({
         user_id: user.id,
-        display_name: user.display_name,
+        display_name: nicknameMap[user.id] || user.display_name,
         profile_image: user.profile_image,
         total_mileage: userMileageMap[user.id]?.mileage || 0,
         workout_count: userMileageMap[user.id]?.count || 0,
@@ -512,7 +624,7 @@ class ClubService {
     // 클럽 멤버 조회
     const { data: members } = await supabase
       .from('club_members')
-      .select('user_id')
+      .select('user_id, club_nickname')
       .eq('club_id', clubId);
 
     if (!members || members.length === 0) {
@@ -520,6 +632,14 @@ class ClubService {
     }
 
     const userIds = members.map((m) => m.user_id);
+
+    // 닉네임 맵 생성
+    const nicknameMap: Record<string, string> = {};
+    members.forEach((m) => {
+      if (m.club_nickname) {
+        nicknameMap[m.user_id] = m.club_nickname;
+      }
+    });
 
     // 운동 기록 조회
     let query = supabase
@@ -576,13 +696,13 @@ class ClubService {
       .select('id, display_name')
       .in('id', userIds);
 
-    // 상세 통계 생성
+    // 상세 통계 생성 (클럽 닉네임 우선, 없으면 users.display_name 사용)
     const stats: ClubDetailedStats[] = (users || [])
       .map((user) => {
         const userStats = userStatsMap[user.id];
         return {
           user_id: user.id,
-          display_name: user.display_name,
+          display_name: nicknameMap[user.id] || user.display_name,
           rank: 0,
           total_mileage: userStats?.total || 0,
           by_workout: {
@@ -601,19 +721,19 @@ class ClubService {
     return stats;
   }
 
-  // 기본 마일리지 계수
+  // 기본 마일리지 계수 (나눗셈 방식: X km/m/층 당 1 마일리지)
   getDefaultMileageConfig(): MileageConfig {
     return {
-      '달리기-트레드밀': 1,
-      '달리기-러닝': 1,
-      '사이클-실외': 0.333,
-      '사이클-실내': 0.2,
-      '수영': 0.005,
-      '계단': 0.05,
+      '달리기-트레드밀': 1,      // 1km당 1 마일리지
+      '달리기-러닝': 1,          // 1km당 1 마일리지
+      '사이클-실외': 3,          // 3km당 1 마일리지
+      '사이클-실내': 5,          // 5km당 1 마일리지
+      '수영': 200,               // 200m당 1 마일리지
+      '계단': 20,                // 20층당 1 마일리지
     };
   }
 
-  // 마일리지 계산
+  // 마일리지 계산 (나눗셈 방식)
   calculateMileage(
     category: string,
     subType: string | null,
@@ -623,7 +743,9 @@ class ClubService {
     const key = subType ? `${category}-${subType}` : category;
     const config = mileageConfig || this.getDefaultMileageConfig();
     const coefficient = config[key as keyof MileageConfig] || 1;
-    return value * coefficient;
+    // 나눗셈 방식: 거리 / 계수 = 마일리지
+    // 예: 3km / 3 = 1 마일리지
+    return value / coefficient;
   }
 }
 

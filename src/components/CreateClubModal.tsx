@@ -11,6 +11,7 @@ export const CreateClubModal = ({ onClose, onSuccess }: Props) => {
   const { user } = useAuth();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [nickname, setNickname] = useState('');
   const [creating, setCreating] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,6 +22,11 @@ export const CreateClubModal = ({ onClose, onSuccess }: Props) => {
       return;
     }
 
+    if (!nickname.trim()) {
+      alert('클럽에서 사용할 별명을 입력해주세요.');
+      return;
+    }
+
     setCreating(true);
 
     try {
@@ -28,6 +34,7 @@ export const CreateClubModal = ({ onClose, onSuccess }: Props) => {
         name: name.trim(),
         description: description.trim(),
         created_by: user.id,
+        club_nickname: nickname.trim(),
       });
 
       onSuccess();
@@ -77,6 +84,21 @@ export const CreateClubModal = ({ onClose, onSuccess }: Props) => {
                 rows={4}
                 maxLength={200}
               />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="nickname">내 별명 *</label>
+              <input
+                id="nickname"
+                type="text"
+                placeholder="예: 아침러너"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                className="value-input"
+                required
+                maxLength={20}
+              />
+              <p className="form-hint">이 클럽에서 표시될 내 이름입니다.</p>
             </div>
 
             <div className="modal-actions">

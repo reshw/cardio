@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 import { CreateClubModal } from '../components/CreateClubModal';
-import { EditClubModal } from '../components/EditClubModal';
 import { MileageConfigModal } from '../components/MileageConfigModal';
 import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
@@ -73,9 +72,7 @@ export const Club = () => {
   const [ranking, setRanking] = useState<ClubRanking[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [showMileageConfig, setShowMileageConfig] = useState(false);
   const [showDetailedStats, setShowDetailedStats] = useState(false);
 
@@ -100,10 +97,6 @@ export const Club = () => {
         const firstClub = data[0];
         setSelectedClub(firstClub);
         loadClubRanking(firstClub.id);
-
-        // Admin 권한 확인
-        const admin = await clubService.isClubAdmin(firstClub.id, user.id);
-        setIsAdmin(admin);
       }
     } catch (error) {
       console.error('내 클럽 불러오기 실패:', error);
@@ -138,12 +131,6 @@ export const Club = () => {
     setSelectedClub(club);
     setShowDropdown(false);
     loadClubRanking(club.id);
-
-    // admin 권한 확인
-    if (user) {
-      const admin = await clubService.isClubAdmin(club.id, user.id);
-      setIsAdmin(admin);
-    }
   };
 
   // 드래그 앤 드롭으로 순서 변경
@@ -180,7 +167,7 @@ export const Club = () => {
 
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(inviteUrl).then(() => {
-        alert('초대 링크가 복사되었습니다! 📋');
+        alert('클럽 초대링크가 복사되었습니다! 📋\n카톡이나 메시지에 붙여넣어서 공유해보세요.');
       });
     } else {
       const textArea = document.createElement('textarea');
@@ -191,7 +178,7 @@ export const Club = () => {
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      alert('초대 링크가 복사되었습니다! 📋');
+      alert('클럽 초대링크가 복사되었습니다! 📋\n카톡이나 메시지에 붙여넣어서 공유해보세요.');
     }
   };
 
@@ -292,14 +279,15 @@ export const Club = () => {
             onClick={(e) => copyInviteCode(selectedClub.invite_code, e)}
           >
             <Copy size={14} />
-            <span>초대</span>
+            <span>클럽초대</span>
           </button>
-          {isAdmin && (
-            <button className="action-button-compact" onClick={() => setShowEditModal(true)}>
-              <Settings size={14} />
-              <span>설정</span>
-            </button>
-          )}
+          <button
+            className="action-button-compact"
+            onClick={() => navigate(`/club/settings/${selectedClub.id}/${encodeURIComponent(selectedClub.name)}`)}
+          >
+            <Settings size={14} />
+            <span>설정</span>
+          </button>
         </div>
       )}
 
@@ -315,13 +303,13 @@ export const Club = () => {
               <div className="spinner"></div>
               <p>불러오는 중...</p>
             </div>
-          ) : ranking.length === 0 ? (
+          ) : ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0).length === 0 ? (
             <div className="empty-state">
               <p>이번 달 운동 기록이 없습니다.</p>
             </div>
           ) : (
             <div className="ranking-list">
-              {ranking.map((member) => (
+              {ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0).map((member) => (
                 <div
                   key={member.user_id}
                   className="ranking-item clickable"
@@ -372,19 +360,6 @@ export const Club = () => {
         <CreateClubModal
           onClose={() => setShowCreateModal(false)}
           onSuccess={loadMyClubs}
-        />
-      )}
-
-      {showEditModal && selectedClub && (
-        <EditClubModal
-          club={selectedClub}
-          onClose={() => setShowEditModal(false)}
-          onSuccess={() => {
-            loadMyClubs();
-            if (selectedClub) {
-              loadClubRanking(selectedClub.id);
-            }
-          }}
         />
       )}
 

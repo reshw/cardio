@@ -2258,3 +2258,440 @@ html {
   align-items: center;
   gap: 12px;
 }
+
+/* Settings Pages */
+.settings-page {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  min-height: calc(100vh - 60px - 70px);
+  background: var(--bg-color);
+}
+
+@media (min-width: 768px) {
+  .settings-page {
+    max-width: 600px;
+  }
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-color);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.settings-header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  border-radius: 8px;
+}
+
+.back-button:hover {
+  background: var(--input-bg);
+}
+
+.settings-form {
+  padding: 20px;
+}
+
+.settings-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.settings-section {
+  background: var(--card-bg);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.settings-section.danger-section {
+  border-color: #ff000033;
+}
+
+.settings-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--card-bg);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.settings-menu-item:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.settings-menu-item:hover {
+  background: var(--card-hover-bg);
+}
+
+.settings-menu-item:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-menu-item.danger {
+  color: #FF6B6B;
+}
+
+.settings-menu-item.danger:hover {
+  background: #fff5f5;
+}
+
+.menu-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Invite Code Display */
+.invite-code-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--input-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.invite-code-value {
+  flex: 1;
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 2px;
+}
+
+.copy-button {
+  padding: 8px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.copy-button:hover {
+  background: var(--primary-hover);
+}
+
+/* Mileage Config Grid */
+.mileage-config-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 480px) {
+  .mileage-config-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.mileage-config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mileage-config-item label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.mileage-input {
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 16px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.mileage-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background: var(--bg-color);
+}
+
+/* Primary Button Full Width */
+.primary-button-full {
+  width: 100%;
+  padding: 14px 20px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.primary-button-full:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.primary-button-full:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Member Select List */
+.member-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.member-select-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.member-select-item:hover {
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
+}
+
+.member-select-item.selected {
+  background: var(--gradient-light);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
+}
+
+.member-select-profile,
+.member-select-profile-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.member-select-profile {
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+}
+
+.member-select-profile-placeholder {
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.member-select-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.member-select-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.member-select-role {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.member-select-radio {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.member-select-item.selected .member-select-radio {
+  border-color: var(--primary-color);
+}
+
+.radio-checked {
+  width: 14px;
+  height: 14px;
+  background: var(--primary-color);
+  border-radius: 50%;
+}
+
+/* Mileage Explanation List */
+.mileage-explanation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mileage-explanation-item {
+  background: var(--gradient-light);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s;
+}
+
+.mileage-explanation-item:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary-color);
+}
+
+.mileage-explanation-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mileage-explanation-emoji {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.mileage-explanation-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mileage-explanation-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 34px;
+}
+
+.mileage-explanation-example {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--primary-color);
+  background: rgba(79, 195, 247, 0.1);
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.mileage-explanation-coefficient {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Mileage Edit List (Settings) */
+.mileage-edit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.mileage-edit-item {
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s;
+}
+
+.mileage-edit-item:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
+}
+
+.mileage-edit-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mileage-edit-emoji {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.mileage-edit-header label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.mileage-edit-item .mileage-input {
+  width: 100%;
+  margin-bottom: 10px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.mileage-edit-preview {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--primary-color);
+  background: rgba(79, 195, 247, 0.08);
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-align: center;
+}
