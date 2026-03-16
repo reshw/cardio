@@ -45,7 +45,8 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
       '총 마일리지',
     ];
 
-    const rows = stats.map((member) => [
+    const filteredStats = stats.filter(m => m.total_mileage > 0);
+    const rows = filteredStats.map((member) => [
       member.rank,
       member.display_name,
       member.by_workout['달리기-트레드밀'].toFixed(1),
@@ -110,7 +111,7 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
               <div className="spinner"></div>
               <p>불러오는 중...</p>
             </div>
-          ) : stats.length === 0 ? (
+          ) : stats.filter(m => m.total_mileage > 0).length === 0 ? (
             <div className="empty-state">
               <p>통계 데이터가 없습니다.</p>
             </div>
@@ -143,7 +144,7 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
                     </tr>
                   </thead>
                   <tbody>
-                    {stats.map((member) => (
+                    {stats.filter(m => m.total_mileage > 0).map((member) => (
                       <tr key={member.user_id}>
                         <td className="rank-cell">
                           {member.rank === 1 ? '🥇' : member.rank === 2 ? '🥈' : member.rank === 3 ? '🥉' : member.rank}
