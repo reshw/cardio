@@ -258,13 +258,18 @@ class ClubService {
   }
 
   // 클럽 정보 수정
-  async updateClub(clubId: string, data: { name?: string; description?: string }): Promise<Club> {
+  async updateClub(
+    clubId: string,
+    data: { name?: string; description?: string; mileage_config?: MileageConfig }
+  ): Promise<Club> {
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.mileage_config !== undefined) updateData.mileage_config = data.mileage_config;
+
     const { data: club, error } = await supabase
       .from('clubs')
-      .update({
-        name: data.name,
-        description: data.description,
-      })
+      .update(updateData)
       .eq('id', clubId)
       .select()
       .single();
@@ -378,6 +383,15 @@ class ClubService {
 
   // 클럽 랭킹 조회 (월별)
   async getClubRanking(clubId: string, month?: { year: number; month: number }): Promise<ClubRanking[]> {
+    // 클럽 정보 조회 (마일리지 설정 포함)
+    const { data: club, error: clubError } = await supabase
+      .from('clubs')
+      .select('mileage_config')
+      .eq('id', clubId)
+      .single();
+
+    const mileageConfig = club?.mileage_config || this.getDefaultMileageConfig();
+
     // 클럽 멤버 조회
     const { data: members, error: membersError } = await supabase
       .from('club_members')
@@ -427,7 +441,7 @@ class ClubService {
       // 마일리지가 null이거나 0이면 재계산
       let mileage = workout.mileage || 0;
       if (mileage === 0 && workout.category) {
-        mileage = this.calculateMileage(workout.category, workout.sub_type, workout.value);
+        mileage = this.calculateMileage(workout.category, workout.sub_type, workout.value, mileageConfig);
         console.log(`🔄 마일리지 재계산: ${workout.category}-${workout.sub_type} ${workout.value} → ${mileage}`);
       }
 
@@ -464,11 +478,9 @@ class ClubService {
     return ranking;
   }
 
-  // 마일리지 계산
-  calculateMileage(category: string, subType: string | null, value: number): number {
-    const key = subType ? `${category}-${subType}` : category;
-
-    const coefficients: Record<string, number> = {
+  // 기본 마일리지 계수
+  getDefaultMileageConfig(): MileageConfig {
+    return {
       '달리기-트레드밀': 1,
       '달리기-러닝': 1,
       '사이클-실외': 0.333,
@@ -476,8 +488,18 @@ class ClubService {
       '수영': 0.005,
       '계단': 0.05,
     };
+  }
 
-    const coefficient = coefficients[key] || 1;
+  // 마일리지 계산
+  calculateMileage(
+    category: string,
+    subType: string | null,
+    value: number,
+    mileageConfig?: MileageConfig
+  ): number {
+    const key = subType ? `${category}-${subType}` : category;
+    const config = mileageConfig || this.getDefaultMileageConfig();
+    const coefficient = config[key as keyof MileageConfig] || 1;
     return value * coefficient;
   }
 }

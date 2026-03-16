@@ -295,7 +295,9 @@ export const Club = () => {
                   key={member.user_id}
                   className="ranking-item clickable"
                   onClick={() =>
-                    navigate(`/club/member/${member.user_id}/${encodeURIComponent(member.display_name)}`)
+                    navigate(
+                      `/club/member/${selectedClub?.id}/${member.user_id}/${encodeURIComponent(member.display_name)}`
+                    )
                   }
                 >
                   <div className="ranking-left">

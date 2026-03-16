@@ -36,7 +36,7 @@ function ProtectedRoutes() {
         <Routes>
           <Route path="/" element={<History />} />
           <Route path="/club" element={<Club />} />
-          <Route path="/club/member/:userId/:userName" element={<ClubMemberDetail />} />
+          <Route path="/club/member/:clubId/:userId/:userName" element={<ClubMemberDetail />} />
           <Route path="/join" element={<JoinClub />} />
           <Route path="/join/:code" element={<JoinClub />} />
           <Route path="/more" element={<More />} />

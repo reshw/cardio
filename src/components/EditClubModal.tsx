@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
-import type { MyClubWithOrder } from '../services/clubService';
+import type { MyClubWithOrder, MileageConfig } from '../services/clubService';
 
 interface Props {
   club: MyClubWithOrder;
@@ -15,6 +15,11 @@ export const EditClubModal = ({ club, onClose, onSuccess }: Props) => {
   const [description, setDescription] = useState(club.description || '');
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const defaultConfig = clubService.getDefaultMileageConfig();
+  const [mileageConfig, setMileageConfig] = useState<MileageConfig>(
+    club.mileage_config || defaultConfig
+  );
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +35,7 @@ export const EditClubModal = ({ club, onClose, onSuccess }: Props) => {
       await clubService.updateClub(club.id, {
         name: name.trim(),
         description: description.trim(),
+        mileage_config: mileageConfig,
       });
 
       alert('클럽 정보가 수정되었습니다.');
@@ -40,6 +46,16 @@ export const EditClubModal = ({ club, onClose, onSuccess }: Props) => {
       alert('클럽 수정에 실패했습니다.');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleMileageChange = (key: keyof MileageConfig, value: string) => {
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue >= 0) {
+      setMileageConfig({
+        ...mileageConfig,
+        [key]: numValue,
+      });
     }
   };
 
@@ -112,6 +128,81 @@ export const EditClubModal = ({ club, onClose, onSuccess }: Props) => {
                 {club.invite_code}
               </div>
               <p className="form-hint">초대 코드는 변경할 수 없습니다.</p>
+            </div>
+
+            <div className="form-group">
+              <label>마일리지 계수 설정</label>
+              <p className="form-hint">
+                각 운동별 마일리지 계산 계수입니다. (예: 0.33은 거리의 33%)
+              </p>
+              <div className="mileage-config-grid">
+                <div className="mileage-config-item">
+                  <label>달리기 - 트레드밀</label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={mileageConfig['달리기-트레드밀']}
+                    onChange={(e) => handleMileageChange('달리기-트레드밀', e.target.value)}
+                    className="mileage-input"
+                  />
+                </div>
+                <div className="mileage-config-item">
+                  <label>달리기 - 러닝</label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={mileageConfig['달리기-러닝']}
+                    onChange={(e) => handleMileageChange('달리기-러닝', e.target.value)}
+                    className="mileage-input"
+                  />
+                </div>
+                <div className="mileage-config-item">
+                  <label>사이클 - 실외</label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={mileageConfig['사이클-실외']}
+                    onChange={(e) => handleMileageChange('사이클-실외', e.target.value)}
+                    className="mileage-input"
+                  />
+                </div>
+                <div className="mileage-config-item">
+                  <label>사이클 - 실내</label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={mileageConfig['사이클-실내']}
+                    onChange={(e) => handleMileageChange('사이클-실내', e.target.value)}
+                    className="mileage-input"
+                  />
+                </div>
+                <div className="mileage-config-item">
+                  <label>수영</label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={mileageConfig['수영']}
+                    onChange={(e) => handleMileageChange('수영', e.target.value)}
+                    className="mileage-input"
+                  />
+                </div>
+                <div className="mileage-config-item">
+                  <label>계단</label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={mileageConfig['계단']}
+                    onChange={(e) => handleMileageChange('계단', e.target.value)}
+                    className="mileage-input"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="modal-actions">

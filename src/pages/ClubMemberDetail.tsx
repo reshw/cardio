@@ -4,19 +4,39 @@ import { ChevronLeft, X } from 'lucide-react';
 import workoutService from '../services/workoutService';
 import type { Workout } from '../services/workoutService';
 import clubService from '../services/clubService';
+import type { MileageConfig } from '../services/clubService';
 
 export const ClubMemberDetail = () => {
-  const { userId, userName } = useParams<{ userId: string; userName: string }>();
+  const { clubId, userId, userName } = useParams<{
+    clubId: string;
+    userId: string;
+    userName: string;
+  }>();
   const navigate = useNavigate();
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [mileageConfig, setMileageConfig] = useState<MileageConfig>(
+    clubService.getDefaultMileageConfig()
+  );
 
   useEffect(() => {
-    if (userId) {
+    if (clubId && userId) {
+      loadClubConfig();
       loadWorkouts();
     }
-  }, [userId]);
+  }, [clubId, userId]);
+
+  const loadClubConfig = async () => {
+    if (!clubId) return;
+
+    try {
+      const club = await clubService.getClubById(clubId);
+      setMileageConfig(club.mileage_config || clubService.getDefaultMileageConfig());
+    } catch (error) {
+      console.error('클럽 정보 불러오기 실패:', error);
+    }
+  };
 
   const loadWorkouts = async () => {
     if (!userId) return;
@@ -63,7 +83,7 @@ export const ClubMemberDetail = () => {
 
   const calculateMileage = (workout: Workout) => {
     if (workout.mileage) return workout.mileage;
-    return clubService.calculateMileage(workout.category, workout.sub_type, workout.value);
+    return clubService.calculateMileage(workout.category, workout.sub_type, workout.value, mileageConfig);
   };
 
   const totalMileage = workouts.reduce((sum, w) => sum + calculateMileage(w), 0);
