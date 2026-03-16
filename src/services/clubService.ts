@@ -502,16 +502,91 @@ class ClubService {
     return count || 0;
   }
 
+  // 월별 마일리지 설정 스냅샷 저장
+  async saveMonthlyConfigSnapshot(
+    clubId: string,
+    year: number,
+    month: number,
+    config: MileageConfig
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('club_monthly_configs')
+      .upsert({
+        club_id: clubId,
+        year,
+        month,
+        mileage_config: config,
+      });
+
+    if (error) {
+      console.error('월별 설정 스냅샷 저장 실패:', error);
+      throw error;
+    }
+  }
+
+  // 월별 마일리지 설정 스냅샷 조회
+  async getMonthlyConfigSnapshot(
+    clubId: string,
+    year: number,
+    month: number
+  ): Promise<MileageConfig | null> {
+    const { data, error } = await supabase
+      .from('club_monthly_configs')
+      .select('mileage_config')
+      .eq('club_id', clubId)
+      .eq('year', year)
+      .eq('month', month)
+      .maybeSingle();
+
+    if (error) {
+      console.error('월별 설정 스냅샷 조회 실패:', error);
+      return null;
+    }
+
+    return data?.mileage_config || null;
+  }
+
   // 클럽 랭킹 조회 (월별)
   async getClubRanking(clubId: string, month?: { year: number; month: number }): Promise<ClubRanking[]> {
-    // 클럽 정보 조회 (마일리지 설정 포함)
-    const { data: club } = await supabase
-      .from('clubs')
-      .select('mileage_config')
-      .eq('id', clubId)
-      .single();
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const targetYear = month?.year || currentYear;
+    const targetMonth = month?.month || currentMonth;
 
-    const mileageConfig = club?.mileage_config || this.getDefaultMileageConfig();
+    // 현재 월인지 확인
+    const isCurrentMonth = targetYear === currentYear && targetMonth === currentMonth;
+
+    // 마일리지 설정 가져오기
+    let mileageConfig: MileageConfig;
+
+    if (isCurrentMonth) {
+      // 현재 월: 현재 클럽 설정 사용
+      const { data: club } = await supabase
+        .from('clubs')
+        .select('mileage_config')
+        .eq('id', clubId)
+        .single();
+
+      mileageConfig = club?.mileage_config || this.getDefaultMileageConfig();
+    } else {
+      // 과거 월: 스냅샷 조회
+      const snapshot = await this.getMonthlyConfigSnapshot(clubId, targetYear, targetMonth);
+
+      if (!snapshot) {
+        // 스냅샷 없으면 현재 설정 사용 (배치 전이거나 이전 데이터)
+        console.warn(`⚠️  스냅샷 없음: ${targetYear}-${targetMonth}, 현재 설정 사용`);
+        const { data: club } = await supabase
+          .from('clubs')
+          .select('mileage_config')
+          .eq('id', clubId)
+          .single();
+
+        mileageConfig = club?.mileage_config || this.getDefaultMileageConfig();
+      } else {
+        mileageConfig = snapshot;
+      }
+    }
 
     // 클럽 멤버 조회
     const { data: members, error: membersError } = await supabase
@@ -610,14 +685,45 @@ class ClubService {
     clubId: string,
     month?: { year: number; month: number }
   ): Promise<ClubDetailedStats[]> {
-    // 클럽 정보 조회
-    const { data: club } = await supabase
-      .from('clubs')
-      .select('mileage_config')
-      .eq('id', clubId)
-      .single();
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const targetYear = month?.year || currentYear;
+    const targetMonth = month?.month || currentMonth;
 
-    const mileageConfig = club?.mileage_config || this.getDefaultMileageConfig();
+    // 현재 월인지 확인
+    const isCurrentMonth = targetYear === currentYear && targetMonth === currentMonth;
+
+    // 마일리지 설정 가져오기
+    let mileageConfig: MileageConfig;
+
+    if (isCurrentMonth) {
+      // 현재 월: 현재 클럽 설정 사용
+      const { data: club } = await supabase
+        .from('clubs')
+        .select('mileage_config')
+        .eq('id', clubId)
+        .single();
+
+      mileageConfig = club?.mileage_config || this.getDefaultMileageConfig();
+    } else {
+      // 과거 월: 스냅샷 조회
+      const snapshot = await this.getMonthlyConfigSnapshot(clubId, targetYear, targetMonth);
+
+      if (!snapshot) {
+        // 스냅샷 없으면 현재 설정 사용 (배치 전이거나 이전 데이터)
+        console.warn(`⚠️  스냅샷 없음: ${targetYear}-${targetMonth}, 현재 설정 사용`);
+        const { data: club } = await supabase
+          .from('clubs')
+          .select('mileage_config')
+          .eq('id', clubId)
+          .single();
+
+        mileageConfig = club?.mileage_config || this.getDefaultMileageConfig();
+      } else {
+        mileageConfig = snapshot;
+      }
+    }
 
     // 클럽 멤버 조회
     const { data: members } = await supabase
