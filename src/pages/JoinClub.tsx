@@ -40,6 +40,13 @@ export const JoinClub = () => {
       navigate('/club');
     } catch (err) {
       console.error('클럽 가입 실패:', err);
+
+      // 이미 가입한 클럽인 경우 조용히 메인으로 리다이렉트
+      if (err instanceof Error && err.message === '이미 가입한 클럽입니다.') {
+        navigate('/club');
+        return;
+      }
+
       if (err instanceof Error) {
         setError(err.message);
       } else {

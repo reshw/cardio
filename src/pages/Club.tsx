@@ -164,24 +164,26 @@ export const Club = () => {
     }
   };
 
-  // 초대 코드 복사
+  // 초대 코드 복사 (전체 URL)
   const copyInviteCode = (code: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
+    const inviteUrl = `${window.location.origin}/join/${code}`;
+
     if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(code).then(() => {
-        alert('초대 코드가 복사되었습니다! 📋');
+      navigator.clipboard.writeText(inviteUrl).then(() => {
+        alert('초대 링크가 복사되었습니다! 📋');
       });
     } else {
       const textArea = document.createElement('textarea');
-      textArea.value = code;
+      textArea.value = inviteUrl;
       textArea.style.position = 'fixed';
       textArea.style.left = '-999999px';
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      alert('초대 코드가 복사되었습니다! 📋');
+      alert('초대 링크가 복사되었습니다! 📋');
     }
   };
 
