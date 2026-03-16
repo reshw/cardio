@@ -567,12 +567,10 @@ class ClubService {
         userMileageMap[workout.user_id] = { mileage: 0, count: 0 };
       }
 
-      // 마일리지가 null이거나 0이면 재계산
-      let mileage = workout.mileage || 0;
-      if (mileage === 0 && workout.category) {
-        mileage = this.calculateMileage(workout.category, workout.sub_type, workout.value, mileageConfig);
-        console.log(`🔄 마일리지 재계산: ${workout.category}-${workout.sub_type} ${workout.value} → ${mileage}`);
-      }
+      // 항상 현재 클럽 설정으로 마일리지 재계산
+      const mileage = workout.category
+        ? this.calculateMileage(workout.category, workout.sub_type, workout.value, mileageConfig)
+        : 0;
 
       userMileageMap[workout.user_id].mileage += mileage;
       userMileageMap[workout.user_id].count += 1;
