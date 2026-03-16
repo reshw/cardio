@@ -4,6 +4,7 @@ import { Login } from './pages/Login';
 import { History } from './pages/History';
 import { Club } from './pages/Club';
 import { More } from './pages/More';
+import { JoinClub } from './pages/JoinClub';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import KakaoCallback from './components/KakaoCallback';
@@ -30,12 +31,16 @@ function ProtectedRoutes() {
   return (
     <>
       <Header />
-      <Routes>
-        <Route path="/" element={<History />} />
-        <Route path="/club" element={<Club />} />
-        <Route path="/more" element={<More />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <div className="main-content">
+        <Routes>
+          <Route path="/" element={<History />} />
+          <Route path="/club" element={<Club />} />
+          <Route path="/join" element={<JoinClub />} />
+          <Route path="/join/:code" element={<JoinClub />} />
+          <Route path="/more" element={<More />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
       <BottomNav />
     </>
   );

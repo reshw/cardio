@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import clubService from './clubService';
 
 // 주 카테고리
 export type WorkoutCategory = '달리기' | '사이클' | '수영' | '계단';
@@ -19,6 +20,7 @@ export interface Workout {
   sub_type: WorkoutSubType;
   value: number;
   unit: WorkoutUnit;
+  mileage: number;
   proof_image?: string;
   created_at: string;
 }
@@ -38,16 +40,20 @@ class WorkoutService {
     console.log('📝 운동 기록 추가 데이터:', data);
     console.log('🔧 Supabase client 확인:', !!supabase);
 
+    // 마일리지 계산
+    const mileage = clubService.calculateMileage(data.category, data.sub_type, data.value);
+
     const insertData = {
       user_id: data.user_id,
       category: data.category,
       sub_type: data.sub_type,
       value: data.value,
       unit: data.unit,
+      mileage: mileage,
       proof_image: data.proof_image || null,
     };
 
-    console.log('📤 Insert 데이터:', insertData);
+    console.log('📤 Insert 데이터 (마일리지 포함):', insertData);
 
     const { data: workout, error } = await supabase
       .from('workouts')

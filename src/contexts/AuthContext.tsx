@@ -29,23 +29,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // Supabase 세션 확인
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (session) {
-          // 유효한 세션이 있으면 localStorage에서 사용자 정보 복원
-          const savedUser = localStorage.getItem('current_user');
-          if (savedUser) {
-            setUser(JSON.parse(savedUser));
-          }
+        // localStorage에서 사용자 정보 복원 (우선)
+        const savedUser = localStorage.getItem('current_user');
+        if (savedUser) {
+          setUser(JSON.parse(savedUser));
         } else {
-          // 세션이 없으면 localStorage도 삭제
-          localStorage.removeItem('current_user');
           setUser(null);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
-        localStorage.removeItem('current_user');
         setUser(null);
       } finally {
         setLoading(false);
@@ -124,8 +116,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    // Supabase Auth 로그아웃
-    await supabase.auth.signOut();
+    try {
+      // Supabase Auth 로그아웃 (에러 무시)
+      await supabase.auth.signOut();
+    } catch {
+      // 에러 무시
+    }
 
     setUser(null);
     localStorage.removeItem('current_user');
