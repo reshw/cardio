@@ -194,9 +194,9 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
                     <input
                       id="value"
                       type="number"
-                      step="0.1"
-                      min="0.1"
-                      placeholder="예: 5.2"
+                      step="0.01"
+                      min="0.01"
+                      placeholder="예: 5.25"
                       value={value}
                       onChange={(e) => setValue(e.target.value)}
                       className="value-input"

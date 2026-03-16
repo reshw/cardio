@@ -145,8 +145,8 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
                 <input
                   id="edit-value"
                   type="number"
-                  step="0.1"
-                  min="0.1"
+                  step="0.01"
+                  min="0.01"
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
                   className="value-input"
