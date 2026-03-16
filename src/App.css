@@ -1650,34 +1650,47 @@ html {
   transform: none;
 }
 
-/* Club Member Detail Modal */
-.modal-content.large {
-  max-width: 700px;
-  max-height: 85vh;
+/* Club Member Detail Page */
+.back-button {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 8px;
+  margin-right: 8px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-button:hover {
+  background: var(--input-bg);
 }
 
 .member-detail-summary {
   display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .summary-item {
   flex: 1;
   background: var(--gradient-light);
-  padding: 20px;
+  padding: 16px;
   border-radius: 16px;
   text-align: center;
 }
 
 .summary-label {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .summary-value {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
@@ -1688,10 +1701,10 @@ html {
 .member-workout-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
-.member-workout-item {
+.member-workout-card {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 16px;
@@ -1699,12 +1712,11 @@ html {
   transition: all 0.2s;
 }
 
-.member-workout-item:hover {
+.member-workout-card:hover {
   box-shadow: var(--shadow-md);
-  border-color: var(--primary-color);
 }
 
-.workout-item-header {
+.workout-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1712,14 +1724,13 @@ html {
 }
 
 .workout-date-small {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
-.workout-item-stats {
+.workout-card-stats {
   display: flex;
   gap: 16px;
-  margin-top: 12px;
 }
 
 .stat-item {
@@ -1744,14 +1755,83 @@ html {
   color: var(--primary-color);
 }
 
-.workout-proof-image {
+.workout-proof-thumbnail {
   margin-top: 12px;
+  position: relative;
   border-radius: 12px;
   overflow: hidden;
+  cursor: pointer;
+  max-height: 120px;
 }
 
-.workout-proof-image img {
+.workout-proof-thumbnail img {
   width: 100%;
-  height: auto;
+  height: 120px;
+  object-fit: cover;
   display: block;
+}
+
+.thumbnail-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 8px;
+  font-size: 12px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.workout-proof-thumbnail:hover .thumbnail-overlay {
+  opacity: 1;
+}
+
+/* Image Viewer Modal */
+.image-viewer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  cursor: zoom-out;
+}
+
+.image-viewer-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 2001;
+}
+
+.image-viewer-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.image-viewer-content {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  cursor: default;
+  border-radius: 8px;
 }

@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Login } from './pages/Login';
 import { History } from './pages/History';
 import { Club } from './pages/Club';
+import { ClubMemberDetail } from './pages/ClubMemberDetail';
 import { More } from './pages/More';
 import { JoinClub } from './pages/JoinClub';
 import { Header } from './components/Header';
@@ -35,6 +36,7 @@ function ProtectedRoutes() {
         <Routes>
           <Route path="/" element={<History />} />
           <Route path="/club" element={<Club />} />
+          <Route path="/club/member/:userId/:userName" element={<ClubMemberDetail />} />
           <Route path="/join" element={<JoinClub />} />
           <Route path="/join/:code" element={<JoinClub />} />
           <Route path="/more" element={<More />} />
