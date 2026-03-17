@@ -1,13 +1,14 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Info, TrendingUp, UserCog, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, TrendingUp, UserCog, User, Users } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 
 export const ClubSettings = () => {
-  const { clubId, clubName } = useParams<{ clubId: string; clubName: string }>();
+  const { clubId } = useParams<{ clubId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [clubName, setClubName] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -24,6 +25,10 @@ export const ClubSettings = () => {
     try {
       const admin = await clubService.isClubAdmin(clubId, user.id);
       setIsAdmin(admin);
+
+      // 클럽 이름 조회
+      const club = await clubService.getClubById(clubId);
+      setClubName(club.name);
     } catch (error) {
       console.error('권한 확인 실패:', error);
     } finally {
@@ -72,7 +77,7 @@ export const ClubSettings = () => {
         <div className="settings-section">
           <button
             className="settings-menu-item"
-            onClick={() => navigate(`/club/my-settings/${clubId}/${encodeURIComponent(clubName || '')}`)}
+            onClick={() => navigate(`/club/my-settings/${clubId}`)}
           >
             <div className="menu-item-left">
               <User size={20} />
@@ -103,7 +108,7 @@ export const ClubSettings = () => {
             <div className="settings-section">
               <button
                 className="settings-menu-item"
-                onClick={() => navigate(`/club/settings/${clubId}/${encodeURIComponent(clubName || '')}/general`)}
+                onClick={() => navigate(`/club/settings/${clubId}/general`)}
               >
                 <div className="menu-item-left">
                   <Info size={20} />
@@ -114,11 +119,22 @@ export const ClubSettings = () => {
 
               <button
                 className="settings-menu-item"
-                onClick={() => navigate(`/club/settings/${clubId}/${encodeURIComponent(clubName || '')}/mileage`)}
+                onClick={() => navigate(`/club/settings/${clubId}/mileage`)}
               >
                 <div className="menu-item-left">
                   <TrendingUp size={20} />
                   <span>마일리지 계수 설정</span>
+                </div>
+                <ChevronRight size={20} />
+              </button>
+
+              <button
+                className="settings-menu-item"
+                onClick={() => navigate(`/club/members/${clubId}`)}
+              >
+                <div className="menu-item-left">
+                  <Users size={20} />
+                  <span>클럽원 관리</span>
                 </div>
                 <ChevronRight size={20} />
               </button>
@@ -127,7 +143,7 @@ export const ClubSettings = () => {
             <div className="settings-section danger-section">
               <button
                 className="settings-menu-item danger"
-                onClick={() => navigate(`/club/settings/${clubId}/${encodeURIComponent(clubName || '')}/transfer`)}
+                onClick={() => navigate(`/club/settings/${clubId}/transfer`)}
               >
                 <div className="menu-item-left">
                   <UserCog size={20} />

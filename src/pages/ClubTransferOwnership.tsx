@@ -6,7 +6,7 @@ import clubService from '../services/clubService';
 import type { ClubMember } from '../services/clubService';
 
 export const ClubTransferOwnership = () => {
-  const { clubId } = useParams<{ clubId: string; clubName: string }>();
+  const { clubId } = useParams<{ clubId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
 

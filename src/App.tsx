@@ -11,6 +11,8 @@ import { ClubGeneralSettings } from './pages/ClubGeneralSettings';
 import { ClubMileageSettings } from './pages/ClubMileageSettings';
 import { ClubMySettings } from './pages/ClubMySettings';
 import { ClubTransferOwnership } from './pages/ClubTransferOwnership';
+import { ClubMembers } from './pages/ClubMembers';
+import { ProtectedClubRoute } from './components/ProtectedClubRoute';
 import { More } from './pages/More';
 import { AdminPage } from './pages/AdminPage';
 import { AdminClubApproval } from './pages/AdminClubApproval';
@@ -47,12 +49,41 @@ function ProtectedRoutes() {
           <Route path="/add-workout" element={<AddWorkout />} />
           <Route path="/workout/:id" element={<WorkoutDetail />} />
           <Route path="/club" element={<Club />} />
-          <Route path="/club/member/:clubId/:userId/:userName" element={<ClubMemberDetail />} />
-          <Route path="/club/settings/:clubId/:clubName" element={<ClubSettings />} />
-          <Route path="/club/settings/:clubId/:clubName/general" element={<ClubGeneralSettings />} />
-          <Route path="/club/settings/:clubId/:clubName/mileage" element={<ClubMileageSettings />} />
-          <Route path="/club/settings/:clubId/:clubName/transfer" element={<ClubTransferOwnership />} />
-          <Route path="/club/my-settings/:clubId/:clubName" element={<ClubMySettings />} />
+          <Route path="/club/member/:clubId/:userId/:userName" element={
+            <ProtectedClubRoute>
+              <ClubMemberDetail />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId" element={
+            <ProtectedClubRoute>
+              <ClubSettings />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId/general" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubGeneralSettings />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId/mileage" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubMileageSettings />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId/transfer" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubTransferOwnership />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/my-settings/:clubId" element={
+            <ProtectedClubRoute>
+              <ClubMySettings />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/members/:clubId" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubMembers />
+            </ProtectedClubRoute>
+          } />
           <Route path="/join" element={<JoinClub />} />
           <Route path="/join/:code" element={<JoinClub />} />
           <Route path="/more" element={<More />} />

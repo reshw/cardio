@@ -601,6 +601,62 @@ html {
   flex: 1;
 }
 
+/* More Menu Modal */
+.more-menu-modal {
+  max-width: 420px;
+}
+
+.more-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.more-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: var(--card-bg);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.more-menu-item:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.more-menu-item:hover {
+  background: var(--card-hover-bg);
+}
+
+.more-menu-item svg {
+  flex-shrink: 0;
+  color: var(--primary-color);
+}
+
+.more-menu-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.more-menu-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.more-menu-desc {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
 /* Category Selection */
 .category-selection h3,
 .subtype-selection h3,
@@ -2087,6 +2143,90 @@ html {
   }
 }
 
+/* Club Main Actions (드롭다운 아래) */
+.club-main-actions {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0 24px 0;
+}
+
+.club-main-action-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
+  box-shadow: var(--shadow-sm);
+}
+
+.club-main-action-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.club-main-action-button.secondary {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+}
+
+.club-main-action-button.secondary:hover {
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
+}
+
+/* Dashboard Sub Actions (계수, 통계 버튼) */
+.dashboard-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.dashboard-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.dashboard-sub-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.sub-action-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+.sub-action-button:hover {
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
 /* Compact Action Buttons */
 .club-actions {
   display: flex;
@@ -3051,6 +3191,213 @@ html {
 
   .admin-menu-text p {
     font-size: 12px;
+  }
+}
+
+/* ============================================
+   클럽원 관리 페이지
+   ============================================ */
+
+.search-container {
+  margin-bottom: 20px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 12px 12px 44px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: 'Noto Sans KR', sans-serif;
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background: var(--bg-color);
+  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
+}
+
+.members-count {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.member-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+}
+
+.member-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.member-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.member-avatar,
+.member-avatar-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.member-avatar {
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+}
+
+.member-avatar-placeholder {
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.member-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.owner-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+.admin-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--gradient-primary);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+.member-original-name {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.member-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.member-action-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
+  white-space: nowrap;
+}
+
+.member-action-button.secondary {
+  background: var(--card-bg);
+  color: var(--text-primary);
+}
+
+.member-action-button.secondary:hover {
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.member-action-button.danger {
+  background: var(--card-bg);
+  color: #FF6B6B;
+  border-color: var(--border-color);
+}
+
+.member-action-button.danger:hover {
+  background: #fff5f5;
+  border-color: #FF6B6B;
+}
+
+.empty-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+@media (max-width: 768px) {
+  .member-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .member-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .member-action-button {
+    justify-content: center;
   }
 }
 

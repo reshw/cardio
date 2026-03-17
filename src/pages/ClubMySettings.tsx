@@ -5,11 +5,12 @@ import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 
 export const ClubMySettings = () => {
-  const { clubId, clubName } = useParams<{ clubId: string; clubName: string }>();
+  const { clubId } = useParams<{ clubId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const [nickname, setNickname] = useState('');
+  const [clubName, setClubName] = useState('');
   const [updating, setUpdating] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -26,6 +27,10 @@ export const ClubMySettings = () => {
     try {
       const currentNickname = await clubService.getClubNickname(clubId, user.id);
       setNickname(currentNickname || '');
+
+      // 클럽 이름도 조회
+      const club = await clubService.getClubById(clubId);
+      setClubName(club.name);
     } catch (error) {
       console.error('닉네임 불러오기 실패:', error);
       alert('닉네임을 불러올 수 없습니다.');
@@ -91,7 +96,7 @@ export const ClubMySettings = () => {
             maxLength={20}
           />
           <p className="form-hint">
-            {decodeURIComponent(clubName || '')} 클럽에서 표시될 이름입니다.
+            {clubName} 클럽에서 표시될 이름입니다.
           </p>
         </div>
 

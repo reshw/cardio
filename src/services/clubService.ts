@@ -537,6 +537,34 @@ class ClubService {
     }
   }
 
+  // 회원 역할 변경 (부매니저 지정/해제)
+  async updateMemberRole(clubId: string, userId: string, role: 'admin' | 'member'): Promise<void> {
+    const { error } = await supabase
+      .from('club_members')
+      .update({ role })
+      .eq('club_id', clubId)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('회원 역할 변경 실패:', error);
+      throw error;
+    }
+  }
+
+  // 회원 내보내기
+  async removeMember(clubId: string, userId: string): Promise<void> {
+    const { error } = await supabase
+      .from('club_members')
+      .delete()
+      .eq('club_id', clubId)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('회원 내보내기 실패:', error);
+      throw error;
+    }
+  }
+
   // 클럽 멤버 여부 확인
   async isClubMember(clubId: string, userId: string): Promise<boolean> {
     const { data, error } = await supabase

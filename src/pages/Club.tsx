@@ -6,7 +6,7 @@ import { CreateClubModal } from '../components/CreateClubModal';
 import { MileageConfigModal } from '../components/MileageConfigModal';
 import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
-import { Settings, Copy, ChevronDown, ChevronUp, Info, Table } from 'lucide-react';
+import { Settings, Copy, ChevronDown, ChevronUp, Info, Table, MoreHorizontal, Users } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -81,6 +81,7 @@ export const Club = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMileageConfig, setShowMileageConfig] = useState(false);
   const [showDetailedStats, setShowDetailedStats] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -269,35 +270,34 @@ export const Club = () => {
         </div>
       )}
 
-      {/* 클럽 액션 버튼 */}
+      {/* 클럽 액션 버튼 (드롭다운 바로 아래) */}
       {selectedClub && (
-        <div className="club-actions">
-          <button className="action-button-compact secondary" onClick={() => setShowMileageConfig(true)}>
-            <Info size={14} />
-            <span>계수</span>
-          </button>
-          <button className="action-button-compact secondary" onClick={() => setShowDetailedStats(true)}>
-            <Table size={14} />
-            <span>통계</span>
-          </button>
+        <div className="club-main-actions">
           <button
-            className="action-button-compact"
+            className="club-main-action-button"
             onClick={(e) => copyInviteCode(selectedClub.invite_code, e)}
           >
-            <Copy size={14} />
-            <span>클럽초대</span>
+            <Copy size={18} />
+            <span>클럽 초대</span>
           </button>
           <button
-            className="action-button-compact"
-            onClick={() => navigate(`/club/settings/${selectedClub.id}/${encodeURIComponent(selectedClub.name)}`)}
+            className="club-main-action-button"
+            onClick={() => navigate(`/club/settings/${selectedClub.id}`)}
           >
-            <Settings size={14} />
+            <Settings size={18} />
             <span>설정</span>
+          </button>
+          <button
+            className="club-main-action-button secondary"
+            onClick={() => setShowMoreMenu(true)}
+          >
+            <MoreHorizontal size={18} />
+            <span>추가 기능</span>
           </button>
         </div>
       )}
 
-      {/* 클럽 랭킹 */}
+      {/* 마일리지 랭킹 */}
       {loading ? (
         <div className="loading-screen">
           <div className="spinner"></div>
@@ -306,7 +306,7 @@ export const Club = () => {
       ) : selectedClub ? (
         <div className="club-dashboard">
           <div className="dashboard-header">
-            <h2>이번 달 랭킹</h2>
+            <h2>{new Date().getFullYear()}년 {String(new Date().getMonth() + 1).padStart(2, '0')}월 마일리지</h2>
           </div>
 
           {rankingLoading ? (
@@ -391,6 +391,67 @@ export const Club = () => {
           }}
           onClose={() => setShowDetailedStats(false)}
         />
+      )}
+
+      {/* 추가 기능 모달 */}
+      {showMoreMenu && selectedClub && (
+        <div className="modal-overlay" onClick={() => setShowMoreMenu(false)}>
+          <div className="modal-content more-menu-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>추가 기능</h2>
+              <button className="modal-close" onClick={() => setShowMoreMenu(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="more-menu-list">
+                <button
+                  className="more-menu-item"
+                  onClick={() => {
+                    setShowMoreMenu(false);
+                    setShowMileageConfig(true);
+                  }}
+                >
+                  <Info size={20} />
+                  <div className="more-menu-text">
+                    <div className="more-menu-title">마일리지 계수 보기</div>
+                    <div className="more-menu-desc">현재 적용 중인 계수 확인</div>
+                  </div>
+                </button>
+
+                <button
+                  className="more-menu-item"
+                  onClick={() => {
+                    setShowMoreMenu(false);
+                    setShowDetailedStats(true);
+                  }}
+                >
+                  <Table size={20} />
+                  <div className="more-menu-text">
+                    <div className="more-menu-title">상세 통계</div>
+                    <div className="more-menu-desc">운동별 마일리지 통계</div>
+                  </div>
+                </button>
+
+                {user && selectedClub.created_by === user.id && (
+                  <button
+                    className="more-menu-item"
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      navigate(`/club/members/${selectedClub.id}`);
+                    }}
+                  >
+                    <Users size={20} />
+                    <div className="more-menu-text">
+                      <div className="more-menu-title">클럽원 관리</div>
+                      <div className="more-menu-desc">회원 역할 변경 및 관리</div>
+                    </div>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
