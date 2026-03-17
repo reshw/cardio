@@ -355,13 +355,14 @@ class ClubService {
   // 클럽 정보 수정
   async updateClub(
     clubId: string,
-    data: { name?: string; description?: string; mileage_config?: MileageConfig; logo_url?: string }
+    data: { name?: string; description?: string; mileage_config?: MileageConfig; logo_url?: string; enabled_categories?: string[] }
   ): Promise<Club> {
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.mileage_config !== undefined) updateData.mileage_config = data.mileage_config;
     if (data.logo_url !== undefined) updateData.logo_url = data.logo_url;
+    if (data.enabled_categories !== undefined) updateData.enabled_categories = data.enabled_categories;
 
     const { data: club, error } = await supabase
       .from('clubs')
