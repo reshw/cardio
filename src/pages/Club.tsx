@@ -143,6 +143,21 @@ export const Club = () => {
     loadMyClubs();
   }, [user]);
 
+  // 페이지가 다시 보일 때 랭킹 새로고침 (뒤로가기 대응)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && selectedClub) {
+        console.log('📊 페이지 재표시 - 랭킹 새로고침');
+        loadClubRanking(selectedClub.id);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [selectedClub]);
+
   // 클럽 선택
   const handleSelectClub = async (club: MyClubWithOrder) => {
     setSelectedClub(club);

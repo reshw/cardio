@@ -107,7 +107,8 @@ export const ClubMileageSettings = () => {
         `✅ 활성화된 운동 종류: ${enabledCategories.length}개\n` +
         `✅ 이번 달 기록이 새로운 계수로 재계산되었습니다.`
       );
-      navigate(-1);
+      // 클럽 페이지로 이동하여 변경사항 즉시 반영
+      navigate('/club', { replace: true });
     } catch (error) {
       console.error('클럽 수정 실패:', error);
       alert('클럽 수정에 실패했습니다.');
