@@ -32,8 +32,8 @@ export const WorkoutFeedCard = ({ item, clubId, onUpdate }: Props) => {
   };
 
   const getIntensityLabel = (intensity: number) => {
-    if (intensity <= 2) return '가벼운 산책';
-    if (intensity <= 4) return '기분좋은 조깅';
+    if (intensity <= 2) return '편안함';
+    if (intensity <= 4) return '기분좋음';
     if (intensity <= 6) return '약간 숨참';
     if (intensity <= 8) return '힘듬';
     return '한계 돌파';

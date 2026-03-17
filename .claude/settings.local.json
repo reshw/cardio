@@ -25,7 +25,8 @@
       "Bash(\"D:\\\\dev\\\\cardio\\\\src\\\\App.css\" << 'EOF'\n\n/* 클럽 미리보기 카드 */\n.club-preview-card {\n  background: linear-gradient\\(135deg, #667eea 0%, #764ba2 100%\\);\n  border-radius: 16px;\n  padding: 24px;\n  margin-bottom: 24px;\n  color: white;\n  box-shadow: 0 4px 12px rgba\\(102, 126, 234, 0.3\\);\n}\n\n.club-preview-info h2 {\n  margin: 0 0 12px 0;\n  font-size: 24px;\n  font-weight: 700;\n  color: white;\n}\n\n.club-preview-owner {\n  margin: 0 0 8px 0;\n  font-size: 14px;\n  color: rgba\\(255, 255, 255, 0.9\\);\n}\n\n.club-preview-owner strong {\n  color: white;\n  font-weight: 600;\n}\n\n.club-preview-description {\n  margin: 12px 0 0 0;\n  padding-top: 12px;\n  border-top: 1px solid rgba\\(255, 255, 255, 0.2\\);\n  font-size: 14px;\n  line-height: 1.6;\n  color: rgba\\(255, 255, 255, 0.95\\);\n}\nEOF)",
       "Bash(grep:*)",
       "Bash(git restore:*)",
-      "Bash(git checkout:*)"
+      "Bash(git merge:*)",
+      "Bash(git stash:*)"
     ]
   }
 }

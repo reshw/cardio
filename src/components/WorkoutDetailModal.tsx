@@ -35,8 +35,8 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
   };
 
   const getIntensityLabel = (intensity: number) => {
-    if (intensity <= 2) return '가벼운 산책';
-    if (intensity <= 4) return '기분좋은 조깅';
+    if (intensity <= 2) return '편안함';
+    if (intensity <= 4) return '기분좋음';
     if (intensity <= 6) return '약간 숨참';
     if (intensity <= 8) return '힘듬';
     return '한계 돌파';
@@ -195,6 +195,17 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
 
               <div className="form-group">
                 <label>체감 난이도</label>
+
+                {/* 스펙트럼 바 */}
+                <div className="difficulty-spectrum-bar">
+                  <div className="spectrum-gradient"></div>
+                  <div
+                    className="spectrum-indicator"
+                    style={{ left: `${(intensity * 10) - 5}%` }}
+                  ></div>
+                </div>
+
+                {/* 5단계 버튼 */}
                 <div className="difficulty-levels">
                   <button
                     type="button"
@@ -202,7 +213,7 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
                     onClick={() => setIntensity(2)}
                   >
                     <div className="difficulty-number">1</div>
-                    <div className="difficulty-label">가벼운 산책</div>
+                    <div className="difficulty-label">편안함</div>
                   </button>
                   <button
                     type="button"
@@ -210,7 +221,7 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
                     onClick={() => setIntensity(4)}
                   >
                     <div className="difficulty-number">2</div>
-                    <div className="difficulty-label">기분좋은 조깅</div>
+                    <div className="difficulty-label">기분좋음</div>
                   </button>
                   <button
                     type="button"
@@ -237,101 +248,36 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
                     <div className="difficulty-label">한계 돌파</div>
                   </button>
                 </div>
+
+                {/* 세부 조정 */}
                 {intensity > 0 && (
                   <div className="difficulty-fine-tune">
-                    <label>세부 조정</label>
-                    <div className="fine-tune-buttons">
-                      {intensity <= 2 && (
-                        <>
-                          <button
-                            type="button"
-                            className={`fine-tune-btn ${intensity === 1 ? 'active' : ''}`}
-                            onClick={() => setIntensity(1)}
-                          >
-                            낮음
-                          </button>
-                          <button
-                            type="button"
-                            className={`fine-tune-btn ${intensity === 2 ? 'active' : ''}`}
-                            onClick={() => setIntensity(2)}
-                          >
-                            높음
-                          </button>
-                        </>
-                      )}
-                      {intensity >= 3 && intensity <= 4 && (
-                        <>
-                          <button
-                            type="button"
-                            className={`fine-tune-btn ${intensity === 3 ? 'active' : ''}`}
-                            onClick={() => setIntensity(3)}
-                          >
-                            낮음
-                          </button>
-                          <button
-                            type="button"
-                            className={`fine-tune-btn ${intensity === 4 ? 'active' : ''}`}
-                            onClick={() => setIntensity(4)}
-                          >
-                            높음
-                          </button>
-                        </>
-                      )}
-                      {intensity >= 5 && intensity <= 6 && (
-                        <>
-                          <button
-                            type="button"
-                            className={`fine-tune-btn ${intensity === 5 ? 'active' : ''}`}
-                            onClick={() => setIntensity(5)}
-                          >
-                            낮음
-                          </button>
-                          <button
-                            type="button"
-                            className={`fine-tune-btn ${intensity === 6 ? 'active' : ''}`}
-                            onClick={() => setIntensity(6)}
-                          >
-                            높음
-                          </button>
-                        </>
-                      )}
-                      {intensity >= 7 && intensity <= 8 && (
-                        <>
-                          <button
-                            type="button"
-                            className={`fine-tune-btn ${intensity === 7 ? 'active' : ''}`}
-                            onClick={() => setIntensity(7)}
-                          >
-                            낮음
-                          </button>
-                          <button
-                            type="button"
-                            className={`fine-tune-btn ${intensity === 8 ? 'active' : ''}`}
-                            onClick={() => setIntensity(8)}
-                          >
-                            높음
-                          </button>
-                        </>
-                      )}
-                      {intensity >= 9 && (
-                        <>
-                          <button
-                            type="button"
-                            className={`fine-tune-btn ${intensity === 9 ? 'active' : ''}`}
-                            onClick={() => setIntensity(9)}
-                          >
-                            낮음
-                          </button>
-                          <button
-                            type="button"
-                            className={`fine-tune-btn ${intensity === 10 ? 'active' : ''}`}
-                            onClick={() => setIntensity(10)}
-                          >
-                            높음
-                          </button>
-                        </>
-                      )}
-                    </div>
+                    <button
+                      type="button"
+                      className="fine-tune-adjust-btn"
+                      onClick={() => {
+                        const min = intensity <= 2 ? 1 : intensity <= 4 ? 3 : intensity <= 6 ? 5 : intensity <= 8 ? 7 : 9;
+                        if (intensity > min) setIntensity(intensity - 1);
+                      }}
+                      disabled={
+                        intensity === 1 || intensity === 3 || intensity === 5 || intensity === 7 || intensity === 9
+                      }
+                    >
+                      ◀ 조금 더 낮게
+                    </button>
+                    <button
+                      type="button"
+                      className="fine-tune-adjust-btn"
+                      onClick={() => {
+                        const max = intensity <= 2 ? 2 : intensity <= 4 ? 4 : intensity <= 6 ? 6 : intensity <= 8 ? 8 : 10;
+                        if (intensity < max) setIntensity(intensity + 1);
+                      }}
+                      disabled={
+                        intensity === 2 || intensity === 4 || intensity === 6 || intensity === 8 || intensity === 10
+                      }
+                    >
+                      조금 더 높게 ▶
+                    </button>
                   </div>
                 )}
               </div>

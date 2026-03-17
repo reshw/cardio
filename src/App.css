@@ -4090,6 +4090,64 @@ html {
   color: var(--text-primary);
 }
 
+/* 체감 난이도 스펙트럼 바 */
+.difficulty-spectrum-bar {
+  position: relative;
+  height: 40px;
+  margin-bottom: 20px;
+  padding: 8px 0;
+}
+
+.spectrum-gradient {
+  height: 24px;
+  border-radius: 12px;
+  background: linear-gradient(to right,
+    #9333ea 0%,   /* 보라 - 1 */
+    #a855f7 10%,
+    #a855f7 20%,  /* 보라 - 2 */
+    #3b82f6 20%,  /* 파랑 - 3 */
+    #60a5fa 30%,
+    #60a5fa 40%,  /* 파랑 - 4 */
+    #22c55e 40%,  /* 초록 - 5 */
+    #4ade80 50%,
+    #4ade80 60%,  /* 초록 - 6 */
+    #f97316 60%,  /* 주황 - 7 */
+    #fb923c 70%,
+    #fb923c 80%,  /* 주황 - 8 */
+    #ef4444 80%,  /* 빨강 - 9 */
+    #dc2626 90%,
+    #dc2626 100%  /* 빨강 - 10 */
+  );
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.spectrum-indicator {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 32px;
+  background: white;
+  border: 3px solid #333;
+  border-radius: 4px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  transition: left 0.3s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.spectrum-indicator::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 16px;
+  background: #666;
+  border-radius: 2px;
+}
+
 /* 체감 난이도 버튼 UI */
 .difficulty-levels {
   display: flex;
@@ -4138,27 +4196,13 @@ html {
 
 .difficulty-fine-tune {
   margin-top: 12px;
-  padding: 16px;
-  background: var(--input-bg);
-  border-radius: 12px;
-}
-
-.difficulty-fine-tune label {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-}
-
-.fine-tune-buttons {
   display: flex;
   gap: 8px;
 }
 
-.fine-tune-btn {
+.fine-tune-adjust-btn {
   flex: 1;
-  padding: 10px 16px;
+  padding: 12px 16px;
   background: white;
   border: 2px solid var(--border-color);
   border-radius: 8px;
@@ -4170,13 +4214,18 @@ html {
   font-family: inherit;
 }
 
-.fine-tune-btn:hover {
+.fine-tune-adjust-btn:hover:not(:disabled) {
   background: #f8f8f8;
   border-color: var(--primary-color);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.fine-tune-btn.active {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
-  color: white;
+.fine-tune-adjust-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.fine-tune-adjust-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
