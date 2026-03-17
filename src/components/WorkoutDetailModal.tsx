@@ -35,11 +35,11 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
   };
 
   const getIntensityLabel = (intensity: number) => {
-    if (intensity <= 2) return '편안함';
-    if (intensity <= 4) return '기분좋음';
-    if (intensity <= 6) return '약간 숨참';
-    if (intensity <= 8) return '힘듬';
-    return '한계 돌파';
+    if (intensity <= 2) return '편안';
+    if (intensity <= 4) return '경쾌';
+    if (intensity <= 6) return '자극';
+    if (intensity <= 8) return '고강도';
+    return '한계돌파';
   };
 
   const getIntensityColor = (intensity: number) => {
@@ -213,7 +213,7 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
                     onClick={() => setIntensity(2)}
                   >
                     <div className="difficulty-number">1</div>
-                    <div className="difficulty-label">편안함</div>
+                    <div className="difficulty-label">편안</div>
                   </button>
                   <button
                     type="button"
@@ -221,7 +221,7 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
                     onClick={() => setIntensity(4)}
                   >
                     <div className="difficulty-number">2</div>
-                    <div className="difficulty-label">기분좋음</div>
+                    <div className="difficulty-label">경쾌</div>
                   </button>
                   <button
                     type="button"
@@ -229,7 +229,7 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
                     onClick={() => setIntensity(6)}
                   >
                     <div className="difficulty-number">3</div>
-                    <div className="difficulty-label">약간 숨참</div>
+                    <div className="difficulty-label">자극</div>
                   </button>
                   <button
                     type="button"
@@ -237,7 +237,7 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
                     onClick={() => setIntensity(8)}
                   >
                     <div className="difficulty-number">4</div>
-                    <div className="difficulty-label">힘듬</div>
+                    <div className="difficulty-label">고강도</div>
                   </button>
                   <button
                     type="button"
@@ -245,7 +245,7 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
                     onClick={() => setIntensity(10)}
                   >
                     <div className="difficulty-number">5</div>
-                    <div className="difficulty-label">한계 돌파</div>
+                    <div className="difficulty-label">한계돌파</div>
                   </button>
                 </div>
 

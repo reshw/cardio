@@ -232,7 +232,7 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
                       onClick={() => setIntensity(2)}
                     >
                       <div className="difficulty-number">1</div>
-                      <div className="difficulty-label">편안함</div>
+                      <div className="difficulty-label">편안</div>
                     </button>
                     <button
                       type="button"
@@ -240,7 +240,7 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
                       onClick={() => setIntensity(4)}
                     >
                       <div className="difficulty-number">2</div>
-                      <div className="difficulty-label">기분좋음</div>
+                      <div className="difficulty-label">경쾌</div>
                     </button>
                     <button
                       type="button"
@@ -248,7 +248,7 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
                       onClick={() => setIntensity(6)}
                     >
                       <div className="difficulty-number">3</div>
-                      <div className="difficulty-label">약간 숨참</div>
+                      <div className="difficulty-label">자극</div>
                     </button>
                     <button
                       type="button"
@@ -256,7 +256,7 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
                       onClick={() => setIntensity(8)}
                     >
                       <div className="difficulty-number">4</div>
-                      <div className="difficulty-label">힘듬</div>
+                      <div className="difficulty-label">고강도</div>
                     </button>
                     <button
                       type="button"
@@ -264,7 +264,7 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
                       onClick={() => setIntensity(10)}
                     >
                       <div className="difficulty-number">5</div>
-                      <div className="difficulty-label">한계 돌파</div>
+                      <div className="difficulty-label">한계돌파</div>
                     </button>
                   </div>
 
