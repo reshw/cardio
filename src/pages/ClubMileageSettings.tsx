@@ -75,6 +75,13 @@ export const ClubMileageSettings = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 최소 1개 이상의 카테고리 선택 검증
+    if (enabledCategories.length === 0) {
+      alert('최소 1개 이상의 운동 종류를 활성화해야 합니다.');
+      return;
+    }
+
     // 확인 모달 표시
     setShowConfirmModal(true);
   };
@@ -95,7 +102,11 @@ export const ClubMileageSettings = () => {
       // 2. 현재 월의 모든 운동 기록 마일리지 재계산
       await clubService.recalculateCurrentMonthMileage(clubId, mileageConfig);
 
-      alert('마일리지 계수가 수정되었습니다.\n이번 달 모든 기록이 새로운 계수로 재계산되었습니다.');
+      alert(
+        `마일리지 설정이 수정되었습니다.\n\n` +
+        `✅ 활성화된 운동 종류: ${enabledCategories.length}개\n` +
+        `✅ 이번 달 기록이 새로운 계수로 재계산되었습니다.`
+      );
       navigate(-1);
     } catch (error) {
       console.error('클럽 수정 실패:', error);
@@ -382,8 +393,12 @@ export const ClubMileageSettings = () => {
                 마일리지 계수를 변경하면 <strong>이번 달({new Date().getFullYear()}년 {new Date().getMonth() + 1}월)</strong>의
                 모든 운동 기록이 새로운 계수로 소급 적용됩니다.
               </p>
-              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+              <p style={{ marginBottom: '12px', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
                 💡 과거 월의 기록은 변경되지 않으며, 당시의 마일리지 계수가 유지됩니다.
+              </p>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                📋 활성화된 운동 종류: <strong>{enabledCategories.length}개</strong> 선택됨<br />
+                비활성화된 운동은 개인 기록에 남지만 클럽 랭킹에서 제외됩니다.
               </p>
             </div>
             <div className="modal-actions">
