@@ -17,6 +17,7 @@ import { More } from './pages/More';
 import { AdminPage } from './pages/AdminPage';
 import { AdminClubApproval } from './pages/AdminClubApproval';
 import { JoinClub } from './pages/JoinClub';
+import { AppGuide } from './pages/AppGuide';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import KakaoCallback from './components/KakaoCallback';
@@ -80,13 +81,14 @@ function ProtectedRoutes() {
             </ProtectedClubRoute>
           } />
           <Route path="/club/members/:clubId" element={
-            <ProtectedClubRoute requireAdmin>
+            <ProtectedClubRoute>
               <ClubMembers />
             </ProtectedClubRoute>
           } />
           <Route path="/join" element={<JoinClub />} />
           <Route path="/join/:code" element={<JoinClub />} />
           <Route path="/more" element={<More />} />
+          <Route path="/guide" element={<AppGuide />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/club-approval" element={<AdminClubApproval />} />
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Shield } from 'lucide-react';
+import { Shield, BookOpen } from 'lucide-react';
 
 export const More = () => {
   const { user, logout } = useAuth();
@@ -24,6 +24,17 @@ export const More = () => {
           </button>
         </div>
       )}
+
+      <div className="section">
+        <h3>앱 정보</h3>
+        <button
+          className="menu-button"
+          onClick={() => navigate('/guide')}
+        >
+          <BookOpen size={20} />
+          <span>사용 설명</span>
+        </button>
+      </div>
 
       <div className="section">
         <h3>사용자 정보</h3>

@@ -13,6 +13,7 @@ export const ClubMembers = () => {
   const [members, setMembers] = useState<ClubMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [clubOwnerId, setClubOwnerId] = useState<string>('');
 
@@ -45,6 +46,12 @@ export const ClubMembers = () => {
       const club = await clubService.getClubById(clubId);
       setClubOwnerId(club.created_by);
       setIsOwner(club.created_by === user.id);
+      
+      // 부매니저 권한도 확인
+      if (!isOwner) {
+        const admin = await clubService.isClubAdmin(clubId, user.id);
+        setIsAdmin(admin);
+      }
     } catch (error) {
       console.error('클럽 정보 조회 실패:', error);
     }
@@ -126,7 +133,7 @@ export const ClubMembers = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1>클럽원 관리</h1>
+        <h1>클럽원 목록</h1>
       </div>
 
       <div className="settings-form">
@@ -183,7 +190,7 @@ export const ClubMembers = () => {
                           <span className="admin-badge">부매니저</span>
                         )}
                       </div>
-                      {member.club_nickname && member.user?.display_name && (
+                      {member.club_nickname && member.user?.display_name && (isOwner || isAdmin) && (
                         <div className="member-original-name">
                           {member.user.display_name}
                         </div>
@@ -191,7 +198,7 @@ export const ClubMembers = () => {
                     </div>
                   </div>
 
-                  {isOwner && !isClubOwner && (
+                  {(isOwner || isAdmin) && !isClubOwner && (
                     <div className="member-actions">
                       <button
                         className="member-action-button secondary"
