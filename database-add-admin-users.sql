@@ -15,17 +15,26 @@ BEGIN
     END IF;
 END $$;
 
--- 2. 현재 어드민 사용자 확인
+-- 2. RLS 정책 추가 (어드민 조회용)
+-- DROP POLICY IF EXISTS "Allow admin user access" ON users;
+-- CREATE POLICY "Allow admin user access" ON users
+-- FOR SELECT USING (true);  -- 모든 사용자에게 읽기 허용 (개발용)
+
+-- 또는 특정 사용자만:
+-- CREATE POLICY "Allow authenticated users to read users" ON users
+-- FOR SELECT TO authenticated USING (true);
+
+-- 3. 현재 어드민 사용자 확인
 SELECT id, email, display_name, isAdmin
 FROM users
 WHERE isAdmin = TRUE;
 
--- 3. 필요시 어드민 추가 (이메일 주소 변경 필요)
+-- 4. 필요시 어드민 추가 (이메일 주소 변경 필요)
 -- INSERT INTO users (id, email, display_name, isAdmin)
 -- VALUES ('admin-user-id', 'admin@example.com', '관리자', TRUE)
 -- ON CONFLICT (id) DO UPDATE SET isAdmin = TRUE;
 
--- 4. 모든 사용자 목록 (디버깅용)
+-- 5. 모든 사용자 목록 (디버깅용)
 SELECT id, email, display_name, isAdmin
 FROM users
 ORDER BY created_at DESC
