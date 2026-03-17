@@ -15,6 +15,7 @@ export const WorkoutDetail = () => {
   const [createdAt, setCreatedAt] = useState(
     workout ? new Date(workout.created_at).toISOString().slice(0, 16) : ''
   );
+  const [intensity, setIntensity] = useState(workout?.intensity || 4);
   const [proofImage, setProofImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -39,6 +40,23 @@ export const WorkoutDetail = () => {
       return `${workout.category} - ${workout.sub_type}`;
     }
     return workout.category;
+  };
+
+  const getIntensityLabel = (intensity: number) => {
+    if (intensity <= 2) return '가벼운 산책';
+    if (intensity <= 4) return '기분좋은 조깅';
+    if (intensity <= 6) return '약간 숨참';
+    if (intensity <= 8) return '힘듬';
+    return '한계 돌파';
+  };
+
+  const getIntensityColor = (intensity: number) => {
+    if (intensity <= 2) return '#4ade80';
+    if (intensity <= 4) return '#22c55e';
+    if (intensity <= 6) return '#eab308';
+    if (intensity <= 8) return '#f97316';
+    if (intensity === 9) return '#ef4444';
+    return '#dc2626';
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,6 +89,7 @@ export const WorkoutDetail = () => {
       await workoutService.updateWorkout(workout.id, {
         value: parseFloat(value),
         created_at: new Date(createdAt).toISOString(),
+        intensity,
         proof_image: imageUrl,
       });
 
@@ -133,6 +152,16 @@ export const WorkoutDetail = () => {
               <div className="detail-value">{formatDate(workout.created_at)}</div>
             </div>
 
+            <div className="detail-section">
+              <div className="detail-label">체감 난이도</div>
+              <div
+                className="detail-value"
+                style={{ color: getIntensityColor(workout.intensity), fontWeight: 600 }}
+              >
+                {getIntensityLabel(workout.intensity)}
+              </div>
+            </div>
+
             {workout.proof_image && (
               <div className="detail-section">
                 <div className="detail-label">증빙 이미지</div>
@@ -169,6 +198,149 @@ export const WorkoutDetail = () => {
                 onChange={(e) => setCreatedAt(e.target.value)}
                 className="value-input"
               />
+            </div>
+
+            <div className="form-group">
+              <label>체감 난이도</label>
+              <div className="difficulty-levels">
+                <button
+                  type="button"
+                  className={`difficulty-level-btn ${intensity <= 2 ? 'active' : ''}`}
+                  onClick={() => setIntensity(2)}
+                >
+                  <div className="difficulty-number">1</div>
+                  <div className="difficulty-label">가벼운 산책</div>
+                </button>
+                <button
+                  type="button"
+                  className={`difficulty-level-btn ${intensity >= 3 && intensity <= 4 ? 'active' : ''}`}
+                  onClick={() => setIntensity(4)}
+                >
+                  <div className="difficulty-number">2</div>
+                  <div className="difficulty-label">기분좋은 조깅</div>
+                </button>
+                <button
+                  type="button"
+                  className={`difficulty-level-btn ${intensity >= 5 && intensity <= 6 ? 'active' : ''}`}
+                  onClick={() => setIntensity(6)}
+                >
+                  <div className="difficulty-number">3</div>
+                  <div className="difficulty-label">약간 숨참</div>
+                </button>
+                <button
+                  type="button"
+                  className={`difficulty-level-btn ${intensity >= 7 && intensity <= 8 ? 'active' : ''}`}
+                  onClick={() => setIntensity(8)}
+                >
+                  <div className="difficulty-number">4</div>
+                  <div className="difficulty-label">힘듬</div>
+                </button>
+                <button
+                  type="button"
+                  className={`difficulty-level-btn ${intensity >= 9 ? 'active' : ''}`}
+                  onClick={() => setIntensity(10)}
+                >
+                  <div className="difficulty-number">5</div>
+                  <div className="difficulty-label">한계 돌파</div>
+                </button>
+              </div>
+              {intensity > 0 && (
+                <div className="difficulty-fine-tune">
+                  <label>세부 조정</label>
+                  <div className="fine-tune-buttons">
+                    {intensity <= 2 && (
+                      <>
+                        <button
+                          type="button"
+                          className={`fine-tune-btn ${intensity === 1 ? 'active' : ''}`}
+                          onClick={() => setIntensity(1)}
+                        >
+                          낮음
+                        </button>
+                        <button
+                          type="button"
+                          className={`fine-tune-btn ${intensity === 2 ? 'active' : ''}`}
+                          onClick={() => setIntensity(2)}
+                        >
+                          높음
+                        </button>
+                      </>
+                    )}
+                    {intensity >= 3 && intensity <= 4 && (
+                      <>
+                        <button
+                          type="button"
+                          className={`fine-tune-btn ${intensity === 3 ? 'active' : ''}`}
+                          onClick={() => setIntensity(3)}
+                        >
+                          낮음
+                        </button>
+                        <button
+                          type="button"
+                          className={`fine-tune-btn ${intensity === 4 ? 'active' : ''}`}
+                          onClick={() => setIntensity(4)}
+                        >
+                          높음
+                        </button>
+                      </>
+                    )}
+                    {intensity >= 5 && intensity <= 6 && (
+                      <>
+                        <button
+                          type="button"
+                          className={`fine-tune-btn ${intensity === 5 ? 'active' : ''}`}
+                          onClick={() => setIntensity(5)}
+                        >
+                          낮음
+                        </button>
+                        <button
+                          type="button"
+                          className={`fine-tune-btn ${intensity === 6 ? 'active' : ''}`}
+                          onClick={() => setIntensity(6)}
+                        >
+                          높음
+                        </button>
+                      </>
+                    )}
+                    {intensity >= 7 && intensity <= 8 && (
+                      <>
+                        <button
+                          type="button"
+                          className={`fine-tune-btn ${intensity === 7 ? 'active' : ''}`}
+                          onClick={() => setIntensity(7)}
+                        >
+                          낮음
+                        </button>
+                        <button
+                          type="button"
+                          className={`fine-tune-btn ${intensity === 8 ? 'active' : ''}`}
+                          onClick={() => setIntensity(8)}
+                        >
+                          높음
+                        </button>
+                      </>
+                    )}
+                    {intensity >= 9 && (
+                      <>
+                        <button
+                          type="button"
+                          className={`fine-tune-btn ${intensity === 9 ? 'active' : ''}`}
+                          onClick={() => setIntensity(9)}
+                        >
+                          낮음
+                        </button>
+                        <button
+                          type="button"
+                          className={`fine-tune-btn ${intensity === 10 ? 'active' : ''}`}
+                          onClick={() => setIntensity(10)}
+                        >
+                          높음
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="form-group">
@@ -211,6 +383,7 @@ export const WorkoutDetail = () => {
                 setIsEditing(false);
                 setValue(workout.value.toString());
                 setCreatedAt(new Date(workout.created_at).toISOString().slice(0, 16));
+                setIntensity(workout.intensity);
                 setProofImage(null);
                 setImagePreview(null);
               }}

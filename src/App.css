@@ -4089,3 +4089,94 @@ html {
   font-weight: 600;
   color: var(--text-primary);
 }
+
+/* 체감 난이도 버튼 UI */
+.difficulty-levels {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.difficulty-level-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  background: var(--input-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.difficulty-level-btn:hover {
+  background: #f0f0f0;
+  transform: translateY(-2px);
+}
+
+.difficulty-level-btn.active {
+  background: var(--gradient-primary);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.difficulty-number {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.difficulty-label {
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.difficulty-fine-tune {
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--input-bg);
+  border-radius: 12px;
+}
+
+.difficulty-fine-tune label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.fine-tune-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.fine-tune-btn {
+  flex: 1;
+  padding: 10px 16px;
+  background: white;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.fine-tune-btn:hover {
+  background: #f8f8f8;
+  border-color: var(--primary-color);
+}
+
+.fine-tune-btn.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}

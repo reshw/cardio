@@ -35,12 +35,11 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
   };
 
   const getIntensityLabel = (intensity: number) => {
-    if (intensity <= 2) return '매우 가벼움';
-    if (intensity <= 4) return '가벼움';
-    if (intensity <= 6) return '보통';
-    if (intensity <= 8) return '힘듦';
-    if (intensity === 9) return '매우 힘듦';
-    return '최대/한계';
+    if (intensity <= 2) return '가벼운 산책';
+    if (intensity <= 4) return '기분좋은 조깅';
+    if (intensity <= 6) return '약간 숨참';
+    if (intensity <= 8) return '힘듬';
+    return '한계 돌파';
   };
 
   const getIntensityColor = (intensity: number) => {
@@ -131,12 +130,12 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
               </div>
 
               <div className="detail-section">
-                <div className="detail-label">강도</div>
+                <div className="detail-label">체감 난이도</div>
                 <div
                   className="detail-value"
                   style={{ color: getIntensityColor(workout.intensity), fontWeight: 600 }}
                 >
-                  {workout.intensity}단계 ({getIntensityLabel(workout.intensity)})
+                  {getIntensityLabel(workout.intensity)}
                 </div>
               </div>
 
@@ -195,43 +194,146 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
               </div>
 
               <div className="form-group">
-                <label htmlFor="edit-intensity">
-                  운동 강도: {intensity}단계
-                  <span className="intensity-label">
-                    {intensity <= 2
-                      ? ' (매우 가벼움)'
-                      : intensity <= 4
-                      ? ' (가벼움)'
-                      : intensity <= 6
-                      ? ' (보통)'
-                      : intensity <= 8
-                      ? ' (힘듦)'
-                      : intensity === 9
-                      ? ' (매우 힘듦)'
-                      : ' (최대/한계)'}
-                  </span>
-                </label>
-                <input
-                  id="edit-intensity"
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={intensity}
-                  onChange={(e) => setIntensity(parseInt(e.target.value))}
-                  className="intensity-slider"
-                />
-                <div className="intensity-markers">
-                  <span>1</span>
-                  <span>2</span>
-                  <span>3</span>
-                  <span>4</span>
-                  <span>5</span>
-                  <span>6</span>
-                  <span>7</span>
-                  <span>8</span>
-                  <span>9</span>
-                  <span>10</span>
+                <label>체감 난이도</label>
+                <div className="difficulty-levels">
+                  <button
+                    type="button"
+                    className={`difficulty-level-btn ${intensity <= 2 ? 'active' : ''}`}
+                    onClick={() => setIntensity(2)}
+                  >
+                    <div className="difficulty-number">1</div>
+                    <div className="difficulty-label">가벼운 산책</div>
+                  </button>
+                  <button
+                    type="button"
+                    className={`difficulty-level-btn ${intensity >= 3 && intensity <= 4 ? 'active' : ''}`}
+                    onClick={() => setIntensity(4)}
+                  >
+                    <div className="difficulty-number">2</div>
+                    <div className="difficulty-label">기분좋은 조깅</div>
+                  </button>
+                  <button
+                    type="button"
+                    className={`difficulty-level-btn ${intensity >= 5 && intensity <= 6 ? 'active' : ''}`}
+                    onClick={() => setIntensity(6)}
+                  >
+                    <div className="difficulty-number">3</div>
+                    <div className="difficulty-label">약간 숨참</div>
+                  </button>
+                  <button
+                    type="button"
+                    className={`difficulty-level-btn ${intensity >= 7 && intensity <= 8 ? 'active' : ''}`}
+                    onClick={() => setIntensity(8)}
+                  >
+                    <div className="difficulty-number">4</div>
+                    <div className="difficulty-label">힘듬</div>
+                  </button>
+                  <button
+                    type="button"
+                    className={`difficulty-level-btn ${intensity >= 9 ? 'active' : ''}`}
+                    onClick={() => setIntensity(10)}
+                  >
+                    <div className="difficulty-number">5</div>
+                    <div className="difficulty-label">한계 돌파</div>
+                  </button>
                 </div>
+                {intensity > 0 && (
+                  <div className="difficulty-fine-tune">
+                    <label>세부 조정</label>
+                    <div className="fine-tune-buttons">
+                      {intensity <= 2 && (
+                        <>
+                          <button
+                            type="button"
+                            className={`fine-tune-btn ${intensity === 1 ? 'active' : ''}`}
+                            onClick={() => setIntensity(1)}
+                          >
+                            낮음
+                          </button>
+                          <button
+                            type="button"
+                            className={`fine-tune-btn ${intensity === 2 ? 'active' : ''}`}
+                            onClick={() => setIntensity(2)}
+                          >
+                            높음
+                          </button>
+                        </>
+                      )}
+                      {intensity >= 3 && intensity <= 4 && (
+                        <>
+                          <button
+                            type="button"
+                            className={`fine-tune-btn ${intensity === 3 ? 'active' : ''}`}
+                            onClick={() => setIntensity(3)}
+                          >
+                            낮음
+                          </button>
+                          <button
+                            type="button"
+                            className={`fine-tune-btn ${intensity === 4 ? 'active' : ''}`}
+                            onClick={() => setIntensity(4)}
+                          >
+                            높음
+                          </button>
+                        </>
+                      )}
+                      {intensity >= 5 && intensity <= 6 && (
+                        <>
+                          <button
+                            type="button"
+                            className={`fine-tune-btn ${intensity === 5 ? 'active' : ''}`}
+                            onClick={() => setIntensity(5)}
+                          >
+                            낮음
+                          </button>
+                          <button
+                            type="button"
+                            className={`fine-tune-btn ${intensity === 6 ? 'active' : ''}`}
+                            onClick={() => setIntensity(6)}
+                          >
+                            높음
+                          </button>
+                        </>
+                      )}
+                      {intensity >= 7 && intensity <= 8 && (
+                        <>
+                          <button
+                            type="button"
+                            className={`fine-tune-btn ${intensity === 7 ? 'active' : ''}`}
+                            onClick={() => setIntensity(7)}
+                          >
+                            낮음
+                          </button>
+                          <button
+                            type="button"
+                            className={`fine-tune-btn ${intensity === 8 ? 'active' : ''}`}
+                            onClick={() => setIntensity(8)}
+                          >
+                            높음
+                          </button>
+                        </>
+                      )}
+                      {intensity >= 9 && (
+                        <>
+                          <button
+                            type="button"
+                            className={`fine-tune-btn ${intensity === 9 ? 'active' : ''}`}
+                            onClick={() => setIntensity(9)}
+                          >
+                            낮음
+                          </button>
+                          <button
+                            type="button"
+                            className={`fine-tune-btn ${intensity === 10 ? 'active' : ''}`}
+                            onClick={() => setIntensity(10)}
+                          >
+                            높음
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="form-group">

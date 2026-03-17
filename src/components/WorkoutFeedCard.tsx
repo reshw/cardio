@@ -32,12 +32,11 @@ export const WorkoutFeedCard = ({ item, clubId, onUpdate }: Props) => {
   };
 
   const getIntensityLabel = (intensity: number) => {
-    if (intensity <= 2) return '매우 가벼움';
-    if (intensity <= 4) return '가벼움';
-    if (intensity <= 6) return '보통';
-    if (intensity <= 8) return '힘듦';
-    if (intensity === 9) return '매우 힘듦';
-    return '최대/한계';
+    if (intensity <= 2) return '가벼운 산책';
+    if (intensity <= 4) return '기분좋은 조깅';
+    if (intensity <= 6) return '약간 숨참';
+    if (intensity <= 8) return '힘듬';
+    return '한계 돌파';
   };
 
   const getIntensityColor = (intensity: number) => {
@@ -86,7 +85,7 @@ export const WorkoutFeedCard = ({ item, clubId, onUpdate }: Props) => {
             className="feed-intensity-badge"
             style={{ backgroundColor: getIntensityColor(workout.intensity) }}
           >
-            강도 {workout.intensity}
+            {getIntensityLabel(workout.intensity)}
           </div>
         </div>
         <div className="feed-workout-value">
@@ -139,12 +138,12 @@ export const WorkoutFeedCard = ({ item, clubId, onUpdate }: Props) => {
                     </span>
                   </div>
                   <div className="workout-detail-row">
-                    <span className="label">강도</span>
+                    <span className="label">체감 난이도</span>
                     <span
                       className="value intensity-value"
                       style={{ color: getIntensityColor(workout.intensity) }}
                     >
-                      {workout.intensity}단계 ({getIntensityLabel(workout.intensity)})
+                      {getIntensityLabel(workout.intensity)}
                     </span>
                   </div>
                   <div className="workout-detail-row">
