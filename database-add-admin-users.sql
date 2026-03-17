@@ -1,17 +1,17 @@
 -- 어드민 사용자 확인 및 추가
 -- 실행 일시: 2026년 3월
 
--- 1. users 테이블에 isAdmin 컬럼이 있는지 확인
+-- 1. users 테이블에 is_admin 컬럼이 있는지 확인
 DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'users' AND column_name = 'isadmin'
+        WHERE table_name = 'users' AND column_name = 'is_admin'
     ) THEN
-        ALTER TABLE users ADD COLUMN isAdmin BOOLEAN DEFAULT FALSE;
-        RAISE NOTICE 'isAdmin 컬럼 추가됨';
+        ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE;
+        RAISE NOTICE 'is_admin 컬럼 추가됨';
     ELSE
-        RAISE NOTICE 'isAdmin 컬럼 이미 존재함';
+        RAISE NOTICE 'is_admin 컬럼 이미 존재함';
     END IF;
 END $$;
 
@@ -25,17 +25,17 @@ END $$;
 -- FOR SELECT TO authenticated USING (true);
 
 -- 3. 현재 어드민 사용자 확인
-SELECT id, email, display_name, isAdmin
+SELECT id, email, display_name, is_admin
 FROM users
-WHERE isAdmin = TRUE;
+WHERE is_admin = TRUE;
 
 -- 4. 필요시 어드민 추가 (이메일 주소 변경 필요)
--- INSERT INTO users (id, email, display_name, isAdmin)
+-- INSERT INTO users (id, email, display_name, is_admin)
 -- VALUES ('admin-user-id', 'admin@example.com', '관리자', TRUE)
--- ON CONFLICT (id) DO UPDATE SET isAdmin = TRUE;
+-- ON CONFLICT (id) DO UPDATE SET is_admin = TRUE;
 
 -- 5. 모든 사용자 목록 (디버깅용)
-SELECT id, email, display_name, isAdmin
+SELECT id, email, display_name, is_admin
 FROM users
 ORDER BY created_at DESC
 LIMIT 10;

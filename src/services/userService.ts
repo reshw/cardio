@@ -4,6 +4,7 @@ interface AdminUser {
   id: string;
   email: string;
   display_name: string;
+  is_admin: boolean;
 }
 
 class UserService {
@@ -11,8 +12,8 @@ class UserService {
   async getAdminUsers(): Promise<AdminUser[]> {
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, display_name')
-      .eq('isAdmin', true);
+      .select('id, email, display_name, is_admin')
+      .eq('is_admin', true);
 
     if (error) {
       console.error('어드민 사용자 조회 실패:', error);
