@@ -32,6 +32,7 @@ export interface CreateWorkoutData {
   value: number;
   unit: WorkoutUnit;
   proof_image?: string;
+  created_at?: string;
 }
 
 class WorkoutService {
@@ -43,7 +44,7 @@ class WorkoutService {
     // 마일리지 계산
     const mileage = clubService.calculateMileage(data.category, data.sub_type, data.value);
 
-    const insertData = {
+    const insertData: any = {
       user_id: data.user_id,
       category: data.category,
       sub_type: data.sub_type,
@@ -52,6 +53,11 @@ class WorkoutService {
       mileage: mileage,
       proof_image: data.proof_image || null,
     };
+
+    // created_at이 제공되면 포함
+    if (data.created_at) {
+      insertData.created_at = data.created_at;
+    }
 
     console.log('📤 Insert 데이터 (마일리지 포함):', insertData);
 

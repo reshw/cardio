@@ -75,7 +75,8 @@ export const Club = () => {
   const [myClubs, setMyClubs] = useState<MyClubWithOrder[]>([]);
   const [selectedClub, setSelectedClub] = useState<MyClubWithOrder | null>(null);
   const [ranking, setRanking] = useState<ClubRanking[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // 초기 로딩 true로 설정
+  const [rankingLoading, setRankingLoading] = useState(false); // 랭킹 로딩 별도 관리
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMileageConfig, setShowMileageConfig] = useState(false);
@@ -112,7 +113,7 @@ export const Club = () => {
 
   // 클럽 랭킹 불러오기
   const loadClubRanking = async (clubId: string) => {
-    setLoading(true);
+    setRankingLoading(true);
     try {
       const now = new Date();
       const data = await clubService.getClubRanking(clubId, {
@@ -123,7 +124,7 @@ export const Club = () => {
     } catch (error) {
       console.error('랭킹 불러오기 실패:', error);
     } finally {
-      setLoading(false);
+      setRankingLoading(false);
     }
   };
 
@@ -297,16 +298,21 @@ export const Club = () => {
       )}
 
       {/* 클럽 랭킹 */}
-      {selectedClub ? (
+      {loading ? (
+        <div className="loading-screen">
+          <div className="spinner"></div>
+          <p>클럽 불러오는 중...</p>
+        </div>
+      ) : selectedClub ? (
         <div className="club-dashboard">
           <div className="dashboard-header">
             <h2>이번 달 랭킹</h2>
           </div>
 
-          {loading ? (
+          {rankingLoading ? (
             <div className="loading-screen">
               <div className="spinner"></div>
-              <p>불러오는 중...</p>
+              <p>랭킹 불러오는 중...</p>
             </div>
           ) : ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0).length === 0 ? (
             <div className="empty-state">

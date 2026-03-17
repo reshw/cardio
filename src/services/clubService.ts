@@ -1,4 +1,6 @@
 import { supabase } from '../lib/supabase';
+import userService from './userService';
+import { sendClubRequestEmail } from '../utils/email';
 
 export interface Club {
   id: string;
@@ -141,6 +143,11 @@ class ClubService {
 
     // 생성자를 admin으로 자동 가입
     await this.joinClub(club.id, data.created_by, 'admin', data.club_nickname);
+
+    // 어드민에게 이메일 발송 (비동기, 실패해도 클럽 생성은 성공)
+    this.sendClubRequestNotification(club, data.created_by).catch((error) => {
+      console.error('⚠️  어드민 이메일 발송 실패 (클럽 생성은 성공):', error);
+    });
 
     return club;
   }
@@ -608,46 +615,6 @@ class ClubService {
 
   // 클럽 랭킹 조회 (월별)
   async getClubRanking(clubId: string, month?: { year: number; month: number }): Promise<ClubRanking[]> {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    const targetYear = month?.year || currentYear;
-    const targetMonth = month?.month || currentMonth;
-
-    // 현재 월인지 확인
-    const isCurrentMonth = targetYear === currentYear && targetMonth === currentMonth;
-
-    // 마일리지 설정 가져오기
-    let mileageConfig: MileageConfig;
-
-    if (isCurrentMonth) {
-      // 현재 월: 현재 클럽 설정 사용
-      const { data: club } = await supabase
-        .from('clubs')
-        .select('mileage_config')
-        .eq('id', clubId)
-        .single();
-
-      mileageConfig = club?.mileage_config || this.getDefaultMileageConfig();
-    } else {
-      // 과거 월: 스냅샷 조회
-      const snapshot = await this.getMonthlyConfigSnapshot(clubId, targetYear, targetMonth);
-
-      if (!snapshot) {
-        // 스냅샷 없으면 현재 설정 사용 (배치 전이거나 이전 데이터)
-        console.warn(`⚠️  스냅샷 없음: ${targetYear}-${targetMonth}, 현재 설정 사용`);
-        const { data: club } = await supabase
-          .from('clubs')
-          .select('mileage_config')
-          .eq('id', clubId)
-          .single();
-
-        mileageConfig = club?.mileage_config || this.getDefaultMileageConfig();
-      } else {
-        mileageConfig = snapshot;
-      }
-    }
-
     // 클럽 멤버 조회
     const { data: members, error: membersError } = await supabase
       .from('club_members')
@@ -697,15 +664,14 @@ class ClubService {
     // 사용자별 마일리지 집계
     const userMileageMap: Record<string, { mileage: number; count: number }> = {};
 
+    // DB에 저장된 mileage 사용 (마일리지 설정 변경 시 재계산되므로 항상 정확함)
     (workouts || []).forEach((workout) => {
       if (!userMileageMap[workout.user_id]) {
         userMileageMap[workout.user_id] = { mileage: 0, count: 0 };
       }
 
-      // 항상 현재 클럽 설정으로 마일리지 재계산
-      const mileage = workout.category
-        ? this.calculateMileage(workout.category, workout.sub_type, workout.value, mileageConfig)
-        : 0;
+      // DB에 저장된 mileage 사용
+      const mileage = workout.mileage || 0;
 
       userMileageMap[workout.user_id].mileage += mileage;
       userMileageMap[workout.user_id].count += 1;
@@ -745,46 +711,6 @@ class ClubService {
     clubId: string,
     month?: { year: number; month: number }
   ): Promise<ClubDetailedStats[]> {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    const targetYear = month?.year || currentYear;
-    const targetMonth = month?.month || currentMonth;
-
-    // 현재 월인지 확인
-    const isCurrentMonth = targetYear === currentYear && targetMonth === currentMonth;
-
-    // 마일리지 설정 가져오기
-    let mileageConfig: MileageConfig;
-
-    if (isCurrentMonth) {
-      // 현재 월: 현재 클럽 설정 사용
-      const { data: club } = await supabase
-        .from('clubs')
-        .select('mileage_config')
-        .eq('id', clubId)
-        .single();
-
-      mileageConfig = club?.mileage_config || this.getDefaultMileageConfig();
-    } else {
-      // 과거 월: 스냅샷 조회
-      const snapshot = await this.getMonthlyConfigSnapshot(clubId, targetYear, targetMonth);
-
-      if (!snapshot) {
-        // 스냅샷 없으면 현재 설정 사용 (배치 전이거나 이전 데이터)
-        console.warn(`⚠️  스냅샷 없음: ${targetYear}-${targetMonth}, 현재 설정 사용`);
-        const { data: club } = await supabase
-          .from('clubs')
-          .select('mileage_config')
-          .eq('id', clubId)
-          .single();
-
-        mileageConfig = club?.mileage_config || this.getDefaultMileageConfig();
-      } else {
-        mileageConfig = snapshot;
-      }
-    }
-
     // 클럽 멤버 조회
     const { data: members } = await supabase
       .from('club_members')
@@ -808,7 +734,7 @@ class ClubService {
     // 운동 기록 조회
     let query = supabase
       .from('workouts')
-      .select('user_id, category, sub_type, value')
+      .select('user_id, category, sub_type, value, mileage')
       .in('user_id', userIds);
 
     if (month) {
@@ -830,6 +756,7 @@ class ClubService {
       }
     > = {};
 
+    // DB에 저장된 mileage 사용 (마일리지 설정 변경 시 재계산되므로 항상 정확함)
     (workouts || []).forEach((workout) => {
       if (!userStatsMap[workout.user_id]) {
         userStatsMap[workout.user_id] = {
@@ -846,7 +773,9 @@ class ClubService {
       }
 
       const key = workout.sub_type ? `${workout.category}-${workout.sub_type}` : workout.category;
-      const mileage = this.calculateMileage(workout.category, workout.sub_type, workout.value, mileageConfig);
+
+      // DB에 저장된 mileage 사용
+      const mileage = workout.mileage || 0;
 
       userStatsMap[workout.user_id].total += mileage;
       if (userStatsMap[workout.user_id].byWorkout[key] !== undefined) {
@@ -910,6 +839,112 @@ class ClubService {
     // 나눗셈 방식: 거리 / 계수 = 마일리지
     // 예: 3km / 3 = 1 마일리지
     return value / coefficient;
+  }
+
+  // 현재 월의 모든 클럽 멤버 운동 기록 마일리지 재계산
+  async recalculateCurrentMonthMileage(clubId: string, newConfig: MileageConfig): Promise<void> {
+    console.log('🔄 현재 월 마일리지 재계산 시작...');
+
+    // 클럽 멤버 조회
+    const { data: members, error: membersError } = await supabase
+      .from('club_members')
+      .select('user_id')
+      .eq('club_id', clubId);
+
+    if (membersError || !members || members.length === 0) {
+      console.log('📊 클럽 멤버 없음');
+      return;
+    }
+
+    const userIds = members.map((m) => m.user_id);
+
+    // 현재 월의 운동 기록 조회
+    const now = new Date();
+    const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    const { data: workouts, error: workoutsError } = await supabase
+      .from('workouts')
+      .select('id, category, sub_type, value')
+      .in('user_id', userIds)
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString());
+
+    if (workoutsError) {
+      console.error('❌ 운동 기록 조회 실패:', workoutsError);
+      throw workoutsError;
+    }
+
+    if (!workouts || workouts.length === 0) {
+      console.log('📊 현재 월 운동 기록 없음');
+      return;
+    }
+
+    console.log(`📊 재계산할 운동 기록: ${workouts.length}개`);
+
+    // 각 운동 기록의 마일리지 재계산 및 업데이트
+    const updates = workouts.map((workout) => {
+      const newMileage = this.calculateMileage(
+        workout.category,
+        workout.sub_type,
+        workout.value,
+        newConfig
+      );
+
+      return supabase
+        .from('workouts')
+        .update({ mileage: newMileage })
+        .eq('id', workout.id);
+    });
+
+    const results = await Promise.all(updates);
+
+    const errors = results.filter((r) => r.error);
+    if (errors.length > 0) {
+      console.error('❌ 마일리지 재계산 실패:', errors);
+      throw new Error('일부 운동 기록의 마일리지 업데이트에 실패했습니다.');
+    }
+
+    console.log(`✅ ${workouts.length}개 운동 기록 마일리지 재계산 완료`);
+  }
+
+  // 어드민에게 클럽 생성 신청 이메일 발송
+  private async sendClubRequestNotification(club: Club, creatorId: string): Promise<void> {
+    try {
+      // 어드민 이메일 목록 조회
+      const adminEmails = await userService.getAdminEmails();
+
+      if (adminEmails.length === 0) {
+        console.warn('⚠️  어드민 이메일이 없어 알림을 보낼 수 없습니다.');
+        return;
+      }
+
+      // 생성자 정보 조회
+      const { data: creator } = await supabase
+        .from('users')
+        .select('display_name')
+        .eq('id', creatorId)
+        .single();
+
+      const creatorName = creator?.display_name || '알 수 없음';
+
+      // 각 어드민에게 이메일 발송
+      await Promise.all(
+        adminEmails.map((adminEmail) =>
+          sendClubRequestEmail({
+            adminEmail,
+            clubName: club.name,
+            clubDescription: club.description,
+            creatorName,
+          })
+        )
+      );
+
+      console.log(`✅ ${adminEmails.length}명의 어드민에게 이메일 발송 완료`);
+    } catch (error) {
+      console.error('❌ 어드민 이메일 발송 실패:', error);
+      // 에러를 throw하지 않아 클럽 생성은 계속 진행됨
+    }
   }
 
   // ============================================

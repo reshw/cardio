@@ -1,5 +1,16 @@
 // Cloudinary 이미지 업로드 유틸리티
 
+// Cloudinary 이미지 URL을 썸네일로 변환
+export const getCloudinaryThumbnail = (url: string, width: number = 300, height: number = 150): string => {
+  if (!url) return url;
+
+  // Cloudinary URL인 경우에만 변환
+  if (!url.includes('cloudinary.com')) return url;
+
+  // /upload/ 다음에 변환 파라미터 삽입
+  return url.replace('/upload/', `/upload/w_${width},h_${height},c_fill/`);
+};
+
 export const uploadToCloudinary = async (file: File): Promise<string> => {
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;

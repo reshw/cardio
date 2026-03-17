@@ -35,6 +35,7 @@ export const ClubMileageSettings = () => {
   );
   const [updating, setUpdating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     if (clubId) {
@@ -70,17 +71,26 @@ export const ClubMileageSettings = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // 확인 모달 표시
+    setShowConfirmModal(true);
+  };
 
+  const handleConfirmUpdate = async () => {
     if (!clubId) return;
 
+    setShowConfirmModal(false);
     setUpdating(true);
 
     try {
+      // 1. 클럽 설정 업데이트
       await clubService.updateClub(clubId, {
         mileage_config: mileageConfig,
       });
 
-      alert('마일리지 계수가 수정되었습니다.');
+      // 2. 현재 월의 모든 운동 기록 마일리지 재계산
+      await clubService.recalculateCurrentMonthMileage(clubId, mileageConfig);
+
+      alert('마일리지 계수가 수정되었습니다.\n이번 달 모든 기록이 새로운 계수로 재계산되었습니다.');
       navigate(-1);
     } catch (error) {
       console.error('클럽 수정 실패:', error);
@@ -235,6 +245,46 @@ export const ClubMileageSettings = () => {
           {updating ? '저장 중...' : '저장하기'}
         </button>
       </form>
+
+      {/* 확인 모달 */}
+      {showConfirmModal && (
+        <div className="modal-overlay" onClick={() => setShowConfirmModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>마일리지 계수 변경</h2>
+              <button className="modal-close" onClick={() => setShowConfirmModal(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: '12px', lineHeight: '1.6' }}>
+                마일리지 계수를 변경하면 <strong>이번 달({new Date().getFullYear()}년 {new Date().getMonth() + 1}월)</strong>의
+                모든 운동 기록이 새로운 계수로 소급 적용됩니다.
+              </p>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                💡 과거 월의 기록은 변경되지 않으며, 당시의 마일리지 계수가 유지됩니다.
+              </p>
+            </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="cancel-button"
+                onClick={() => setShowConfirmModal(false)}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={handleConfirmUpdate}
+                disabled={updating}
+              >
+                {updating ? '적용 중...' : '확인'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

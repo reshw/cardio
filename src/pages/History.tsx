@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import workoutService from '../services/workoutService';
-import { AddWorkoutModal } from '../components/AddWorkoutModal';
+import { getCloudinaryThumbnail } from '../utils/cloudinary';
 import type { Workout } from '../services/workoutService';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
@@ -15,7 +15,6 @@ export const History = () => {
   const [activeTab, setActiveTab] = useState<TabType>('list');
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // 운동 기록 불러오기
@@ -129,7 +128,7 @@ export const History = () => {
     <div className="container">
       <div className="header">
         <h1>기록</h1>
-        <button className="add-button" onClick={() => setShowAddModal(true)}>
+        <button className="add-button" onClick={() => navigate('/add-workout')}>
           + 기록 추가
         </button>
       </div>
@@ -201,6 +200,11 @@ export const History = () => {
                           </div>
                         </div>
                       </div>
+                      {workout.proof_image && (
+                        <div className="workout-proof-thumbnail">
+                          <img src={getCloudinaryThumbnail(workout.proof_image, 600, 120)} alt="증빙" />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -248,8 +252,8 @@ export const History = () => {
                     </div>
                   </div>
                   {workout.proof_image && (
-                    <div className="workout-proof">
-                      <img src={workout.proof_image} alt="증빙" />
+                    <div className="workout-proof-thumbnail">
+                      <img src={getCloudinaryThumbnail(workout.proof_image, 600, 120)} alt="증빙" />
                     </div>
                   )}
                 </div>
@@ -301,14 +305,6 @@ export const History = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* 모달들 */}
-      {showAddModal && (
-        <AddWorkoutModal
-          onClose={() => setShowAddModal(false)}
-          onSuccess={loadWorkouts}
-        />
       )}
     </div>
   );
