@@ -104,6 +104,7 @@ class WorkoutService {
     data: {
       value?: number;
       created_at?: string;
+      intensity?: number;
       proof_image?: string;
     }
   ): Promise<Workout> {
@@ -130,6 +131,10 @@ class WorkoutService {
 
     if (data.created_at !== undefined) {
       updateData.created_at = data.created_at;
+    }
+
+    if (data.intensity !== undefined) {
+      updateData.intensity = data.intensity;
     }
 
     if (data.proof_image !== undefined) {

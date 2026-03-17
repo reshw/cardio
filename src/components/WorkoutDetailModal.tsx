@@ -17,6 +17,7 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
   const [createdAt, setCreatedAt] = useState(
     new Date(workout.created_at).toISOString().slice(0, 16)
   );
+  const [intensity, setIntensity] = useState(workout.intensity);
   const [newProofImage, setNewProofImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -31,6 +32,24 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
       return `${workout.category} - ${workout.sub_type}`;
     }
     return workout.category;
+  };
+
+  const getIntensityLabel = (intensity: number) => {
+    if (intensity <= 2) return '매우 가벼움';
+    if (intensity <= 4) return '가벼움';
+    if (intensity <= 6) return '보통';
+    if (intensity <= 8) return '힘듦';
+    if (intensity === 9) return '매우 힘듦';
+    return '최대/한계';
+  };
+
+  const getIntensityColor = (intensity: number) => {
+    if (intensity <= 2) return '#4ade80';
+    if (intensity <= 4) return '#22c55e';
+    if (intensity <= 6) return '#eab308';
+    if (intensity <= 8) return '#f97316';
+    if (intensity === 9) return '#ef4444';
+    return '#dc2626';
   };
 
   const handleDelete = () => {
@@ -71,6 +90,7 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
       await workoutService.updateWorkout(workout.id, {
         value: parseFloat(value),
         created_at: new Date(createdAt).toISOString(),
+        intensity,
         proof_image: proofImageUrl,
       });
 
@@ -107,6 +127,16 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
                 <div className="detail-label">기록</div>
                 <div className="detail-value detail-distance">
                   {workout.value} {workout.unit}
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <div className="detail-label">강도</div>
+                <div
+                  className="detail-value"
+                  style={{ color: getIntensityColor(workout.intensity), fontWeight: 600 }}
+                >
+                  {workout.intensity}단계 ({getIntensityLabel(workout.intensity)})
                 </div>
               </div>
 
@@ -165,6 +195,46 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
               </div>
 
               <div className="form-group">
+                <label htmlFor="edit-intensity">
+                  운동 강도: {intensity}단계
+                  <span className="intensity-label">
+                    {intensity <= 2
+                      ? ' (매우 가벼움)'
+                      : intensity <= 4
+                      ? ' (가벼움)'
+                      : intensity <= 6
+                      ? ' (보통)'
+                      : intensity <= 8
+                      ? ' (힘듦)'
+                      : intensity === 9
+                      ? ' (매우 힘듦)'
+                      : ' (최대/한계)'}
+                  </span>
+                </label>
+                <input
+                  id="edit-intensity"
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={intensity}
+                  onChange={(e) => setIntensity(parseInt(e.target.value))}
+                  className="intensity-slider"
+                />
+                <div className="intensity-markers">
+                  <span>1</span>
+                  <span>2</span>
+                  <span>3</span>
+                  <span>4</span>
+                  <span>5</span>
+                  <span>6</span>
+                  <span>7</span>
+                  <span>8</span>
+                  <span>9</span>
+                  <span>10</span>
+                </div>
+              </div>
+
+              <div className="form-group">
                 <label htmlFor="edit-proof">증빙 이미지 변경 (선택)</label>
                 <input
                   id="edit-proof"
@@ -191,6 +261,7 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
                     setIsEditing(false);
                     setValue(workout.value.toString());
                     setCreatedAt(new Date(workout.created_at).toISOString().slice(0, 16));
+                    setIntensity(workout.intensity);
                     setNewProofImage(null);
                     setImagePreview(null);
                   }}
