@@ -116,17 +116,30 @@ class FeedService {
     if (error) throw error;
     if (!comments || comments.length === 0) return [];
 
+    // 클럽 닉네임 조회
+    const userIds = [...new Set(comments.map((c: any) => c.user_id))];
+    const { data: clubMembers } = await supabase
+      .from('club_members')
+      .select('user_id, club_nickname')
+      .eq('club_id', clubId)
+      .in('user_id', userIds);
+
+    const nicknameMap = new Map(
+      clubMembers?.filter((m) => m.club_nickname).map((m) => [m.user_id, m.club_nickname]) || []
+    );
+
     // 대댓글 계층 구조 구성
     const topLevelComments: WorkoutComment[] = [];
     const commentMap = new Map<string, WorkoutComment>();
 
-    // 1차: 모든 댓글을 Map에 저장
+    // 1차: 모든 댓글을 Map에 저장 (클럽 닉네임 우선 사용)
     comments.forEach((c: any) => {
+      const clubNickname = nicknameMap.get(c.user_id);
       const comment: WorkoutComment = {
         ...c,
         user: c.user
           ? {
-              display_name: c.user.display_name,
+              display_name: clubNickname || c.user.display_name,
               profile_image: c.user.profile_image,
             }
           : undefined,

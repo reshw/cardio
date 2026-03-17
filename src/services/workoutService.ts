@@ -23,6 +23,7 @@ export interface Workout {
   value: number;
   unit: WorkoutUnit;
   mileage: number;
+  intensity: number; // 1-10 단계, 기본값 4
   proof_image?: string;
   created_at: string;
 }
@@ -33,6 +34,7 @@ export interface CreateWorkoutData {
   sub_type: WorkoutSubType;
   value: number;
   unit: WorkoutUnit;
+  intensity?: number; // 1-10 단계, 기본값 4
   proof_image?: string;
   created_at?: string;
 }
@@ -53,6 +55,7 @@ class WorkoutService {
       value: data.value,
       unit: data.unit,
       mileage: mileage,
+      intensity: data.intensity ?? 4, // 기본값 4
       proof_image: data.proof_image || null,
     };
 

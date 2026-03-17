@@ -36,6 +36,7 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
   const [proofImage, setProofImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [intensity, setIntensity] = useState(4); // 기본값 4
 
   const selectedCategory = CATEGORIES.find((c) => c.id === category);
 
@@ -105,6 +106,7 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
         sub_type: subType,
         value: parseFloat(value),
         unit: selectedCategory!.unit,
+        intensity,
         proof_image: imageUrl,
       });
       console.log('✅ 운동 기록 저장 성공');
@@ -207,6 +209,46 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
                       required
                     />
                     <span className="unit-label">{selectedCategory?.unit}</span>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="intensity">
+                    운동 강도: {intensity}단계
+                    <span className="intensity-label">
+                      {intensity <= 2
+                        ? ' (매우 가벼움)'
+                        : intensity <= 4
+                        ? ' (가벼움)'
+                        : intensity <= 6
+                        ? ' (보통)'
+                        : intensity <= 8
+                        ? ' (힘듦)'
+                        : intensity === 9
+                        ? ' (매우 힘듦)'
+                        : ' (최대/한계)'}
+                    </span>
+                  </label>
+                  <input
+                    id="intensity"
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={intensity}
+                    onChange={(e) => setIntensity(parseInt(e.target.value))}
+                    className="intensity-slider"
+                  />
+                  <div className="intensity-markers">
+                    <span>1</span>
+                    <span>2</span>
+                    <span>3</span>
+                    <span>4</span>
+                    <span>5</span>
+                    <span>6</span>
+                    <span>7</span>
+                    <span>8</span>
+                    <span>9</span>
+                    <span>10</span>
                   </div>
                 </div>
 

@@ -15,6 +15,7 @@ export const WorkoutFeedCard = ({ item, clubId, onUpdate }: Props) => {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [liking, setLiking] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
 
   const { workout } = item;
 
@@ -28,6 +29,24 @@ export const WorkoutFeedCard = ({ item, clubId, onUpdate }: Props) => {
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  };
+
+  const getIntensityLabel = (intensity: number) => {
+    if (intensity <= 2) return '매우 가벼움';
+    if (intensity <= 4) return '가벼움';
+    if (intensity <= 6) return '보통';
+    if (intensity <= 8) return '힘듦';
+    if (intensity === 9) return '매우 힘듦';
+    return '최대/한계';
+  };
+
+  const getIntensityColor = (intensity: number) => {
+    if (intensity <= 2) return '#4ade80'; // green
+    if (intensity <= 4) return '#22c55e'; // green
+    if (intensity <= 6) return '#eab308'; // yellow
+    if (intensity <= 8) return '#f97316'; // orange
+    if (intensity === 9) return '#ef4444'; // red
+    return '#dc2626'; // dark red
   };
 
   const handleLikeToggle = async () => {
@@ -47,7 +66,7 @@ export const WorkoutFeedCard = ({ item, clubId, onUpdate }: Props) => {
   return (
     <div className="feed-card">
       {/* 사용자 정보 */}
-      <div className="feed-card-header">
+      <div className="feed-card-header" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>
         {item.user_profile_image ? (
           <img src={item.user_profile_image} alt={item.user_display_name} className="feed-user-avatar" />
         ) : (
@@ -60,8 +79,16 @@ export const WorkoutFeedCard = ({ item, clubId, onUpdate }: Props) => {
       </div>
 
       {/* 운동 정보 */}
-      <div className="feed-card-body">
-        <div className="feed-workout-type">{getWorkoutLabel()}</div>
+      <div className="feed-card-body" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>
+        <div className="feed-workout-header">
+          <div className="feed-workout-type">{getWorkoutLabel()}</div>
+          <div
+            className="feed-intensity-badge"
+            style={{ backgroundColor: getIntensityColor(workout.intensity) }}
+          >
+            강도 {workout.intensity}
+          </div>
+        </div>
         <div className="feed-workout-value">
           {workout.value} {workout.unit}
         </div>
@@ -86,6 +113,77 @@ export const WorkoutFeedCard = ({ item, clubId, onUpdate }: Props) => {
 
       {/* 댓글 섹션 */}
       {showComments && <CommentSection workoutId={workout.id} clubId={clubId} onCommentAdded={onUpdate} />}
+
+      {/* 상세보기 모달 */}
+      {showDetail && (
+        <div className="modal-overlay" onClick={() => setShowDetail(false)}>
+          <div className="modal-content workout-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>운동 상세</h2>
+              <button className="modal-close" onClick={() => setShowDetail(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="workout-detail-section">
+                <h3>운동 정보</h3>
+                <div className="workout-detail-info">
+                  <div className="workout-detail-row">
+                    <span className="label">종류</span>
+                    <span className="value">{getWorkoutLabel()}</span>
+                  </div>
+                  <div className="workout-detail-row">
+                    <span className="label">거리/시간</span>
+                    <span className="value">
+                      {workout.value} {workout.unit}
+                    </span>
+                  </div>
+                  <div className="workout-detail-row">
+                    <span className="label">강도</span>
+                    <span
+                      className="value intensity-value"
+                      style={{ color: getIntensityColor(workout.intensity) }}
+                    >
+                      {workout.intensity}단계 ({getIntensityLabel(workout.intensity)})
+                    </span>
+                  </div>
+                  <div className="workout-detail-row">
+                    <span className="label">마일리지</span>
+                    <span className="value">{workout.mileage.toFixed(1)}</span>
+                  </div>
+                  <div className="workout-detail-row">
+                    <span className="label">시간</span>
+                    <span className="value">
+                      {new Date(workout.created_at).toLocaleString('ko-KR')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {workout.proof_image && (
+                <div className="workout-detail-section">
+                  <h3>인증 사진</h3>
+                  <div className="workout-detail-image">
+                    <img src={workout.proof_image} alt="운동 인증" />
+                  </div>
+                </div>
+              )}
+
+              <div className="workout-detail-section">
+                <h3>기록자</h3>
+                <div className="workout-detail-user">
+                  {item.user_profile_image ? (
+                    <img src={item.user_profile_image} alt={item.user_display_name} />
+                  ) : (
+                    <div className="user-avatar-placeholder">{item.user_display_name[0]}</div>
+                  )}
+                  <span>{item.user_display_name}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
