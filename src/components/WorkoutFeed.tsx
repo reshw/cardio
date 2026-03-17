@@ -8,7 +8,9 @@ interface Props {
   feedItems: WorkoutFeedItem[];
   loading: boolean;
   onDateChange: (days: number) => void;
-  onRefresh: () => void;
+  onOptimisticLike: (workoutId: string, isLiked: boolean) => void;
+  onOptimisticCommentAdd: (workoutId: string) => void;
+  onOptimisticCommentDelete: (workoutId: string) => void;
 }
 
 export const WorkoutFeed = ({
@@ -17,7 +19,9 @@ export const WorkoutFeed = ({
   feedItems,
   loading,
   onDateChange,
-  onRefresh,
+  onOptimisticLike,
+  onOptimisticCommentAdd,
+  onOptimisticCommentDelete,
 }: Props) => {
   const formatDate = (date: Date) => {
     const today = new Date();
@@ -60,7 +64,14 @@ export const WorkoutFeed = ({
       ) : (
         <div className="feed-items">
           {feedItems.map((item) => (
-            <WorkoutFeedCard key={item.workout.id} item={item} clubId={clubId} onUpdate={onRefresh} />
+            <WorkoutFeedCard
+              key={item.workout.id}
+              item={item}
+              clubId={clubId}
+              onOptimisticLike={onOptimisticLike}
+              onOptimisticCommentAdd={onOptimisticCommentAdd}
+              onOptimisticCommentDelete={onOptimisticCommentDelete}
+            />
           ))}
         </div>
       )}

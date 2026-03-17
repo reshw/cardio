@@ -92,6 +92,9 @@ export const Club = () => {
   const [feedItems, setFeedItems] = useState<WorkoutFeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
 
+  // 피드 캐시: { clubId-dateString: WorkoutFeedItem[] }
+  const [feedCache, setFeedCache] = useState<Record<string, WorkoutFeedItem[]>>({});
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -148,13 +151,30 @@ export const Club = () => {
     }
   };
 
-  // 피드 로드
-  const loadFeed = async (clubId: string, date: Date) => {
+  // 피드 로드 (캐싱 적용)
+  const loadFeed = async (clubId: string, date: Date, forceReload = false) => {
     if (!user) return;
+
+    const cacheKey = `${clubId}-${date.toDateString()}`;
+
+    // 캐시 확인 (강제 새로고침이 아닐 때)
+    if (!forceReload && feedCache[cacheKey]) {
+      console.log('📦 캐시에서 피드 로드:', cacheKey);
+      setFeedItems(feedCache[cacheKey]);
+      return;
+    }
+
+    console.log('🔄 서버에서 피드 로드:', cacheKey);
     setFeedLoading(true);
     try {
       const items = await clubService.getClubWorkoutFeed(clubId, date, user.id);
       setFeedItems(items);
+
+      // 캐시 저장
+      setFeedCache(prev => ({
+        ...prev,
+        [cacheKey]: items,
+      }));
     } catch (error) {
       console.error('피드 로드 실패:', error);
     } finally {
@@ -167,6 +187,80 @@ export const Club = () => {
     const newDate = new Date(selectedDate);
     newDate.setDate(newDate.getDate() + days);
     setSelectedDate(newDate);
+  };
+
+  // Optimistic 좋아요 업데이트
+  const handleOptimisticLike = (workoutId: string, isLiked: boolean) => {
+    setFeedItems(prev => prev.map(item =>
+      item.workout.id === workoutId
+        ? {
+            ...item,
+            like_count: isLiked ? item.like_count - 1 : item.like_count + 1,
+            is_liked_by_me: !isLiked,
+          }
+        : item
+    ));
+
+    // 캐시도 업데이트
+    const cacheKey = `${selectedClub?.id}-${selectedDate.toDateString()}`;
+    if (feedCache[cacheKey]) {
+      setFeedCache(prev => ({
+        ...prev,
+        [cacheKey]: prev[cacheKey].map(item =>
+          item.workout.id === workoutId
+            ? {
+                ...item,
+                like_count: isLiked ? item.like_count - 1 : item.like_count + 1,
+                is_liked_by_me: !isLiked,
+              }
+            : item
+        ),
+      }));
+    }
+  };
+
+  // Optimistic 댓글 추가 업데이트
+  const handleOptimisticCommentAdd = (workoutId: string) => {
+    setFeedItems(prev => prev.map(item =>
+      item.workout.id === workoutId
+        ? { ...item, comment_count: item.comment_count + 1 }
+        : item
+    ));
+
+    // 캐시도 업데이트
+    const cacheKey = `${selectedClub?.id}-${selectedDate.toDateString()}`;
+    if (feedCache[cacheKey]) {
+      setFeedCache(prev => ({
+        ...prev,
+        [cacheKey]: prev[cacheKey].map(item =>
+          item.workout.id === workoutId
+            ? { ...item, comment_count: item.comment_count + 1 }
+            : item
+        ),
+      }));
+    }
+  };
+
+  // Optimistic 댓글 삭제 업데이트
+  const handleOptimisticCommentDelete = (workoutId: string) => {
+    setFeedItems(prev => prev.map(item =>
+      item.workout.id === workoutId
+        ? { ...item, comment_count: Math.max(0, item.comment_count - 1) }
+        : item
+    ));
+
+    // 캐시도 업데이트
+    const cacheKey = `${selectedClub?.id}-${selectedDate.toDateString()}`;
+    if (feedCache[cacheKey]) {
+      setFeedCache(prev => ({
+        ...prev,
+        [cacheKey]: prev[cacheKey].map(item =>
+          item.workout.id === workoutId
+            ? { ...item, comment_count: Math.max(0, item.comment_count - 1) }
+            : item
+        ),
+      }));
+    }
   };
 
   useEffect(() => {
@@ -477,7 +571,9 @@ export const Club = () => {
           feedItems={feedItems}
           loading={feedLoading}
           onDateChange={handleDateChange}
-          onRefresh={() => loadFeed(selectedClub.id, selectedDate)}
+          onOptimisticLike={handleOptimisticLike}
+          onOptimisticCommentAdd={handleOptimisticCommentAdd}
+          onOptimisticCommentDelete={handleOptimisticCommentDelete}
         />
       )}
 

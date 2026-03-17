@@ -8,9 +8,10 @@ interface Props {
   workoutId: string;
   clubId: string;
   onCommentAdded?: () => void;
+  onCommentDeleted?: () => void;
 }
 
-export const CommentSection = ({ workoutId, clubId, onCommentAdded }: Props) => {
+export const CommentSection = ({ workoutId, clubId, onCommentAdded, onCommentDeleted }: Props) => {
   const { user } = useAuth();
   const [comments, setComments] = useState<WorkoutComment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -59,7 +60,7 @@ export const CommentSection = ({ workoutId, clubId, onCommentAdded }: Props) => 
     try {
       await feedService.deleteComment(commentId, user.id);
       await loadComments();
-      onCommentAdded?.();
+      onCommentDeleted?.(); // 댓글 수 감소
     } catch (error) {
       console.error('댓글 삭제 실패:', error);
       alert('댓글 삭제에 실패했습니다.');

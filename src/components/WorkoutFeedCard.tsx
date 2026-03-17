@@ -8,10 +8,18 @@ import type { WorkoutFeedItem } from '../services/feedService';
 interface Props {
   item: WorkoutFeedItem;
   clubId: string;
-  onUpdate: () => void;
+  onOptimisticLike: (workoutId: string, isLiked: boolean) => void;
+  onOptimisticCommentAdd: (workoutId: string) => void;
+  onOptimisticCommentDelete: (workoutId: string) => void;
 }
 
-export const WorkoutFeedCard = ({ item, clubId, onUpdate }: Props) => {
+export const WorkoutFeedCard = ({
+  item,
+  clubId,
+  onOptimisticLike,
+  onOptimisticCommentAdd,
+  onOptimisticCommentDelete,
+}: Props) => {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [liking, setLiking] = useState(false);
@@ -52,11 +60,18 @@ export const WorkoutFeedCard = ({ item, clubId, onUpdate }: Props) => {
     if (!user || liking) return;
 
     setLiking(true);
+
+    // Optimistic Update: UI 즉시 업데이트
+    onOptimisticLike(workout.id, item.is_liked_by_me);
+
     try {
+      // 백그라운드로 DB 업데이트
       await feedService.toggleLike(workout.id, clubId, user.id, item.is_liked_by_me);
-      onUpdate(); // 피드 새로고침
     } catch (error) {
       console.error('좋아요 토글 실패:', error);
+      // 실패 시 롤백
+      onOptimisticLike(workout.id, !item.is_liked_by_me);
+      alert('좋아요 처리에 실패했습니다.');
     } finally {
       setLiking(false);
     }
@@ -111,7 +126,14 @@ export const WorkoutFeedCard = ({ item, clubId, onUpdate }: Props) => {
       </div>
 
       {/* 댓글 섹션 */}
-      {showComments && <CommentSection workoutId={workout.id} clubId={clubId} onCommentAdded={onUpdate} />}
+      {showComments && (
+        <CommentSection
+          workoutId={workout.id}
+          clubId={clubId}
+          onCommentAdded={() => onOptimisticCommentAdd(workout.id)}
+          onCommentDeleted={() => onOptimisticCommentDelete(workout.id)}
+        />
+      )}
 
       {/* 상세보기 모달 */}
       {showDetail && (
