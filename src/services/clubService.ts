@@ -1003,8 +1003,11 @@ class ClubService {
   // 어드민에게 클럽 생성 신청 이메일 발송
   private async sendClubRequestNotification(club: Club, creatorId: string): Promise<void> {
     try {
+      console.log('📧 클럽 생성 이메일 발송 시작:', club.name);
+
       // 어드민 이메일 목록 조회
       const adminEmails = await userService.getAdminEmails();
+      console.log('👥 조회된 어드민 이메일:', adminEmails);
 
       if (adminEmails.length === 0) {
         console.warn('⚠️  어드민 이메일이 없어 알림을 보낼 수 없습니다.');
