@@ -99,11 +99,21 @@ export const Club = () => {
       const data = await clubService.getMyClubs(user.id);
       setMyClubs(data);
 
-      // 가장 상위 클럽을 자동 선택
       if (data.length > 0 && !selectedClub) {
-        const firstClub = data[0];
-        setSelectedClub(firstClub);
-        loadClubRanking(firstClub.id);
+        // localStorage에서 마지막 선택 클럽 확인
+        const lastSelectedClubId = localStorage.getItem('lastSelectedClubId');
+        let clubToSelect = data[0]; // 기본값: 첫 번째 클럽
+
+        // 저장된 클럽 ID가 있고, 현재 클럽 목록에 존재하면 해당 클럽 선택
+        if (lastSelectedClubId) {
+          const savedClub = data.find((c) => c.id === lastSelectedClubId);
+          if (savedClub) {
+            clubToSelect = savedClub;
+          }
+        }
+
+        setSelectedClub(clubToSelect);
+        loadClubRanking(clubToSelect.id);
       }
     } catch (error) {
       console.error('내 클럽 불러오기 실패:', error);
@@ -138,6 +148,9 @@ export const Club = () => {
     setSelectedClub(club);
     setShowDropdown(false);
     loadClubRanking(club.id);
+
+    // localStorage에 선택한 클럽 저장
+    localStorage.setItem('lastSelectedClubId', club.id);
   };
 
   // 드래그 앤 드롭으로 순서 변경
