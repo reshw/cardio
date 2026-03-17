@@ -706,6 +706,8 @@ class ClubService {
 
     // 사용자별 마일리지 집계
     const userMileageMap: Record<string, { mileage: number; count: number }> = {};
+    let filteredCount = 0;
+    let includedCount = 0;
 
     // DB에 저장된 mileage 사용 (마일리지 설정 변경 시 재계산되므로 항상 정확함)
     (workouts || []).forEach((workout) => {
@@ -714,9 +716,12 @@ class ClubService {
 
       // 활성화된 카테고리만 카운트
       if (!enabledCategories.includes(key)) {
+        filteredCount++;
+        console.log(`🚫 필터링됨: ${key} (mileage: ${workout.mileage})`);
         return; // 비활성화된 카테고리는 건너뛰기
       }
 
+      includedCount++;
       if (!userMileageMap[workout.user_id]) {
         userMileageMap[workout.user_id] = { mileage: 0, count: 0 };
       }
@@ -727,6 +732,8 @@ class ClubService {
       userMileageMap[workout.user_id].mileage += mileage;
       userMileageMap[workout.user_id].count += 1;
     });
+
+    console.log(`📊 운동 기록 필터링: ${includedCount}개 포함, ${filteredCount}개 제외`);
 
     console.log('📊 사용자별 마일리지:', userMileageMap);
 
