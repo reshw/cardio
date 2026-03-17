@@ -10,6 +10,7 @@ export interface Club {
   created_at: string;
   invite_code: string;
   mileage_config: MileageConfig;
+  enabled_categories?: string[];
   logo_url?: string;
   member_count?: number;
   is_member?: boolean;
@@ -26,6 +27,10 @@ export interface MileageConfig {
   '사이클-실내': number;
   '수영': number;
   '계단': number;
+  '복싱-샌드백/미트': number;
+  '복싱-스파링': number;
+  '요가-일반': number;
+  '요가-빈야사/아쉬탕가': number;
 }
 
 export interface ClubMember {
@@ -68,6 +73,10 @@ export interface ClubDetailedStats {
     '사이클-실내': number;
     '수영': number;
     '계단': number;
+    '복싱-샌드백/미트': number;
+    '복싱-스파링': number;
+    '요가-일반': number;
+    '요가-빈야사/아쉬탕가': number;
   };
 }
 
@@ -130,6 +139,7 @@ class ClubService {
         created_by: data.created_by,
         invite_code: inviteCode,
         status: 'pending', // 어드민 승인 대기
+        enabled_categories: this.getDefaultEnabledCategories(),
       })
       .select()
       .single();
@@ -643,6 +653,11 @@ class ClubService {
 
   // 클럽 랭킹 조회 (월별)
   async getClubRanking(clubId: string, month?: { year: number; month: number }): Promise<ClubRanking[]> {
+    // 클럽 정보 조회 (enabled_categories 확인)
+    const club = await this.getClubById(clubId);
+    const enabledCategories = club.enabled_categories || this.getAllCategories();
+    console.log('📊 활성화된 카테고리:', enabledCategories);
+
     // 클럽 멤버 조회
     const { data: members, error: membersError } = await supabase
       .from('club_members')
@@ -694,6 +709,14 @@ class ClubService {
 
     // DB에 저장된 mileage 사용 (마일리지 설정 변경 시 재계산되므로 항상 정확함)
     (workouts || []).forEach((workout) => {
+      // 카테고리 키 생성
+      const key = workout.sub_type ? `${workout.category}-${workout.sub_type}` : workout.category;
+
+      // 활성화된 카테고리만 카운트
+      if (!enabledCategories.includes(key)) {
+        return; // 비활성화된 카테고리는 건너뛰기
+      }
+
       if (!userMileageMap[workout.user_id]) {
         userMileageMap[workout.user_id] = { mileage: 0, count: 0 };
       }
@@ -796,6 +819,10 @@ class ClubService {
             '사이클-실내': 0,
             '수영': 0,
             '계단': 0,
+            '복싱-샌드백/미트': 0,
+            '복싱-스파링': 0,
+            '요가-일반': 0,
+            '요가-빈야사/아쉬탕가': 0,
           },
         };
       }
@@ -842,7 +869,7 @@ class ClubService {
     return stats;
   }
 
-  // 기본 마일리지 계수 (나눗셈 방식: X km/m/층 당 1 마일리지)
+  // 기본 마일리지 계수 (나눗셈 방식: X km/m/층/분 당 1 마일리지)
   getDefaultMileageConfig(): MileageConfig {
     return {
       '달리기-트레드밀': 1,      // 1km당 1 마일리지
@@ -851,7 +878,32 @@ class ClubService {
       '사이클-실내': 5,          // 5km당 1 마일리지
       '수영': 200,               // 200m당 1 마일리지
       '계단': 20,                // 20층당 1 마일리지
+      '복싱-샌드백/미트': 1.78,  // 1.78분당 1 마일리지 (5.5 MET)
+      '복싱-스파링': 0.77,       // 0.77분당 1 마일리지 (12.8 MET)
+      '요가-일반': 3.27,         // 3.27분당 1 마일리지 (3 MET)
+      '요가-빈야사/아쉬탕가': 2.45, // 2.45분당 1 마일리지 (4 MET)
     };
+  }
+
+  // 신규 클럽 기본 활성화 카테고리 (달리기만)
+  getDefaultEnabledCategories(): string[] {
+    return ['달리기-트레드밀', '달리기-러닝'];
+  }
+
+  // 모든 사용 가능한 카테고리 (기존 클럽 하위 호환성용)
+  getAllCategories(): string[] {
+    return [
+      '달리기-트레드밀',
+      '달리기-러닝',
+      '사이클-실외',
+      '사이클-실내',
+      '수영',
+      '계단',
+      '복싱-샌드백/미트',
+      '복싱-스파링',
+      '요가-일반',
+      '요가-빈야사/아쉬탕가',
+    ];
   }
 
   // 마일리지 계산 (나눗셈 방식)

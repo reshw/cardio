@@ -11,6 +11,8 @@ const CATEGORIES = [
   { id: '사이클' as WorkoutCategory, label: '🚴 사이클', unit: 'km' as WorkoutUnit },
   { id: '수영' as WorkoutCategory, label: '🏊 수영', unit: 'm' as WorkoutUnit },
   { id: '계단' as WorkoutCategory, label: '🪜 계단', unit: '층' as WorkoutUnit },
+  { id: '복싱' as WorkoutCategory, label: '🥊 복싱', unit: '분' as WorkoutUnit },
+  { id: '요가' as WorkoutCategory, label: '🧘 요가', unit: '분' as WorkoutUnit },
 ];
 
 const SUB_TYPES = {
@@ -18,6 +20,8 @@ const SUB_TYPES = {
   사이클: ['실외', '실내'],
   수영: [],
   계단: [],
+  복싱: ['샌드백/미트', '스파링'],
+  요가: ['일반', '빈야사/아쉬탕가'],
 };
 
 export const AddWorkout = () => {
@@ -191,7 +195,7 @@ export const AddWorkout = () => {
               </h3>
 
               <div className="form-group">
-                <label htmlFor="value">거리/거리/층수</label>
+                <label htmlFor="value">거리/시간/층수</label>
                 <div className="input-with-unit">
                   <input
                     id="value"

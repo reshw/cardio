@@ -42,6 +42,10 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
       '사이클-실내',
       '수영',
       '계단',
+      '복싱-샌드백/미트',
+      '복싱-스파링',
+      '요가-일반',
+      '요가-빈야사/아쉬탕가',
       '총 마일리지',
     ];
 
@@ -55,6 +59,10 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
       member.by_workout['사이클-실내'].toFixed(1),
       member.by_workout['수영'].toFixed(1),
       member.by_workout['계단'].toFixed(1),
+      member.by_workout['복싱-샌드백/미트'].toFixed(1),
+      member.by_workout['복싱-스파링'].toFixed(1),
+      member.by_workout['요가-일반'].toFixed(1),
+      member.by_workout['요가-빈야사/아쉬탕가'].toFixed(1),
       member.total_mileage.toFixed(1),
     ]);
 
@@ -140,6 +148,10 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
                       <th>실내 사이클</th>
                       <th>수영</th>
                       <th>계단</th>
+                      <th>복싱 샌드백</th>
+                      <th>복싱 스파링</th>
+                      <th>요가 일반</th>
+                      <th>요가 빈야사</th>
                       <th>총 마일리지</th>
                     </tr>
                   </thead>
@@ -156,6 +168,10 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
                         <td>{member.by_workout['사이클-실내'].toFixed(1)}</td>
                         <td>{member.by_workout['수영'].toFixed(1)}</td>
                         <td>{member.by_workout['계단'].toFixed(1)}</td>
+                        <td>{member.by_workout['복싱-샌드백/미트'].toFixed(1)}</td>
+                        <td>{member.by_workout['복싱-스파링'].toFixed(1)}</td>
+                        <td>{member.by_workout['요가-일반'].toFixed(1)}</td>
+                        <td>{member.by_workout['요가-빈야사/아쉬탕가'].toFixed(1)}</td>
                         <td className="total-cell">{member.total_mileage.toFixed(1)}</td>
                       </tr>
                     ))}

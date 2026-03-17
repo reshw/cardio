@@ -21,6 +21,8 @@ const getExplanation = (coefficient: number, unit: string = 'km'): string => {
     return `${Math.round(coefficient)}m당 1 마일리지`;
   } else if (unit === '층') {
     return `${Math.round(coefficient)}층당 1 마일리지`;
+  } else if (unit === '분') {
+    return `${coefficient.toFixed(2)}분당 1 마일리지`;
   }
 
   return '';
@@ -33,6 +35,7 @@ export const ClubMileageSettings = () => {
   const [mileageConfig, setMileageConfig] = useState<MileageConfig>(
     clubService.getDefaultMileageConfig()
   );
+  const [enabledCategories, setEnabledCategories] = useState<string[]>([]);
   const [updating, setUpdating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -50,6 +53,7 @@ export const ClubMileageSettings = () => {
     try {
       const club = await clubService.getClubById(clubId);
       setMileageConfig(club.mileage_config || clubService.getDefaultMileageConfig());
+      setEnabledCategories(club.enabled_categories || clubService.getAllCategories());
     } catch (error) {
       console.error('클럽 정보 불러오기 실패:', error);
       alert('클럽 정보를 불러올 수 없습니다.');
@@ -85,6 +89,7 @@ export const ClubMileageSettings = () => {
       // 1. 클럽 설정 업데이트
       await clubService.updateClub(clubId, {
         mileage_config: mileageConfig,
+        enabled_categories: enabledCategories,
       });
 
       // 2. 현재 월의 모든 운동 기록 마일리지 재계산
@@ -121,9 +126,49 @@ export const ClubMileageSettings = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="settings-form">
-        <p className="form-hint" style={{ marginBottom: '20px' }}>
-          각 운동별 마일리지 계산 방식을 설정하세요.
-        </p>
+        <div className="settings-section">
+          <h3>활성화된 운동 종류</h3>
+          <p className="form-hint">
+            클럽 랭킹에 포함할 운동 종류를 선택하세요. 비활성화된 운동은 개인 기록에는 남지만 클럽 순위에는 반영되지 않습니다.
+          </p>
+
+          <div className="category-checkboxes">
+            {Object.entries({
+              '달리기-트레드밀': '🏃 달리기 - 트레드밀',
+              '달리기-러닝': '🏃‍♂️ 달리기 - 러닝',
+              '사이클-실외': '🚴 사이클 - 실외',
+              '사이클-실내': '🚴‍♀️ 사이클 - 실내',
+              '수영': '🏊 수영',
+              '계단': '🪜 계단',
+              '복싱-샌드백/미트': '🥊 복싱 - 샌드백/미트',
+              '복싱-스파링': '🥊 복싱 - 스파링',
+              '요가-일반': '🧘 요가 - 일반',
+              '요가-빈야사/아쉬탕가': '🧘‍♀️ 요가 - 빈야사/아쉬탕가',
+            }).map(([key, label]) => (
+              <label key={key} className="category-checkbox-item">
+                <input
+                  type="checkbox"
+                  checked={enabledCategories.includes(key)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setEnabledCategories([...enabledCategories, key]);
+                    } else {
+                      setEnabledCategories(enabledCategories.filter((k) => k !== key));
+                    }
+                  }}
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="settings-section" style={{ marginTop: '32px' }}>
+          <h3>마일리지 계수 설정</h3>
+          <p className="form-hint" style={{ marginBottom: '20px' }}>
+            각 운동별 마일리지 계산 방식을 설정하세요.
+          </p>
+        </div>
 
         <div className="mileage-edit-list">
           <div className="mileage-edit-item">
@@ -237,6 +282,82 @@ export const ClubMileageSettings = () => {
             />
             <div className="mileage-edit-preview">
               {getExplanation(mileageConfig['계단'], '층')}
+            </div>
+          </div>
+
+          <div className="mileage-edit-item">
+            <div className="mileage-edit-header">
+              <span className="mileage-edit-emoji">🥊</span>
+              <label>복싱 - 샌드백/미트</label>
+            </div>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={mileageConfig['복싱-샌드백/미트']}
+              onChange={(e) => handleMileageChange('복싱-샌드백/미트', e.target.value)}
+              className="mileage-input"
+              placeholder="예: 1.78 (1.78분당 1 마일리지)"
+            />
+            <div className="mileage-edit-preview">
+              {getExplanation(mileageConfig['복싱-샌드백/미트'], '분')}
+            </div>
+          </div>
+
+          <div className="mileage-edit-item">
+            <div className="mileage-edit-header">
+              <span className="mileage-edit-emoji">🥊</span>
+              <label>복싱 - 스파링</label>
+            </div>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={mileageConfig['복싱-스파링']}
+              onChange={(e) => handleMileageChange('복싱-스파링', e.target.value)}
+              className="mileage-input"
+              placeholder="예: 0.77 (0.77분당 1 마일리지)"
+            />
+            <div className="mileage-edit-preview">
+              {getExplanation(mileageConfig['복싱-스파링'], '분')}
+            </div>
+          </div>
+
+          <div className="mileage-edit-item">
+            <div className="mileage-edit-header">
+              <span className="mileage-edit-emoji">🧘</span>
+              <label>요가 - 일반</label>
+            </div>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={mileageConfig['요가-일반']}
+              onChange={(e) => handleMileageChange('요가-일반', e.target.value)}
+              className="mileage-input"
+              placeholder="예: 3.27 (3.27분당 1 마일리지)"
+            />
+            <div className="mileage-edit-preview">
+              {getExplanation(mileageConfig['요가-일반'], '분')}
+            </div>
+          </div>
+
+          <div className="mileage-edit-item">
+            <div className="mileage-edit-header">
+              <span className="mileage-edit-emoji">🧘</span>
+              <label>요가 - 빈야사/아쉬탕가</label>
+            </div>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={mileageConfig['요가-빈야사/아쉬탕가']}
+              onChange={(e) => handleMileageChange('요가-빈야사/아쉬탕가', e.target.value)}
+              className="mileage-input"
+              placeholder="예: 2.45 (2.45분당 1 마일리지)"
+            />
+            <div className="mileage-edit-preview">
+              {getExplanation(mileageConfig['요가-빈야사/아쉬탕가'], '분')}
             </div>
           </div>
         </div>

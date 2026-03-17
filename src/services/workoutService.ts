@@ -2,16 +2,18 @@ import { supabase } from '../lib/supabase';
 import clubService from './clubService';
 
 // 주 카테고리
-export type WorkoutCategory = '달리기' | '사이클' | '수영' | '계단';
+export type WorkoutCategory = '달리기' | '사이클' | '수영' | '계단' | '복싱' | '요가';
 
 // 세부 카테고리
 export type RunningSubType = '트레드밀' | '러닝';
 export type CycleSubType = '실외' | '실내';
+export type BoxingSubType = '샌드백/미트' | '스파링';
+export type YogaSubType = '일반' | '빈야사/아쉬탕가';
 
-export type WorkoutSubType = RunningSubType | CycleSubType | null;
+export type WorkoutSubType = RunningSubType | CycleSubType | BoxingSubType | YogaSubType | null;
 
 // 단위
-export type WorkoutUnit = 'km' | 'm' | '층';
+export type WorkoutUnit = 'km' | 'm' | '층' | '분';
 
 export interface Workout {
   id: string;

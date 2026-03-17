@@ -23,6 +23,8 @@ const getExplanation = (coefficient: number, unit: string = 'km'): string => {
     return `${Math.round(coefficient)}m당 1 마일리지`;
   } else if (unit === '층') {
     return `${Math.round(coefficient)}층당 1 마일리지`;
+  } else if (unit === '분') {
+    return `${coefficient.toFixed(2)}분당 1 마일리지`;
   }
 
   return '';
@@ -120,6 +122,58 @@ export const MileageConfigModal = ({ config, onClose }: Props) => {
                   {getExplanation(config['계단'], '층')}
                 </span>
                 <span className="mileage-explanation-coefficient">계수: {config['계단']}</span>
+              </div>
+            </div>
+
+            <div className="mileage-explanation-item">
+              <div className="mileage-explanation-header">
+                <span className="mileage-explanation-emoji">🥊</span>
+                <span className="mileage-explanation-label">복싱 - 샌드백/미트</span>
+              </div>
+              <div className="mileage-explanation-detail">
+                <span className="mileage-explanation-example">
+                  {getExplanation(config['복싱-샌드백/미트'], '분')}
+                </span>
+                <span className="mileage-explanation-coefficient">계수: {config['복싱-샌드백/미트']}</span>
+              </div>
+            </div>
+
+            <div className="mileage-explanation-item">
+              <div className="mileage-explanation-header">
+                <span className="mileage-explanation-emoji">🥊</span>
+                <span className="mileage-explanation-label">복싱 - 스파링</span>
+              </div>
+              <div className="mileage-explanation-detail">
+                <span className="mileage-explanation-example">
+                  {getExplanation(config['복싱-스파링'], '분')}
+                </span>
+                <span className="mileage-explanation-coefficient">계수: {config['복싱-스파링']}</span>
+              </div>
+            </div>
+
+            <div className="mileage-explanation-item">
+              <div className="mileage-explanation-header">
+                <span className="mileage-explanation-emoji">🧘</span>
+                <span className="mileage-explanation-label">요가 - 일반</span>
+              </div>
+              <div className="mileage-explanation-detail">
+                <span className="mileage-explanation-example">
+                  {getExplanation(config['요가-일반'], '분')}
+                </span>
+                <span className="mileage-explanation-coefficient">계수: {config['요가-일반']}</span>
+              </div>
+            </div>
+
+            <div className="mileage-explanation-item">
+              <div className="mileage-explanation-header">
+                <span className="mileage-explanation-emoji">🧘</span>
+                <span className="mileage-explanation-label">요가 - 빈야사/아쉬탕가</span>
+              </div>
+              <div className="mileage-explanation-detail">
+                <span className="mileage-explanation-example">
+                  {getExplanation(config['요가-빈야사/아쉬탕가'], '분')}
+                </span>
+                <span className="mileage-explanation-coefficient">계수: {config['요가-빈야사/아쉬탕가']}</span>
               </div>
             </div>
           </div>
