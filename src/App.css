@@ -1324,6 +1324,37 @@ html {
   margin-top: 4px;
 }
 
+/* Hall of Fame */
+.hall-of-fame {
+  margin-top: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.1) 100%);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  border-radius: 16px;
+}
+
+.hall-of-fame-header {
+  margin-bottom: 12px;
+}
+
+.hall-of-fame-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.hall-of-fame-content {
+  text-align: center;
+}
+
+.hall-of-fame-message {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.6;
+}
+
 /* Textarea */
 .textarea-input {
   width: 100%;
@@ -2185,11 +2216,11 @@ html {
   border-color: var(--primary-color);
 }
 
-/* Dashboard Sub Actions (계수, 통계 버튼) */
+/* Dashboard Header */
 .dashboard-header {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
 }
 
@@ -2198,6 +2229,31 @@ html {
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
+}
+
+.dashboard-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.dashboard-action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dashboard-action-button:hover {
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .dashboard-sub-actions {
