@@ -5,7 +5,9 @@ import clubService from '../services/clubService';
 import { CreateClubModal } from '../components/CreateClubModal';
 import { MileageConfigModal } from '../components/MileageConfigModal';
 import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
+import { WorkoutFeed } from '../components/WorkoutFeed';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
+import type { WorkoutFeedItem } from '../services/feedService';
 import { Share2, Menu, ChevronDown, ChevronUp, Info, Table, Users, TrendingUp, User } from 'lucide-react';
 import {
   DndContext,
@@ -83,6 +85,13 @@ export const Club = () => {
   const [showDetailedStats, setShowDetailedStats] = useState(false);
   const [showClubMenu, setShowClubMenu] = useState(false);
 
+  // 피드 관련 state
+  type TabType = 'ranking' | 'feed';
+  const [activeTab, setActiveTab] = useState<TabType>('ranking');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [feedItems, setFeedItems] = useState<WorkoutFeedItem[]>([]);
+  const [feedLoading, setFeedLoading] = useState(false);
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -139,6 +148,27 @@ export const Club = () => {
     }
   };
 
+  // 피드 로드
+  const loadFeed = async (clubId: string, date: Date) => {
+    if (!user) return;
+    setFeedLoading(true);
+    try {
+      const items = await clubService.getClubWorkoutFeed(clubId, date, user.id);
+      setFeedItems(items);
+    } catch (error) {
+      console.error('피드 로드 실패:', error);
+    } finally {
+      setFeedLoading(false);
+    }
+  };
+
+  // 날짜 변경
+  const handleDateChange = (days: number) => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + days);
+    setSelectedDate(newDate);
+  };
+
   useEffect(() => {
     loadMyClubs();
   }, [user]);
@@ -157,6 +187,13 @@ export const Club = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [selectedClub]);
+
+  // 피드 탭 활성화 시 피드 로드
+  useEffect(() => {
+    if (activeTab === 'feed' && selectedClub) {
+      loadFeed(selectedClub.id, selectedDate);
+    }
+  }, [activeTab, selectedClub, selectedDate]);
 
   // 클럽 선택
   const handleSelectClub = async (club: MyClubWithOrder) => {
@@ -318,13 +355,32 @@ export const Club = () => {
         </div>
       )}
 
-      {/* 마일리지 랭킹 */}
-      {loading ? (
-        <div className="loading-screen">
-          <div className="spinner"></div>
-          <p>클럽 불러오는 중...</p>
+      {/* 탭 */}
+      {selectedClub && (
+        <div className="tabs">
+          <button
+            className={`tab ${activeTab === 'ranking' ? 'active' : ''}`}
+            onClick={() => setActiveTab('ranking')}
+          >
+            🏆 랭킹
+          </button>
+          <button
+            className={`tab ${activeTab === 'feed' ? 'active' : ''}`}
+            onClick={() => setActiveTab('feed')}
+          >
+            🏃 오늘의 운동
+          </button>
         </div>
-      ) : selectedClub ? (
+      )}
+
+      {/* 마일리지 랭킹 */}
+      {activeTab === 'ranking' && (
+        loading ? (
+          <div className="loading-screen">
+            <div className="spinner"></div>
+            <p>클럽 불러오는 중...</p>
+          </div>
+        ) : selectedClub ? (
         <div className="club-dashboard">
           <div className="dashboard-header">
             <h2>{new Date().getFullYear()}년 {String(new Date().getMonth() + 1).padStart(2, '0')}월 마일리지</h2>
@@ -411,6 +467,18 @@ export const Club = () => {
           <p>가입한 클럽이 없습니다.</p>
           <p>클럽을 만들거나 초대 코드로 가입해보세요!</p>
         </div>
+      ))}
+
+      {/* 오늘의 운동 피드 */}
+      {activeTab === 'feed' && selectedClub && (
+        <WorkoutFeed
+          clubId={selectedClub.id}
+          selectedDate={selectedDate}
+          feedItems={feedItems}
+          loading={feedLoading}
+          onDateChange={handleDateChange}
+          onRefresh={() => loadFeed(selectedClub.id, selectedDate)}
+        />
       )}
 
       {/* 모달 */}

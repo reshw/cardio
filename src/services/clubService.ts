@@ -41,6 +41,8 @@ export interface ClubMember {
   joined_at: string;
   display_order: number;
   club_nickname?: string;
+  show_in_feed?: boolean;
+  show_mileage?: boolean;
   user?: {
     display_name: string;
     profile_image?: string;
@@ -659,11 +661,12 @@ class ClubService {
     const enabledCategories = club.enabled_categories || this.getAllCategories();
     console.log('📊 활성화된 카테고리:', enabledCategories);
 
-    // 클럽 멤버 조회
+    // 클럽 멤버 조회 (show_mileage=true만)
     const { data: members, error: membersError } = await supabase
       .from('club_members')
       .select('user_id, club_nickname')
-      .eq('club_id', clubId);
+      .eq('club_id', clubId)
+      .eq('show_mileage', true);
 
     if (membersError || !members || members.length === 0) {
       console.log('📊 클럽 멤버 없음');
@@ -1114,6 +1117,139 @@ class ClubService {
     }
 
     return data || [];
+  }
+
+  // 클럽 운동 피드 조회
+  async getClubWorkoutFeed(
+    clubId: string,
+    date: Date,
+    currentUserId: string
+  ): Promise<import('./feedService').WorkoutFeedItem[]> {
+    // 1) show_in_feed=true 멤버만 조회
+    const { data: members } = await supabase
+      .from('club_members')
+      .select('user_id, club_nickname')
+      .eq('club_id', clubId)
+      .eq('show_in_feed', true);
+
+    if (!members || members.length === 0) return [];
+
+    // 2) 해당 날짜 운동 조회 (created_at ASC)
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const { data: workouts } = await supabase
+      .from('workouts')
+      .select('*')
+      .in(
+        'user_id',
+        members.map((m) => m.user_id)
+      )
+      .gte('created_at', startOfDay.toISOString())
+      .lte('created_at', endOfDay.toISOString())
+      .order('created_at', { ascending: true });
+
+    if (!workouts || workouts.length === 0) return [];
+
+    // 3) 사용자 정보 조회
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, display_name, profile_image')
+      .in(
+        'id',
+        members.map((m) => m.user_id)
+      );
+
+    // 4) 좋아요/댓글 수 조회
+    const workoutIds = workouts.map((w) => w.id);
+    const { data: likes } = await supabase
+      .from('workout_likes')
+      .select('workout_id, user_id')
+      .eq('club_id', clubId)
+      .in('workout_id', workoutIds);
+
+    const { data: comments } = await supabase
+      .from('workout_comments')
+      .select('workout_id')
+      .eq('club_id', clubId)
+      .in('workout_id', workoutIds);
+
+    // 5) 맵 구성 및 반환
+    const userMap = new Map(users?.map((u) => [u.id, u]) || []);
+    const nicknameMap = Object.fromEntries(
+      members.filter((m) => m.club_nickname).map((m) => [m.user_id, m.club_nickname!])
+    );
+
+    const likesMap = new Map();
+    workoutIds.forEach((id) => likesMap.set(id, { count: 0, isLiked: false }));
+    likes?.forEach((like) => {
+      const current = likesMap.get(like.workout_id)!;
+      current.count++;
+      if (like.user_id === currentUserId) current.isLiked = true;
+    });
+
+    const commentsMap = new Map();
+    workoutIds.forEach((id) => commentsMap.set(id, 0));
+    comments?.forEach((c) => commentsMap.set(c.workout_id, (commentsMap.get(c.workout_id) || 0) + 1));
+
+    return workouts.map((workout) => {
+      const user = userMap.get(workout.user_id);
+      const likeInfo = likesMap.get(workout.id) || { count: 0, isLiked: false };
+
+      return {
+        workout,
+        user_display_name: nicknameMap[workout.user_id] || user?.display_name || '알 수 없음',
+        user_profile_image: user?.profile_image,
+        club_nickname: nicknameMap[workout.user_id],
+        like_count: likeInfo.count,
+        comment_count: commentsMap.get(workout.id) || 0,
+        is_liked_by_me: likeInfo.isLiked,
+      };
+    });
+  }
+
+  // 개인 설정 업데이트
+  async updateMemberSettings(
+    clubId: string,
+    userId: string,
+    settings: { show_in_feed?: boolean; show_mileage?: boolean }
+  ): Promise<void> {
+    const updateData: any = {};
+    if (settings.show_in_feed !== undefined) updateData.show_in_feed = settings.show_in_feed;
+    if (settings.show_mileage !== undefined) updateData.show_mileage = settings.show_mileage;
+
+    const { error } = await supabase
+      .from('club_members')
+      .update(updateData)
+      .eq('club_id', clubId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+  }
+
+  // 개인 설정 조회
+  async getMemberSettings(
+    clubId: string,
+    userId: string
+  ): Promise<{
+    show_in_feed: boolean;
+    show_mileage: boolean;
+  }> {
+    const { data, error } = await supabase
+      .from('club_members')
+      .select('show_in_feed, show_mileage')
+      .eq('club_id', clubId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error) throw error;
+
+    return {
+      show_in_feed: data?.show_in_feed ?? true,
+      show_mileage: data?.show_mileage ?? true,
+    };
   }
 }
 

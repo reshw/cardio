@@ -11,6 +11,8 @@ export const ClubMySettings = () => {
 
   const [nickname, setNickname] = useState('');
   const [clubName, setClubName] = useState('');
+  const [showInFeed, setShowInFeed] = useState(true);
+  const [showMileage, setShowMileage] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -31,9 +33,14 @@ export const ClubMySettings = () => {
       // 클럽 이름도 조회
       const club = await clubService.getClubById(clubId);
       setClubName(club.name);
+
+      // 개인 설정 조회
+      const settings = await clubService.getMemberSettings(clubId, user.id);
+      setShowInFeed(settings.show_in_feed);
+      setShowMileage(settings.show_mileage);
     } catch (error) {
-      console.error('닉네임 불러오기 실패:', error);
-      alert('닉네임을 불러올 수 없습니다.');
+      console.error('설정 불러오기 실패:', error);
+      alert('설정을 불러올 수 없습니다.');
       navigate(-1);
     } finally {
       setLoading(false);
@@ -51,12 +58,20 @@ export const ClubMySettings = () => {
     setUpdating(true);
 
     try {
+      // 별명 업데이트
       await clubService.updateClubNickname(clubId, user.id, nickname.trim());
-      alert('별명이 변경되었습니다.');
+
+      // 개인 설정 업데이트
+      await clubService.updateMemberSettings(clubId, user.id, {
+        show_in_feed: showInFeed,
+        show_mileage: showMileage,
+      });
+
+      alert('설정이 저장되었습니다.');
       navigate(-1);
     } catch (error) {
-      console.error('별명 변경 실패:', error);
-      alert('별명 변경에 실패했습니다.');
+      console.error('설정 저장 실패:', error);
+      alert('설정 저장에 실패했습니다.');
     } finally {
       setUpdating(false);
     }
@@ -98,6 +113,30 @@ export const ClubMySettings = () => {
           <p className="form-hint">
             {clubName} 클럽에서 표시될 이름입니다.
           </p>
+        </div>
+
+        <div className="form-group">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={showInFeed}
+              onChange={(e) => setShowInFeed(e.target.checked)}
+            />
+            <span>내 운동을 피드에 표시</span>
+          </label>
+          <p className="form-hint">체크 해제 시 클럽 피드에 내 운동이 표시되지 않습니다.</p>
+        </div>
+
+        <div className="form-group">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={showMileage}
+              onChange={(e) => setShowMileage(e.target.checked)}
+            />
+            <span>내 마일리지를 랭킹에 포함</span>
+          </label>
+          <p className="form-hint">체크 해제 시 클럽 랭킹에서 제외됩니다.</p>
         </div>
 
         <button type="submit" className="primary-button-full" disabled={updating}>
