@@ -529,8 +529,8 @@ export const Club = () => {
                 >
                   <User size={20} />
                   <div className="more-menu-text">
-                    <div className="more-menu-title">내 별명 변경</div>
-                    <div className="more-menu-desc">클럽에서 표시될 이름</div>
+                    <div className="more-menu-title">내 정보 변경</div>
+                    <div className="more-menu-desc">별명, 정보공유 설정 등</div>
                   </div>
                 </button>
 

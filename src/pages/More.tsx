@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Shield, BookOpen } from 'lucide-react';
+import { Shield, BookOpen, Smartphone } from 'lucide-react';
+import { InstallGuideModal } from '../components/InstallGuideModal';
 
 export const More = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
 
   return (
     <div className="container">
@@ -27,13 +30,26 @@ export const More = () => {
 
       <div className="section">
         <h3>앱 정보</h3>
-        <button
-          className="menu-button"
-          onClick={() => navigate('/guide')}
-        >
-          <BookOpen size={20} />
-          <span>사용 설명</span>
-        </button>
+        <div className="menu-list">
+          <button
+            className="menu-item-btn"
+            onClick={() => navigate('/guide')}
+          >
+            <div className="menu-item-left">
+              <BookOpen size={20} />
+              <span>사용 설명</span>
+            </div>
+          </button>
+          <button
+            className="menu-item-btn"
+            onClick={() => setShowInstallGuide(true)}
+          >
+            <div className="menu-item-left">
+              <Smartphone size={20} />
+              <span>앱 설치 안내</span>
+            </div>
+          </button>
+        </div>
       </div>
 
       <div className="section">
@@ -54,6 +70,8 @@ export const More = () => {
       <button className="primary-button" onClick={logout}>
         로그아웃
       </button>
+
+      {showInstallGuide && <InstallGuideModal onClose={() => setShowInstallGuide(false)} />}
     </div>
   );
 };

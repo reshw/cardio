@@ -76,7 +76,7 @@ export const ClubSettings = () => {
           >
             <div className="menu-item-left">
               <User size={20} />
-              <span>내 별명 변경</span>
+              <span>내 정보 변경</span>
             </div>
             <ChevronRight size={20} />
           </button>
