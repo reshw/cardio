@@ -8,7 +8,6 @@ export const ClubSettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [clubName, setClubName] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -25,10 +24,6 @@ export const ClubSettings = () => {
     try {
       const admin = await clubService.isClubAdmin(clubId, user.id);
       setIsAdmin(admin);
-
-      // 클럽 이름 조회
-      const club = await clubService.getClubById(clubId);
-      setClubName(club.name);
     } catch (error) {
       console.error('권한 확인 실패:', error);
     } finally {

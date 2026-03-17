@@ -868,6 +868,10 @@ class ClubService {
             '사이클-실내': userStats?.byWorkout['사이클-실내'] || 0,
             '수영': userStats?.byWorkout['수영'] || 0,
             '계단': userStats?.byWorkout['계단'] || 0,
+            '복싱-샌드백/미트': userStats?.byWorkout['복싱-샌드백/미트'] || 0,
+            '복싱-스파링': userStats?.byWorkout['복싱-스파링'] || 0,
+            '요가-일반': userStats?.byWorkout['요가-일반'] || 0,
+            '요가-빈야사/아쉬탕가': userStats?.byWorkout['요가-빈야사/아쉬탕가'] || 0,
           },
         };
       })

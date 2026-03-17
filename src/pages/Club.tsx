@@ -6,7 +6,7 @@ import { CreateClubModal } from '../components/CreateClubModal';
 import { MileageConfigModal } from '../components/MileageConfigModal';
 import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
-import { Share2, Menu, Copy, ChevronDown, ChevronUp, Info, Table, Users, TrendingUp, User } from 'lucide-react';
+import { Share2, Menu, ChevronDown, ChevronUp, Info, Table, Users, TrendingUp, User } from 'lucide-react';
 import {
   DndContext,
   closestCenter,

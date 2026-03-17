@@ -59,7 +59,7 @@ export const ClubMembers = () => {
   });
 
   // 역할 변경
-  const handleRoleChange = async (memberId: string, userId: string, currentRole: string) => {
+  const handleRoleChange = async (_memberId: string, userId: string, currentRole: string) => {
     if (!clubId || !isOwner) return;
 
     // 방장 자신은 변경 불가
