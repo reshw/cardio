@@ -557,7 +557,7 @@ export const Club = () => {
                       {renderProfileImage()}
                       <div className="ranking-info">
                         <div className="ranking-name">{member.display_name}</div>
-                        <div className="ranking-count">{member.workout_count}회 운동</div>
+                        <div className="ranking-count">{member.workout_count}개 기록</div>
                       </div>
                     </div>
                     <div className="ranking-right">
