@@ -103,34 +103,60 @@ export const ClubTransferOwnership = () => {
         ) : (
           <>
             <div className="member-select-list">
-              {members.map((member) => (
-                <div
-                  key={member.user_id}
-                  className={`member-select-item ${selectedMember === member.user_id ? 'selected' : ''}`}
-                  onClick={() => setSelectedMember(member.user_id)}
-                >
-                  {member.user?.profile_image ? (
-                    <img
-                      src={member.user.profile_image}
-                      alt={member.user.display_name}
-                      className="member-select-profile"
-                    />
-                  ) : (
-                    <div className="member-select-profile-placeholder">
-                      {member.user?.display_name[0] || '?'}
+              {members.map((member) => {
+                // 프로필 이미지 처리 (club_profile_image 우선)
+                const profileImage = member.club_profile_image || member.user?.profile_image;
+                const displayName = member.user?.display_name || '?';
+                const renderAvatar = () => {
+                  if (profileImage?.startsWith('default:')) {
+                    const color = profileImage.replace('default:', '');
+                    return (
+                      <div
+                        className="member-select-profile-placeholder"
+                        style={{ background: color, color: 'white' }}
+                      >
+                        {displayName[0].toUpperCase()}
+                      </div>
+                    );
+                  } else if (profileImage) {
+                    return (
+                      <img
+                        src={profileImage}
+                        alt={displayName}
+                        className="member-select-profile"
+                      />
+                    );
+                  } else {
+                    return (
+                      <div
+                        className="member-select-profile-placeholder"
+                        style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}
+                      >
+                        {displayName[0]}
+                      </div>
+                    );
+                  }
+                };
+
+                return (
+                  <div
+                    key={member.user_id}
+                    className={`member-select-item ${selectedMember === member.user_id ? 'selected' : ''}`}
+                    onClick={() => setSelectedMember(member.user_id)}
+                  >
+                    {renderAvatar()}
+                    <div className="member-select-info">
+                      <div className="member-select-name">{displayName}</div>
+                      <div className="member-select-role">
+                        {member.role === 'admin' ? '관리자' : '멤버'}
+                      </div>
                     </div>
-                  )}
-                  <div className="member-select-info">
-                    <div className="member-select-name">{member.user?.display_name}</div>
-                    <div className="member-select-role">
-                      {member.role === 'admin' ? '관리자' : '멤버'}
+                    <div className="member-select-radio">
+                      {selectedMember === member.user_id && <div className="radio-checked" />}
                     </div>
                   </div>
-                  <div className="member-select-radio">
-                    {selectedMember === member.user_id && <div className="radio-checked" />}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <button

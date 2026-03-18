@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
+import { ClubMemberProfileForm } from '../components/ClubMemberProfileForm';
+import { uploadToCloudinary } from '../utils/cloudinary';
 
 export const ClubMySettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
@@ -10,6 +12,7 @@ export const ClubMySettings = () => {
   const navigate = useNavigate();
 
   const [nickname, setNickname] = useState('');
+  const [profileImage, setProfileImage] = useState<string | File | null>(null);
   const [clubName, setClubName] = useState('');
   const [showInFeed, setShowInFeed] = useState(true);
   const [showMileage, setShowMileage] = useState(true);
@@ -27,8 +30,10 @@ export const ClubMySettings = () => {
 
     setLoading(true);
     try {
-      const currentNickname = await clubService.getClubNickname(clubId, user.id);
-      setNickname(currentNickname || '');
+      // 멤버 프로필 정보 조회 (별명, 프로필 이미지)
+      const memberProfile = await clubService.getClubMemberProfile(clubId, user.id);
+      setNickname(memberProfile.club_nickname || '');
+      setProfileImage(memberProfile.club_profile_image || null);
 
       // 클럽 이름도 조회
       const club = await clubService.getClubById(clubId);
@@ -58,8 +63,24 @@ export const ClubMySettings = () => {
     setUpdating(true);
 
     try {
-      // 별명 업데이트
-      await clubService.updateClubNickname(clubId, user.id, nickname.trim());
+      // 프로필 이미지 처리
+      let profileImageUrl: string | null = null;
+
+      if (profileImage) {
+        if (profileImage instanceof File) {
+          // 새 파일 업로드
+          profileImageUrl = await uploadToCloudinary(profileImage);
+        } else {
+          // 기존 문자열 (default:color 또는 URL)
+          profileImageUrl = profileImage;
+        }
+      }
+
+      // 멤버 프로필 업데이트 (별명 + 프로필 이미지)
+      await clubService.updateClubMemberProfile(clubId, user.id, {
+        club_nickname: nickname.trim(),
+        club_profile_image: profileImageUrl,
+      });
 
       // 개인 설정 업데이트
       await clubService.updateMemberSettings(clubId, user.id, {
@@ -98,22 +119,16 @@ export const ClubMySettings = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="settings-form">
-        <div className="form-group">
-          <label htmlFor="nickname">클럽 별명 *</label>
-          <input
-            id="nickname"
-            type="text"
-            placeholder="예: 아침러너"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            className="value-input"
-            required
-            maxLength={20}
-          />
-          <p className="form-hint">
-            {clubName} 클럽에서 표시될 이름입니다.
-          </p>
-        </div>
+        <ClubMemberProfileForm
+          nickname={nickname}
+          profileImage={profileImage}
+          onNicknameChange={setNickname}
+          onProfileImageChange={setProfileImage}
+          nicknameLabel="클럽 별명"
+          nicknameHint={`${clubName} 클럽에서 표시될 이름입니다.`}
+          profileImageLabel="클럽 프로필 사진"
+          profileImageHint={`${clubName} 클럽에서 사용할 프로필 사진입니다.`}
+        />
 
         <div className="form-group">
           <label className="checkbox-label">

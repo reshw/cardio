@@ -34,6 +34,34 @@ export const WorkoutFeedCard = ({
     return workout.category;
   };
 
+  const renderAvatar = (profileImage: string | undefined, displayName: string, className: string) => {
+    if (profileImage?.startsWith('default:')) {
+      // default:color 형식 - 색상 아바타
+      const color = profileImage.replace('default:', '');
+      return (
+        <div
+          className={className}
+          style={{ background: color, color: 'white' }}
+        >
+          {displayName[0].toUpperCase()}
+        </div>
+      );
+    } else if (profileImage) {
+      // URL 형식 - 이미지
+      return <img src={profileImage} alt={displayName} className={className} />;
+    } else {
+      // 프로필 이미지 없음 - 기본 그라데이션
+      return (
+        <div
+          className={className}
+          style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}
+        >
+          {displayName[0]}
+        </div>
+      );
+    }
+  };
+
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
@@ -81,11 +109,7 @@ export const WorkoutFeedCard = ({
     <div className="feed-card">
       {/* 사용자 정보 */}
       <div className="feed-card-header" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>
-        {item.user_profile_image ? (
-          <img src={item.user_profile_image} alt={item.user_display_name} className="feed-user-avatar" />
-        ) : (
-          <div className="feed-user-avatar-placeholder">{item.user_display_name[0]}</div>
-        )}
+        {renderAvatar(item.user_profile_image, item.user_display_name, item.user_profile_image ? 'feed-user-avatar' : 'feed-user-avatar-placeholder')}
         <div className="feed-user-info">
           <div className="feed-user-name">{item.user_display_name}</div>
           <div className="feed-time">{formatTime(workout.created_at)}</div>
@@ -193,11 +217,7 @@ export const WorkoutFeedCard = ({
               <div className="workout-detail-section">
                 <h3>기록자</h3>
                 <div className="workout-detail-user">
-                  {item.user_profile_image ? (
-                    <img src={item.user_profile_image} alt={item.user_display_name} />
-                  ) : (
-                    <div className="user-avatar-placeholder">{item.user_display_name[0]}</div>
-                  )}
+                  {renderAvatar(item.user_profile_image, item.user_display_name, 'user-avatar-placeholder')}
                   <span>{item.user_display_name}</span>
                 </div>
               </div>

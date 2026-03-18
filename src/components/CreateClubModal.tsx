@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
+import { ClubMemberProfileForm } from './ClubMemberProfileForm';
+import { uploadToCloudinary } from '../utils/cloudinary';
 
 interface Props {
   onClose: () => void;
@@ -12,6 +14,7 @@ export const CreateClubModal = ({ onClose, onSuccess }: Props) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [nickname, setNickname] = useState('');
+  const [profileImage, setProfileImage] = useState<string | File | null>(null);
   const [creating, setCreating] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,11 +33,25 @@ export const CreateClubModal = ({ onClose, onSuccess }: Props) => {
     setCreating(true);
 
     try {
+      // 프로필 이미지 처리
+      let profileImageUrl: string | undefined = undefined;
+
+      if (profileImage) {
+        if (profileImage instanceof File) {
+          // 파일 업로드
+          profileImageUrl = await uploadToCloudinary(profileImage);
+        } else {
+          // 문자열 (default:color 또는 카카오 프로필 URL)
+          profileImageUrl = profileImage;
+        }
+      }
+
       await clubService.createClub({
         name: name.trim(),
         description: description.trim(),
         created_by: user.id,
         club_nickname: nickname.trim(),
+        club_profile_image: profileImageUrl,
       });
 
       alert('클럽 생성이 신청되었습니다.\n어드민 승인 후 활성화됩니다.');
@@ -87,20 +104,14 @@ export const CreateClubModal = ({ onClose, onSuccess }: Props) => {
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="nickname">내 별명 *</label>
-              <input
-                id="nickname"
-                type="text"
-                placeholder="예: 아침러너"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                className="value-input"
-                required
-                maxLength={20}
-              />
-              <p className="form-hint">이 클럽에서 표시될 내 이름입니다.</p>
-            </div>
+            <ClubMemberProfileForm
+              nickname={nickname}
+              profileImage={profileImage}
+              onNicknameChange={setNickname}
+              onProfileImageChange={setProfileImage}
+              nicknameLabel="내 별명"
+              nicknameHint="이 클럽에서 표시될 내 이름입니다."
+            />
 
             <div className="modal-actions">
               <button type="button" className="cancel-button" onClick={onClose}>

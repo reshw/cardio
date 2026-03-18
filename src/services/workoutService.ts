@@ -98,6 +98,22 @@ class WorkoutService {
     return data || [];
   }
 
+  // ID로 운동 기록 조회
+  async getWorkoutById(workoutId: string): Promise<Workout | null> {
+    const { data, error } = await supabase
+      .from('workouts')
+      .select('*')
+      .eq('id', workoutId)
+      .single();
+
+    if (error) {
+      console.error('운동 기록 조회 실패:', error);
+      return null;
+    }
+
+    return data;
+  }
+
   // 운동 기록 수정
   async updateWorkout(
     workoutId: string,

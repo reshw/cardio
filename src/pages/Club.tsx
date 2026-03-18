@@ -507,42 +507,66 @@ export const Club = () => {
             </div>
           ) : (
             <div className="ranking-list">
-              {ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0).map((member) => (
-                <div
-                  key={member.user_id}
-                  className="ranking-item clickable"
-                  onClick={() =>
-                    navigate(
-                      `/club/member/${selectedClub?.id}/${member.user_id}/${encodeURIComponent(member.display_name)}`
-                    )
-                  }
-                >
-                  <div className="ranking-left">
-                    <div className={`rank-badge rank-${member.rank}`}>
-                      {member.rank === 1 ? '🥇' : member.rank === 2 ? '🥈' : member.rank === 3 ? '🥉' : `${member.rank}위`}
-                    </div>
-                    {member.profile_image ? (
+              {ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0).map((member) => {
+                // 프로필 이미지 렌더링 (default:color 형식 처리)
+                const renderProfileImage = () => {
+                  if (member.profile_image?.startsWith('default:')) {
+                    const color = member.profile_image.replace('default:', '');
+                    return (
+                      <div
+                        className="ranking-profile-placeholder"
+                        style={{ background: color, color: 'white' }}
+                      >
+                        {member.display_name[0].toUpperCase()}
+                      </div>
+                    );
+                  } else if (member.profile_image) {
+                    return (
                       <img
                         src={member.profile_image}
                         alt={member.display_name}
                         className="ranking-profile"
                       />
-                    ) : (
-                      <div className="ranking-profile-placeholder">
+                    );
+                  } else {
+                    return (
+                      <div
+                        className="ranking-profile-placeholder"
+                        style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}
+                      >
                         {member.display_name[0]}
                       </div>
-                    )}
-                    <div className="ranking-info">
-                      <div className="ranking-name">{member.display_name}</div>
-                      <div className="ranking-count">{member.workout_count}회 운동</div>
+                    );
+                  }
+                };
+
+                return (
+                  <div
+                    key={member.user_id}
+                    className="ranking-item clickable"
+                    onClick={() =>
+                      navigate(
+                        `/club/member/${selectedClub?.id}/${member.user_id}/${encodeURIComponent(member.display_name)}`
+                      )
+                    }
+                  >
+                    <div className="ranking-left">
+                      <div className={`rank-badge rank-${member.rank}`}>
+                        {member.rank === 1 ? '🥇' : member.rank === 2 ? '🥈' : member.rank === 3 ? '🥉' : `${member.rank}위`}
+                      </div>
+                      {renderProfileImage()}
+                      <div className="ranking-info">
+                        <div className="ranking-name">{member.display_name}</div>
+                        <div className="ranking-count">{member.workout_count}회 운동</div>
+                      </div>
+                    </div>
+                    <div className="ranking-right">
+                      <div className="ranking-mileage">{member.total_mileage.toFixed(1)}</div>
+                      <div className="ranking-unit">마일리지</div>
                     </div>
                   </div>
-                  <div className="ranking-right">
-                    <div className="ranking-mileage">{member.total_mileage.toFixed(1)}</div>
-                    <div className="ranking-unit">마일리지</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

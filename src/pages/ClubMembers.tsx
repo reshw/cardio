@@ -166,20 +166,37 @@ export const ClubMembers = () => {
               const displayName = member.club_nickname || member.user?.display_name || '알 수 없음';
               const isClubOwner = member.user_id === clubOwnerId;
 
+              // 프로필 이미지 처리 (club_profile_image 우선)
+              const profileImage = member.club_profile_image || member.user?.profile_image;
+              const renderAvatar = () => {
+                if (profileImage?.startsWith('default:')) {
+                  const color = profileImage.replace('default:', '');
+                  return (
+                    <div
+                      className="member-avatar-placeholder"
+                      style={{ background: color, color: 'white' }}
+                    >
+                      {displayName[0].toUpperCase()}
+                    </div>
+                  );
+                } else if (profileImage) {
+                  return <img src={profileImage} alt={displayName} className="member-avatar" />;
+                } else {
+                  return (
+                    <div
+                      className="member-avatar-placeholder"
+                      style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}
+                    >
+                      {displayName[0]}
+                    </div>
+                  );
+                }
+              };
+
               return (
                 <div key={member.id} className="member-card">
                   <div className="member-info">
-                    {member.user?.profile_image ? (
-                      <img
-                        src={member.user.profile_image}
-                        alt={displayName}
-                        className="member-avatar"
-                      />
-                    ) : (
-                      <div className="member-avatar-placeholder">
-                        {displayName[0]}
-                      </div>
-                    )}
+                    {renderAvatar()}
                     <div className="member-details">
                       <div className="member-name">
                         {displayName}

@@ -1,14 +1,22 @@
-import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Edit2, Trash2, X } from 'lucide-react';
 import workoutService from '../services/workoutService';
+import feedService from '../services/feedService';
 import type { Workout } from '../services/workoutService';
 import { uploadToCloudinary } from '../utils/cloudinary';
+import { IntegratedCommentSection } from '../components/IntegratedCommentSection';
+import { LikeStatsModal } from '../components/LikeStatsModal';
 
 export const WorkoutDetail = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const workout = location.state?.workout as Workout;
+  const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const highlightCommentId = searchParams.get('commentId');
+
+  const [workout, setWorkout] = useState<Workout | null>(location.state?.workout || null);
+  const [loading, setLoading] = useState(!workout);
 
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(workout?.value.toString() || '');
@@ -22,8 +30,74 @@ export const WorkoutDetail = () => {
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // 좋아요 관련 state
+  const [totalLikes, setTotalLikes] = useState(0);
+  const [showLikeStats, setShowLikeStats] = useState(false);
+
+  // 댓글 관련 state
+  const [totalComments, setTotalComments] = useState(0);
+
+  // workout이 없으면 ID로 조회
+  useEffect(() => {
+    if (!workout && id) {
+      loadWorkout();
+    }
+  }, [id, workout]);
+
+  // 좋아요 개수 로드
+  useEffect(() => {
+    if (workout) {
+      loadTotalLikes();
+    }
+  }, [workout]);
+
+  const loadWorkout = async () => {
+    if (!id) {
+      navigate('/');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await workoutService.getWorkoutById(id);
+      if (!data) {
+        navigate('/');
+        return;
+      }
+      setWorkout(data);
+      setValue(data.value.toString());
+      setCreatedAt(new Date(data.created_at).toISOString().slice(0, 16));
+      setIntensity(data.intensity);
+    } catch (error) {
+      console.error('운동 조회 실패:', error);
+      navigate('/');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTotalLikes = async () => {
+    if (!workout) return;
+    try {
+      const count = await feedService.getTotalLikeCount(workout.id);
+      setTotalLikes(count);
+    } catch (error) {
+      console.error('좋아요 조회 실패:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="container">
+        <div className="loading-screen">
+          <div className="spinner"></div>
+          <p>운동 정보 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!workout) {
-    navigate('/');
     return null;
   }
 
@@ -162,6 +236,35 @@ export const WorkoutDetail = () => {
               </div>
             </div>
 
+            {/* 좋아요 섹션 */}
+            <div className="detail-section">
+              <div className="detail-label">좋아요</div>
+              <div className="detail-value like-stats-row">
+                <span>❤ {totalLikes}개</span>
+                {totalLikes > 0 && (
+                  <button
+                    className="view-details-btn"
+                    onClick={() => setShowLikeStats(true)}
+                  >
+                    상세 보기 →
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 댓글 섹션 */}
+            <div className="detail-section full-width">
+              <div className="detail-label">
+                댓글 {totalComments > 0 && `(총 ${totalComments}개)`}
+              </div>
+              <IntegratedCommentSection
+                workoutId={workout.id}
+                highlightCommentId={highlightCommentId || undefined}
+                onCommentCountChange={setTotalComments}
+              />
+            </div>
+
+            {/* 증빙 이미지 */}
             {workout.proof_image && (
               <div className="detail-section">
                 <div className="detail-label">증빙 이미지</div>
@@ -357,6 +460,13 @@ export const WorkoutDetail = () => {
           />
         </div>
       )}
+
+      {/* 좋아요 상세 모달 */}
+      <LikeStatsModal
+        isOpen={showLikeStats}
+        onClose={() => setShowLikeStats(false)}
+        workoutId={workout.id}
+      />
     </div>
   );
 };

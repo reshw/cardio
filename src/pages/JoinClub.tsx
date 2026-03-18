@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 import type { Club } from '../services/clubService';
+import { ClubMemberProfileForm } from '../components/ClubMemberProfileForm';
+import { uploadToCloudinary } from '../utils/cloudinary';
 
 export const JoinClub = () => {
   const { code } = useParams<{ code?: string }>();
@@ -18,6 +20,7 @@ export const JoinClub = () => {
     ownerName: string;
   } | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | File | null>(null);
 
   // 비로그인 사용자 처리
   useEffect(() => {
@@ -83,7 +86,21 @@ export const JoinClub = () => {
 
     try {
       const finalCode = code || inviteCode;
-      const club = await clubService.joinClubByInviteCode(finalCode, user.id, nickname.trim());
+
+      // 프로필 이미지 처리
+      let profileImageUrl: string | undefined = undefined;
+
+      if (profileImage) {
+        if (profileImage instanceof File) {
+          // 파일 업로드
+          profileImageUrl = await uploadToCloudinary(profileImage);
+        } else {
+          // 문자열 (default:color 또는 카카오 프로필 URL)
+          profileImageUrl = profileImage;
+        }
+      }
+
+      const club = await clubService.joinClubByInviteCode(finalCode, user.id, nickname.trim(), profileImageUrl);
       alert(`${club.name}에 가입했습니다! 🎉`);
       navigate('/club');
     } catch (err) {
@@ -189,24 +206,15 @@ export const JoinClub = () => {
             </div>
 
             <form onSubmit={handleJoin}>
-              <div className="form-group">
-                <label htmlFor="nickname">클럽에서 사용할 별명 *</label>
-                <input
-                  id="nickname"
-                  type="text"
-                  placeholder="예: 아침러너"
-                  value={nickname}
-                  onChange={(e) => {
-                    setNickname(e.target.value);
-                    setError('');
-                  }}
-                  className="value-input"
-                  maxLength={20}
-                  required
-                  autoFocus
-                />
-                <p className="form-hint">클럽 멤버들에게 표시될 이름입니다. 나중에 변경할 수 있습니다.</p>
-              </div>
+              <ClubMemberProfileForm
+                nickname={nickname}
+                profileImage={profileImage}
+                onNicknameChange={(value) => {
+                  setNickname(value);
+                  setError('');
+                }}
+                onProfileImageChange={setProfileImage}
+              />
 
               {error && <p className="error-message">{error}</p>}
 

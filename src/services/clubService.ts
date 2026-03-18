@@ -41,6 +41,7 @@ export interface ClubMember {
   joined_at: string;
   display_order: number;
   club_nickname?: string;
+  club_profile_image?: string;
   show_in_feed?: boolean;
   show_mileage?: boolean;
   user?: {
@@ -126,6 +127,7 @@ class ClubService {
     description: string;
     created_by: string;
     club_nickname?: string;
+    club_profile_image?: string;
   }): Promise<Club> {
     console.log('🏢 클럽 생성 시작:', data);
 
@@ -154,7 +156,7 @@ class ClubService {
     console.log('✅ 클럽 생성 성공:', club);
 
     // 생성자를 admin으로 자동 가입
-    await this.joinClub(club.id, data.created_by, 'admin', data.club_nickname);
+    await this.joinClub(club.id, data.created_by, 'admin', data.club_nickname, data.club_profile_image);
 
     // 어드민에게 이메일 발송 (비동기, 실패해도 클럽 생성은 성공)
     this.sendClubRequestNotification(club, data.created_by).catch((error) => {
@@ -224,7 +226,7 @@ class ClubService {
   }
 
   // 초대 코드로 클럽 가입
-  async joinClubByInviteCode(inviteCode: string, userId: string, clubNickname?: string): Promise<Club> {
+  async joinClubByInviteCode(inviteCode: string, userId: string, clubNickname?: string, clubProfileImage?: string): Promise<Club> {
     const club = await this.findClubByInviteCode(inviteCode);
 
     if (!club) {
@@ -237,7 +239,7 @@ class ClubService {
       throw new Error('이미 가입한 클럽입니다.');
     }
 
-    await this.joinClub(club.id, userId, 'member', clubNickname);
+    await this.joinClub(club.id, userId, 'member', clubNickname, clubProfileImage);
     return club;
   }
 
@@ -421,12 +423,13 @@ class ClubService {
   }
 
   // 클럽 가입
-  async joinClub(clubId: string, userId: string, role: 'admin' | 'member' = 'member', clubNickname?: string): Promise<void> {
+  async joinClub(clubId: string, userId: string, role: 'admin' | 'member' = 'member', clubNickname?: string, clubProfileImage?: string): Promise<void> {
     const { error } = await supabase.from('club_members').insert({
       club_id: clubId,
       user_id: userId,
       role,
       club_nickname: clubNickname,
+      club_profile_image: clubProfileImage,
     });
 
     if (error) {
@@ -463,6 +466,51 @@ class ClubService {
     }
   }
 
+  // 클럽 멤버 프로필 조회 (별명 + 프로필 이미지)
+  async getClubMemberProfile(
+    clubId: string,
+    userId: string
+  ): Promise<{ club_nickname: string | null; club_profile_image: string | null }> {
+    const { data, error } = await supabase
+      .from('club_members')
+      .select('club_nickname, club_profile_image')
+      .eq('club_id', clubId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      console.error('클럽 멤버 프로필 조회 실패:', error);
+      return { club_nickname: null, club_profile_image: null };
+    }
+
+    return {
+      club_nickname: data?.club_nickname || null,
+      club_profile_image: data?.club_profile_image || null,
+    };
+  }
+
+  // 클럽 멤버 프로필 업데이트 (별명 + 프로필 이미지)
+  async updateClubMemberProfile(
+    clubId: string,
+    userId: string,
+    profile: { club_nickname?: string; club_profile_image?: string | null }
+  ): Promise<void> {
+    const updateData: any = {};
+    if (profile.club_nickname !== undefined) updateData.club_nickname = profile.club_nickname;
+    if (profile.club_profile_image !== undefined) updateData.club_profile_image = profile.club_profile_image;
+
+    const { error } = await supabase
+      .from('club_members')
+      .update(updateData)
+      .eq('club_id', clubId)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('클럽 멤버 프로필 업데이트 실패:', error);
+      throw error;
+    }
+  }
+
   // 클럽 닉네임 조회
   async getClubNickname(clubId: string, userId: string): Promise<string | null> {
     const { data, error } = await supabase
@@ -484,7 +532,7 @@ class ClubService {
   async getClubMembers(clubId: string): Promise<ClubMember[]> {
     const { data: members, error } = await supabase
       .from('club_members')
-      .select('id, club_id, user_id, role, joined_at, display_order, club_nickname')
+      .select('id, club_id, user_id, role, joined_at, display_order, club_nickname, club_profile_image')
       .eq('club_id', clubId);
 
     if (error) {
@@ -664,7 +712,7 @@ class ClubService {
     // 클럽 멤버 조회 (show_mileage=true만)
     const { data: members, error: membersError } = await supabase
       .from('club_members')
-      .select('user_id, club_nickname')
+      .select('user_id, club_nickname, club_profile_image')
       .eq('club_id', clubId)
       .eq('show_mileage', true);
 
@@ -678,9 +726,13 @@ class ClubService {
 
     // 닉네임 맵 생성
     const nicknameMap: Record<string, string> = {};
+    const clubProfileImageMap: Record<string, string> = {};
     members.forEach((m) => {
       if (m.club_nickname) {
         nicknameMap[m.user_id] = m.club_nickname;
+      }
+      if (m.club_profile_image) {
+        clubProfileImageMap[m.user_id] = m.club_profile_image;
       }
     });
 
@@ -752,12 +804,12 @@ class ClubService {
       throw usersError;
     }
 
-    // 랭킹 생성 (클럽 닉네임 우선, 없으면 users.display_name 사용)
+    // 랭킹 생성 (클럽 닉네임 및 클럽 프로필 이미지 우선 사용)
     const ranking: ClubRanking[] = (users || [])
       .map((user) => ({
         user_id: user.id,
         display_name: nicknameMap[user.id] || user.display_name,
-        profile_image: user.profile_image,
+        profile_image: clubProfileImageMap[user.id] || user.profile_image,
         total_mileage: userMileageMap[user.id]?.mileage || 0,
         workout_count: userMileageMap[user.id]?.count || 0,
         rank: 0,
@@ -776,7 +828,7 @@ class ClubService {
     // 클럽 멤버 조회
     const { data: members } = await supabase
       .from('club_members')
-      .select('user_id, club_nickname')
+      .select('user_id, club_nickname, club_profile_image')
       .eq('club_id', clubId);
 
     if (!members || members.length === 0) {
@@ -785,11 +837,15 @@ class ClubService {
 
     const userIds = members.map((m) => m.user_id);
 
-    // 닉네임 맵 생성
+    // 닉네임 및 프로필 이미지 맵 생성
     const nicknameMap: Record<string, string> = {};
+    const clubProfileImageMap: Record<string, string> = {};
     members.forEach((m) => {
       if (m.club_nickname) {
         nicknameMap[m.user_id] = m.club_nickname;
+      }
+      if (m.club_profile_image) {
+        clubProfileImageMap[m.user_id] = m.club_profile_image;
       }
     });
 
@@ -1128,7 +1184,7 @@ class ClubService {
     // 1) show_in_feed=true 멤버만 조회
     const { data: members } = await supabase
       .from('club_members')
-      .select('user_id, club_nickname')
+      .select('user_id, club_nickname, club_profile_image')
       .eq('club_id', clubId)
       .eq('show_in_feed', true);
 
@@ -1181,6 +1237,9 @@ class ClubService {
     const nicknameMap = Object.fromEntries(
       members.filter((m) => m.club_nickname).map((m) => [m.user_id, m.club_nickname!])
     );
+    const clubProfileImageMap = Object.fromEntries(
+      members.filter((m) => m.club_profile_image).map((m) => [m.user_id, m.club_profile_image!])
+    );
 
     const likesMap = new Map();
     workoutIds.forEach((id) => likesMap.set(id, { count: 0, isLiked: false }));
@@ -1198,10 +1257,13 @@ class ClubService {
       const user = userMap.get(workout.user_id);
       const likeInfo = likesMap.get(workout.id) || { count: 0, isLiked: false };
 
+      // 클럽 프로필 이미지가 있으면 우선 사용, 없으면 유저 프로필 이미지
+      const profileImage = clubProfileImageMap[workout.user_id] || user?.profile_image;
+
       return {
         workout,
         user_display_name: nicknameMap[workout.user_id] || user?.display_name || '알 수 없음',
-        user_profile_image: user?.profile_image,
+        user_profile_image: profileImage,
         club_nickname: nicknameMap[workout.user_id],
         like_count: likeInfo.count,
         comment_count: commentsMap.get(workout.id) || 0,

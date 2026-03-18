@@ -67,18 +67,38 @@ export const CommentSection = ({ workoutId, clubId, onCommentAdded, onCommentDel
     }
   };
 
+  const renderAvatar = (profileImage: string | undefined, displayName: string) => {
+    if (profileImage?.startsWith('default:')) {
+      // default:color 형식 - 색상 아바타
+      const color = profileImage.replace('default:', '');
+      return (
+        <div
+          className="comment-avatar-placeholder"
+          style={{ background: color, color: 'white' }}
+        >
+          {displayName[0].toUpperCase()}
+        </div>
+      );
+    } else if (profileImage) {
+      // URL 형식 - 이미지
+      return <img src={profileImage} alt={displayName} className="comment-avatar" />;
+    } else {
+      // 프로필 이미지 없음 - 기본 그라데이션
+      return (
+        <div
+          className="comment-avatar-placeholder"
+          style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}
+        >
+          {displayName[0]}
+        </div>
+      );
+    }
+  };
+
   const renderComment = (comment: WorkoutComment, isReply = false) => (
     <div key={comment.id} className={`comment-item ${isReply ? 'comment-reply' : ''}`}>
       <div className="comment-header">
-        {comment.user?.profile_image ? (
-          <img
-            src={comment.user.profile_image}
-            alt={comment.user.display_name}
-            className="comment-avatar"
-          />
-        ) : (
-          <div className="comment-avatar-placeholder">{comment.user?.display_name?.[0] || '?'}</div>
-        )}
+        {renderAvatar(comment.user?.profile_image, comment.user?.display_name || '?')}
         <div className="comment-info">
           <div className="comment-author">{comment.user?.display_name || '알 수 없음'}</div>
           <div className="comment-time">
