@@ -20,6 +20,7 @@ export interface Workout {
   user_id: string;
   category: WorkoutCategory;
   sub_type: WorkoutSubType;
+  sub_type_ratios?: Record<string, number>; // 서브타입별 비율 (예: {"일반": 0.4, "빈야사/아쉬탕가": 0.6})
   value: number;
   unit: WorkoutUnit;
   mileage: number;
@@ -32,6 +33,7 @@ export interface CreateWorkoutData {
   user_id: string;
   category: WorkoutCategory;
   sub_type: WorkoutSubType;
+  sub_type_ratios?: Record<string, number>; // 서브타입별 비율 (예: {"일반": 0.4, "빈야사/아쉬탕가": 0.6})
   value: number;
   unit: WorkoutUnit;
   intensity?: number; // 1-10 단계, 기본값 4
@@ -45,8 +47,14 @@ class WorkoutService {
     console.log('📝 운동 기록 추가 데이터:', data);
     console.log('🔧 Supabase client 확인:', !!supabase);
 
-    // 마일리지 계산
-    const mileage = clubService.calculateMileage(data.category, data.sub_type, data.value);
+    // 마일리지 계산 (비율 고려)
+    const mileage = clubService.calculateMileage(
+      data.category,
+      data.sub_type,
+      data.value,
+      undefined, // mileageConfig (기본값 사용)
+      data.sub_type_ratios
+    );
 
     const insertData: any = {
       user_id: data.user_id,
@@ -58,6 +66,11 @@ class WorkoutService {
       intensity: data.intensity ?? 4, // 기본값 4
       proof_image: data.proof_image || null,
     };
+
+    // sub_type_ratios가 있으면 포함
+    if (data.sub_type_ratios) {
+      insertData.sub_type_ratios = data.sub_type_ratios;
+    }
 
     // created_at이 제공되면 포함
     if (data.created_at) {

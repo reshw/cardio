@@ -982,10 +982,26 @@ class ClubService {
     category: string,
     subType: string | null,
     value: number,
-    mileageConfig?: MileageConfig
+    mileageConfig?: MileageConfig,
+    ratios?: Record<string, number>
   ): number {
-    const key = subType ? `${category}-${subType}` : category;
     const config = mileageConfig || this.getDefaultMileageConfig();
+
+    // 비율이 있는 경우: 각 서브타입의 마일리지를 비율에 따라 합산
+    // 예: 요가 60분, 일반 40% + 빈야사 60%
+    // = (60 * 0.4) / 3.27 + (60 * 0.6) / 2.45
+    if (ratios && Object.keys(ratios).length > 0) {
+      let totalMileage = 0;
+      for (const [subTypeName, ratio] of Object.entries(ratios)) {
+        const key = `${category}-${subTypeName}`;
+        const coefficient = config[key as keyof MileageConfig] || 1;
+        totalMileage += (value * ratio) / coefficient;
+      }
+      return totalMileage;
+    }
+
+    // 비율이 없는 경우: 기존 방식 (단일 서브타입)
+    const key = subType ? `${category}-${subType}` : category;
     const coefficient = config[key as keyof MileageConfig] || 1;
     // 나눗셈 방식: 거리 / 계수 = 마일리지
     // 예: 3km / 3 = 1 마일리지
