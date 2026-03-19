@@ -36,12 +36,14 @@ BEGIN
     -- 존재하지 않으면 생성
     IF v_user_id IS NULL THEN
       INSERT INTO users (
+        username,
         email,
         display_name,
         is_tester,
         created_at
       )
       VALUES (
+        'tester' || i,
         v_email,
         v_display_name,
         TRUE,
