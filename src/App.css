@@ -518,10 +518,10 @@ html {
   background: var(--gradient-primary);
   color: #FFFFFF;
   border: none;
-  padding: 10px 16px;
-  border-radius: 12px;
+  padding: 7px 12px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   transition: all 0.3s;
   font-family: 'Noto Sans KR', sans-serif;
@@ -601,6 +601,78 @@ html {
 .modal-actions .cancel-button,
 .modal-actions .primary-button {
   flex: 1;
+}
+
+.modal-description {
+  font-size: 15px;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.modal-description.secondary {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.hof-reason-input {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  resize: vertical;
+  min-height: 80px;
+  outline: none;
+  transition: all 0.2s;
+  margin-bottom: 20px;
+}
+
+.hof-reason-input:focus {
+  border-color: var(--primary-color);
+  background: var(--card-bg);
+}
+
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.button-secondary,
+.button-primary {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.button-secondary {
+  background: var(--input-bg);
+  color: var(--text-secondary);
+}
+
+.button-secondary:hover {
+  background: var(--border-color);
+  color: var(--text-primary);
+}
+
+.button-primary {
+  background: var(--gradient-primary);
+  color: white;
+}
+
+.button-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 /* More Menu Modal */
@@ -838,19 +910,19 @@ html {
 .tabs {
   display: flex;
   gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   border-bottom: 2px solid var(--border-color);
   padding-bottom: 0;
 }
 
 .tab {
   flex: 1;
-  padding: 12px 16px;
+  padding: 10px 12px;
   background: none;
   border: none;
   border-bottom: 3px solid transparent;
   color: var(--text-secondary);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -1496,8 +1568,8 @@ html {
   width: 100%;
   background: var(--card-bg);
   border: 2px solid var(--border-color);
-  border-radius: 16px;
-  padding: 16px 20px;
+  border-radius: 12px;
+  padding: 10px 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1516,10 +1588,9 @@ html {
 }
 
 .dropdown-trigger-name {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 4px;
 }
 
 .dropdown-trigger-code {
@@ -2189,13 +2260,13 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 14px 20px;
+  gap: 6px;
+  padding: 10px 14px;
   background: var(--gradient-primary);
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 15px;
+  border-radius: 10px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -3548,7 +3619,7 @@ html {
 
 /* 피드 컨테이너 */
 .workout-feed-container {
-  margin-top: 20px;
+  margin-top: 12px;
 }
 
 /* 날짜 네비게이션 */
@@ -3556,9 +3627,9 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-bottom: 20px;
-  padding: 12px;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px;
   background: var(--card-bg);
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
@@ -3569,7 +3640,7 @@ html {
   border: none;
   color: var(--primary-color);
   cursor: pointer;
-  padding: 8px;
+  padding: 6px;
   border-radius: 8px;
   transition: all 0.2s;
   display: flex;
@@ -3582,10 +3653,10 @@ html {
 }
 
 .feed-date-display {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-  min-width: 100px;
+  min-width: 80px;
   text-align: center;
 }
 
@@ -3593,7 +3664,7 @@ html {
 .feed-items {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 /* 피드 카드 */
@@ -3721,68 +3792,82 @@ html {
    ============================================ */
 
 .comment-section {
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid var(--border-color);
 }
 
 .comment-loading,
 .comment-empty {
   text-align: center;
-  padding: 20px;
+  padding: 14px;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .comment-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .comment-item {
   background: var(--input-bg);
-  border-radius: 12px;
-  padding: 12px;
+  border-radius: 10px;
+  padding: 10px;
 }
 
 .comment-reply {
-  margin-left: 32px;
+  margin-left: 28px;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
 }
 
-.comment-header {
+/* 댓글 전체 래퍼 (프사 2줄 고정) */
+.comment-wrapper {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.comment-avatar-wrapper {
+  flex-shrink: 0;
+  align-self: flex-start;
 }
 
 .comment-avatar {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
 }
 
 .comment-avatar-placeholder {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 13px;
   text-align: center;
-  line-height: 28px;
+  line-height: 32px;
 }
 
-.comment-info {
+.comment-content {
   flex: 1;
+  min-width: 0;
+}
+
+/* 첫째 줄: 이름 + 시간 */
+.comment-header-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 .comment-author {
@@ -3791,21 +3876,24 @@ html {
   color: var(--text-primary);
 }
 
-.comment-time {
+.comment-time-compact {
   font-size: 11px;
   color: var(--text-secondary);
 }
 
+/* 둘째 줄: 댓글 본문 */
 .comment-text {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-primary);
-  line-height: 1.5;
-  margin-bottom: 8px;
+  line-height: 1.4;
+  margin-bottom: 6px;
+  word-break: break-word;
 }
 
+/* 셋째 줄: 액션 버튼 */
 .comment-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }
 
 .comment-action-btn {
@@ -3816,7 +3904,7 @@ html {
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 11px;
   padding: 4px 8px;
   border-radius: 6px;
   transition: all 0.2s;
@@ -3832,7 +3920,7 @@ html {
 }
 
 .comment-replies {
-  margin-top: 12px;
+  margin-top: 8px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -3849,13 +3937,13 @@ html {
   width: 100%;
   background: var(--gradient-light);
   color: var(--primary-color);
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .reply-indicator button {
@@ -3863,16 +3951,16 @@ html {
   border: none;
   color: var(--primary-color);
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
 }
 
 .comment-input {
   flex: 1;
   border: 1px solid var(--border-color);
-  border-radius: 20px;
-  padding: 10px 16px;
-  font-size: 14px;
+  border-radius: 18px;
+  padding: 8px 14px;
+  font-size: 13px;
   background: var(--input-bg);
   color: var(--text-primary);
   outline: none;
@@ -3888,9 +3976,9 @@ html {
   background: var(--gradient-primary);
   color: white;
   border: none;
-  border-radius: 20px;
-  padding: 10px 20px;
-  font-size: 14px;
+  border-radius: 18px;
+  padding: 8px 16px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -3998,6 +4086,181 @@ html {
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* ============================================
+   피드 카드 - V2 레이아웃 (프사 왼쪽 2줄 고정)
+   ============================================ */
+
+/* 피드 카드 전체 패딩 축소 */
+.feed-card {
+  padding: 10px 12px;
+  position: relative;
+}
+
+/* 비활성화된 카드 (마일리지 미반영) */
+.feed-card-disabled {
+  opacity: 0.5;
+  position: relative;
+}
+
+.feed-card-disabled::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  border-radius: 16px;
+}
+
+/* 비활성화 배지 */
+.feed-disabled-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(100, 100, 100, 0.9);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 전체 래퍼: 프사(왼쪽) + 내용(오른쪽) */
+.feed-card-wrapper {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* 왼쪽: 프로필 사진 (2줄 고정) */
+.feed-avatar-wrapper {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.feed-user-avatar-v2 {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--border-color);
+}
+
+.feed-user-avatar-placeholder-v2 {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  border: 1.5px solid var(--border-color);
+}
+
+/* 오른쪽: 내용 영역 */
+.feed-content-wrapper {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 첫째 줄: 이름 + 시간 + 운동종목 + 강도 */
+.feed-header-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.feed-user-name-v2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.feed-time-v2 {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.feed-workout-type-v2 {
+  display: inline-block;
+  background: var(--gradient-light);
+  color: var(--primary-color);
+  padding: 3px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.feed-intensity-badge-v2 {
+  display: inline-block;
+  color: white;
+  padding: 3px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 둘째 줄: 데이터 + 좋아요/댓글 (우측 정렬) */
+.feed-data-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.feed-workout-value-v2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.feed-actions-v2 {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.feed-action-btn-v2 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.feed-action-btn-v2:hover {
+  background: var(--gradient-light);
+  color: var(--primary-color);
+}
+
+.feed-action-btn-v2.liked {
+  color: var(--secondary-color);
+}
+
+.feed-action-btn-v2:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ============================================
@@ -5267,6 +5530,34 @@ html {
   margin-top: 4px;
 }
 
+/* 명예의전당 사유 메시지 */
+.hof-reason {
+  font-size: 13px;
+  font-weight: 500;
+  color: #B8860B;
+  text-align: right;
+  line-height: 1.4;
+  max-width: 250px;
+  word-break: keep-all;
+}
+
+/* 명예의전당 탭 하단 설명 */
+.hof-tab-description {
+  margin-top: 20px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 165, 0, 0.05) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.hof-tab-description p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
 /* 랭킹 필터 탭 */
 .ranking-filter-tabs {
   display: flex;
@@ -5413,4 +5704,89 @@ html {
   font-size: 11px;
   font-weight: 700;
   vertical-align: middle;
+}
+
+/* ============================================
+   월 선택 버튼 및 UI 압축
+   ============================================ */
+
+/* 월 선택 UI */
+.month-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.month-selector h2 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.month-nav-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-primary);
+}
+
+.month-nav-button:hover:not(:disabled) {
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.month-nav-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* 랭킹 필터 탭 압축 */
+.ranking-filter-tabs {
+  padding: 3px;
+  margin-bottom: 12px;
+}
+
+.filter-tab {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+/* 랭킹 카드 압축 */
+.ranking-item {
+  padding: 12px 14px;
+}
+
+.rank-badge {
+  width: 40px;
+  height: 32px;
+  font-size: 13px;
+}
+
+.ranking-profile,
+.ranking-profile-placeholder {
+  width: 36px;
+  height: 36px;
+}
+
+.ranking-name {
+  font-size: 14px;
+}
+
+.ranking-count {
+  font-size: 12px;
+}
+
+.ranking-mileage {
+  font-size: 18px;
+}
+
+.ranking-unit {
+  font-size: 11px;
 }

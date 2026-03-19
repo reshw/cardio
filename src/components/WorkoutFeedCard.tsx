@@ -106,47 +106,58 @@ export const WorkoutFeedCard = ({
   };
 
   return (
-    <div className="feed-card">
-      {/* 사용자 정보 */}
-      <div className="feed-card-header" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>
-        {renderAvatar(item.user_profile_image, item.user_display_name, item.user_profile_image ? 'feed-user-avatar' : 'feed-user-avatar-placeholder')}
-        <div className="feed-user-info">
-          <div className="feed-user-name">{item.user_display_name}</div>
-          <div className="feed-time">{formatTime(workout.created_at)}</div>
+    <div className={`feed-card ${item.is_disabled ? 'feed-card-disabled' : ''}`}>
+      {/* 비활성화 배지 */}
+      {item.is_disabled && (
+        <div className="feed-disabled-badge">
+          마일리지 미반영
         </div>
-      </div>
+      )}
 
-      {/* 운동 정보 */}
-      <div className="feed-card-body" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>
-        <div className="feed-workout-header">
-          <div className="feed-workout-type">{getWorkoutLabel()}</div>
-          <div
-            className="feed-intensity-badge"
-            style={{ backgroundColor: getIntensityColor(workout.intensity) }}
-          >
-            {getIntensityLabel(workout.intensity)}
+      {/* 전체 래퍼: 프사(왼쪽 2줄) + 내용(오른쪽 2줄) */}
+      <div className="feed-card-wrapper">
+        {/* 왼쪽: 프로필 사진 (2줄 고정) */}
+        <div className="feed-avatar-wrapper">
+          {renderAvatar(item.user_profile_image, item.user_display_name, item.user_profile_image ? 'feed-user-avatar-v2' : 'feed-user-avatar-placeholder-v2')}
+        </div>
+
+        {/* 오른쪽: 내용 */}
+        <div className="feed-content-wrapper">
+          {/* 첫째 줄: 이름 + 시간 + 운동종목 + 강도 */}
+          <div className="feed-header-line" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>
+            <span className="feed-user-name-v2">{item.user_display_name}</span>
+            <span className="feed-time-v2">{formatTime(workout.created_at)}</span>
+            <span className="feed-workout-type-v2">{getWorkoutLabel()}</span>
+            <span
+              className="feed-intensity-badge-v2"
+              style={{ backgroundColor: getIntensityColor(workout.intensity) }}
+            >
+              {getIntensityLabel(workout.intensity)}
+            </span>
+          </div>
+
+          {/* 둘째 줄: 데이터 + 좋아요/댓글 (우측 정렬) */}
+          <div className="feed-data-line">
+            <div className="feed-workout-value-v2" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>
+              {workout.value} {workout.unit}
+            </div>
+            <div className="feed-actions-v2">
+              <button
+                className={`feed-action-btn-v2 ${item.is_liked_by_me ? 'liked' : ''}`}
+                onClick={handleLikeToggle}
+                disabled={liking}
+              >
+                <Heart size={14} fill={item.is_liked_by_me ? 'currentColor' : 'none'} />
+                <span>{item.like_count}</span>
+              </button>
+
+              <button className="feed-action-btn-v2" onClick={() => setShowComments(!showComments)}>
+                <MessageCircle size={14} />
+                <span>{item.comment_count}</span>
+              </button>
+            </div>
           </div>
         </div>
-        <div className="feed-workout-value">
-          {workout.value} {workout.unit}
-        </div>
-      </div>
-
-      {/* 좋아요/댓글 버튼 */}
-      <div className="feed-card-actions">
-        <button
-          className={`feed-action-button ${item.is_liked_by_me ? 'liked' : ''}`}
-          onClick={handleLikeToggle}
-          disabled={liking}
-        >
-          <Heart size={18} fill={item.is_liked_by_me ? 'currentColor' : 'none'} />
-          <span>{item.like_count}</span>
-        </button>
-
-        <button className="feed-action-button" onClick={() => setShowComments(!showComments)}>
-          <MessageCircle size={18} />
-          <span>{item.comment_count}</span>
-        </button>
       </div>
 
       {/* 댓글 섹션 */}

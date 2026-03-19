@@ -8,7 +8,7 @@ import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
 import { WorkoutFeed } from '../components/WorkoutFeed';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
-import { Share2, Menu, ChevronDown, ChevronUp, Info, Table, Users, TrendingUp, User } from 'lucide-react';
+import { Share2, Menu, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -87,7 +87,7 @@ export const Club = () => {
 
   // 피드 관련 state
   type TabType = 'ranking' | 'feed';
-  const [activeTab, setActiveTab] = useState<TabType>('ranking');
+  const [activeTab, setActiveTab] = useState<TabType>('feed');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [feedItems, setFeedItems] = useState<WorkoutFeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
@@ -98,6 +98,9 @@ export const Club = () => {
   // 명예의 전당 필터 state
   type RankingFilter = 'all' | 'hof' | 'regular';
   const [rankingFilter, setRankingFilter] = useState<RankingFilter>('all');
+
+  // 랭킹 월 선택 state
+  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -139,13 +142,13 @@ export const Club = () => {
   };
 
   // 클럽 랭킹 불러오기
-  const loadClubRanking = async (clubId: string) => {
+  const loadClubRanking = async (clubId: string, month?: Date) => {
     setRankingLoading(true);
     try {
-      const now = new Date();
+      const targetMonth = month || selectedMonth;
       const data = await clubService.getClubRanking(clubId, {
-        year: now.getFullYear(),
-        month: now.getMonth() + 1,
+        year: targetMonth.getFullYear(),
+        month: targetMonth.getMonth() + 1,
       });
       setRanking(data);
     } catch (error) {
@@ -153,6 +156,36 @@ export const Club = () => {
     } finally {
       setRankingLoading(false);
     }
+  };
+
+  // 월 이동
+  const handlePrevMonth = () => {
+    const newMonth = new Date(selectedMonth);
+    newMonth.setMonth(newMonth.getMonth() - 1);
+    setSelectedMonth(newMonth);
+    if (selectedClub) {
+      loadClubRanking(selectedClub.id, newMonth);
+    }
+  };
+
+  const handleNextMonth = () => {
+    const now = new Date();
+    const newMonth = new Date(selectedMonth);
+    newMonth.setMonth(newMonth.getMonth() + 1);
+
+    // 미래 월은 불가
+    if (newMonth > now) return;
+
+    setSelectedMonth(newMonth);
+    if (selectedClub) {
+      loadClubRanking(selectedClub.id, newMonth);
+    }
+  };
+
+  const isCurrentMonth = () => {
+    const now = new Date();
+    return selectedMonth.getFullYear() === now.getFullYear() &&
+           selectedMonth.getMonth() === now.getMonth();
   };
 
   // 피드 로드 (캐싱 적용)
@@ -172,12 +205,27 @@ export const Club = () => {
     setFeedLoading(true);
     try {
       const items = await clubService.getClubWorkoutFeed(clubId, date, user.id);
-      setFeedItems(items);
+
+      // 비활성화된 카테고리 체크하여 is_disabled 필드 추가
+      const enabledCategories = selectedClub?.enabled_categories || [];
+      const itemsWithDisabledFlag = items.map(item => {
+        const categoryKey = item.workout.sub_type
+          ? `${item.workout.category}-${item.workout.sub_type}`
+          : item.workout.category;
+        const isDisabled = !enabledCategories.includes(categoryKey);
+
+        return {
+          ...item,
+          is_disabled: isDisabled,
+        };
+      });
+
+      setFeedItems(itemsWithDisabledFlag);
 
       // 캐시 저장
       setFeedCache(prev => ({
         ...prev,
-        [cacheKey]: items,
+        [cacheKey]: itemsWithDisabledFlag,
       }));
     } catch (error) {
       console.error('피드 로드 실패:', error);
@@ -460,7 +508,7 @@ export const Club = () => {
             className={`tab ${activeTab === 'ranking' ? 'active' : ''}`}
             onClick={() => setActiveTab('ranking')}
           >
-            🏆 랭킹
+            🏆 마일리지
           </button>
           <button
             className={`tab ${activeTab === 'feed' ? 'active' : ''}`}
@@ -481,7 +529,24 @@ export const Club = () => {
         ) : selectedClub ? (
         <div className="club-dashboard">
           <div className="dashboard-header">
-            <h2>{new Date().getFullYear()}년 {String(new Date().getMonth() + 1).padStart(2, '0')}월 마일리지</h2>
+            <div className="month-selector">
+              <button
+                className="month-nav-button"
+                onClick={handlePrevMonth}
+                title="이전 달"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <h2>{selectedMonth.getFullYear()}년 {String(selectedMonth.getMonth() + 1).padStart(2, '0')}월</h2>
+              <button
+                className="month-nav-button"
+                onClick={handleNextMonth}
+                disabled={isCurrentMonth()}
+                title="다음 달"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
             <div className="dashboard-header-actions">
               <button
                 className="dashboard-action-button"
@@ -509,16 +574,16 @@ export const Club = () => {
               전체
             </button>
             <button
-              className={`filter-tab ${rankingFilter === 'hof' ? 'active' : ''}`}
-              onClick={() => setRankingFilter('hof')}
-            >
-              🏆 명예의 전당
-            </button>
-            <button
               className={`filter-tab ${rankingFilter === 'regular' ? 'active' : ''}`}
               onClick={() => setRankingFilter('regular')}
             >
               일반 회원
+            </button>
+            <button
+              className={`filter-tab ${rankingFilter === 'hof' ? 'active' : ''}`}
+              onClick={() => setRankingFilter('hof')}
+            >
+              🏆 명예의 전당
             </button>
           </div>
 
@@ -644,26 +709,49 @@ export const Club = () => {
                         )
                       }
                     >
-                    <div className="ranking-left">
-                      <div className={`rank-badge rank-${member.rank}`}>
-                        {member.rank === 1 ? '🥇' : member.rank === 2 ? '🥈' : member.rank === 3 ? '🥉' : `${member.rank}위`}
-                      </div>
-                      {renderProfileImage()}
-                      <div className="ranking-info">
-                        <div className="ranking-name">
-                          {member.display_name}
-                          {member.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
+                    {rankingFilter === 'hof' ? (
+                      // 명예의전당 탭: 순위/운동횟수/마일리지 제거, reason 표시
+                      <>
+                        <div className="ranking-left">
+                          {renderProfileImage()}
+                          <div className="ranking-info">
+                            <div className="ranking-name">
+                              {member.display_name}
+                              <span className="hof-badge-inline">🏆</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="ranking-count">{member.workout_count}회 운동</div>
-                      </div>
-                    </div>
-                    <div className="ranking-right">
-                      <div className="ranking-mileage">
-                        {member.total_mileage.toFixed(1)}
-                        {isMyRank && <span className="my-rank-badge">나</span>}
-                      </div>
-                      <div className="ranking-unit">마일리지</div>
-                    </div>
+                        <div className="ranking-right">
+                          <div className="hof-reason">
+                            {member.hof_reason || '명예의 전당 멤버'}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      // 일반/전체 탭: 기존 렌더링
+                      <>
+                        <div className="ranking-left">
+                          <div className={`rank-badge rank-${member.rank}`}>
+                            {member.rank === 1 ? '🥇' : member.rank === 2 ? '🥈' : member.rank === 3 ? '🥉' : `${member.rank}위`}
+                          </div>
+                          {renderProfileImage()}
+                          <div className="ranking-info">
+                            <div className="ranking-name">
+                              {member.display_name}
+                              {member.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
+                            </div>
+                            <div className="ranking-count">{member.workout_count}회 운동</div>
+                          </div>
+                        </div>
+                        <div className="ranking-right">
+                          <div className="ranking-mileage">
+                            {member.total_mileage.toFixed(1)}
+                            {isMyRank && <span className="my-rank-badge">나</span>}
+                          </div>
+                          <div className="ranking-unit">마일리지</div>
+                        </div>
+                      </>
+                    )}
                   </div>
                   </>
                 );
@@ -671,7 +759,7 @@ export const Club = () => {
               {showEllipsis2 && (
                 <div className="ranking-ellipsis">
                   <div className="ellipsis-line"></div>
-                  <span className="ellipsis-text">이하 생략</span>
+                  <span className="ellipsis-text">이하 생략 (총 {filteredByHOF.length}명)</span>
                   <div className="ellipsis-line"></div>
                 </div>
               )}
@@ -679,15 +767,13 @@ export const Club = () => {
             );
           })()}
 
-          {/* 명예의 전당 */}
-          <div className="hall-of-fame">
-            <div className="hall-of-fame-header">
-              <h3>🏆 명예의 전당</h3>
+          {/* 명예의전당 탭 설명 */}
+          {rankingFilter === 'hof' && (
+            <div className="hof-tab-description">
+              <p>명예의 전당은 월별 1위 등 특별한 업적을 달성한 멤버를 운영자 논의 후 등재합니다.</p>
             </div>
-            <div className="hall-of-fame-content">
-              <p className="hall-of-fame-message">월별 마일리지 1위는 전당으로 모십니다</p>
-            </div>
-          </div>
+          )}
+
         </div>
       ) : (
         <div className="empty-state">

@@ -97,34 +97,44 @@ export const CommentSection = ({ workoutId, clubId, onCommentAdded, onCommentDel
 
   const renderComment = (comment: WorkoutComment, isReply = false) => (
     <div key={comment.id} className={`comment-item ${isReply ? 'comment-reply' : ''}`}>
-      <div className="comment-header">
-        {renderAvatar(comment.user?.profile_image, comment.user?.display_name || '?')}
-        <div className="comment-info">
-          <div className="comment-author">{comment.user?.display_name || '알 수 없음'}</div>
-          <div className="comment-time">
-            {new Date(comment.created_at).toLocaleTimeString('ko-KR', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+      <div className="comment-wrapper">
+        {/* 왼쪽: 프로필 (2줄 고정) */}
+        <div className="comment-avatar-wrapper">
+          {renderAvatar(comment.user?.profile_image, comment.user?.display_name || '?')}
+        </div>
+
+        {/* 오른쪽: 내용 */}
+        <div className="comment-content">
+          {/* 첫째 줄: 이름 + 시간 */}
+          <div className="comment-header-compact">
+            <span className="comment-author">{comment.user?.display_name || '알 수 없음'}</span>
+            <span className="comment-time-compact">
+              {new Date(comment.created_at).toLocaleTimeString('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+          </div>
+
+          {/* 둘째 줄: 댓글 본문 */}
+          <div className="comment-text">{comment.comment}</div>
+
+          {/* 셋째 줄: 액션 버튼 */}
+          <div className="comment-actions">
+            {!isReply && (
+              <button className="comment-action-btn" onClick={() => setReplyTo(comment.id)}>
+                <Reply size={14} />
+                답글
+              </button>
+            )}
+            {user?.id === comment.user_id && (
+              <button className="comment-action-btn delete" onClick={() => handleDelete(comment.id)}>
+                <Trash2 size={14} />
+                삭제
+              </button>
+            )}
           </div>
         </div>
-      </div>
-
-      <div className="comment-text">{comment.comment}</div>
-
-      <div className="comment-actions">
-        {!isReply && (
-          <button className="comment-action-btn" onClick={() => setReplyTo(comment.id)}>
-            <Reply size={14} />
-            답글
-          </button>
-        )}
-        {user?.id === comment.user_id && (
-          <button className="comment-action-btn delete" onClick={() => handleDelete(comment.id)}>
-            <Trash2 size={14} />
-            삭제
-          </button>
-        )}
       </div>
 
       {/* 대댓글 렌더링 */}

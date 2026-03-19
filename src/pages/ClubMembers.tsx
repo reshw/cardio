@@ -17,6 +17,12 @@ export const ClubMembers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [clubOwnerId, setClubOwnerId] = useState<string>('');
 
+  // 명예의전당 모달 state
+  const [hofModalOpen, setHofModalOpen] = useState(false);
+  const [hofUserId, setHofUserId] = useState('');
+  const [hofUserName, setHofUserName] = useState('');
+  const [hofReason, setHofReason] = useState('');
+
   useEffect(() => {
     if (clubId && user) {
       loadMembers();
@@ -117,16 +123,30 @@ export const ClubMembers = () => {
   };
 
   // 명예의 전당 추가
-  const handleAddToHOF = async (userId: string, displayName: string) => {
+  const handleAddToHOF = (userId: string, displayName: string) => {
     if (!clubId || !user || (!isOwner && !isAdmin)) return;
 
-    if (!confirm(`"${displayName}"님을 명예의 전당에 추가하시겠습니까?\n\n※ 3개월 연속 1위 달성 등 특별한 업적을 달성한 멤버만 추가해주세요.`)) {
+    // 모달 열기
+    setHofUserId(userId);
+    setHofUserName(displayName);
+    setHofReason('');
+    setHofModalOpen(true);
+  };
+
+  // 명예의전당 추가 실행
+  const confirmAddToHOF = async () => {
+    if (!clubId || !user || !hofUserId) return;
+
+    if (!hofReason.trim()) {
+      alert('명예의 전당에 기록할 메시지를 입력해주세요.');
       return;
     }
 
     try {
-      await clubService.addToHallOfFame(clubId, userId, user.id);
+      await clubService.addToHallOfFame(clubId, hofUserId, user.id, hofReason.trim());
       alert('명예의 전당에 추가되었습니다! 🏆');
+      setHofModalOpen(false);
+      setHofReason('');
       loadMembers();
     } catch (error) {
       console.error('명예의 전당 추가 실패:', error);
@@ -321,6 +341,44 @@ export const ClubMembers = () => {
           )}
         </div>
       </div>
+
+      {/* 명예의전당 추가 모달 */}
+      {hofModalOpen && (
+        <div className="modal-overlay" onClick={() => setHofModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>🏆 명예의 전당 추가</h2>
+              <button className="modal-close" onClick={() => setHofModalOpen(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="modal-body">
+              <p className="modal-description">
+                <strong>{hofUserName}</strong>님을 명예의 전당에 추가합니다.
+              </p>
+              <p className="modal-description secondary">
+                명예의 전당에 기록할 메시지를 입력해주세요.
+              </p>
+              <textarea
+                className="hof-reason-input"
+                placeholder="예: 26.03~26.05 3개월 연속 마일리지 1등 달성"
+                value={hofReason}
+                onChange={(e) => setHofReason(e.target.value)}
+                rows={3}
+                maxLength={200}
+              />
+              <div className="modal-footer">
+                <button className="button-secondary" onClick={() => setHofModalOpen(false)}>
+                  취소
+                </button>
+                <button className="button-primary" onClick={confirmAddToHOF}>
+                  추가
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

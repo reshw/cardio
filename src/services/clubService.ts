@@ -75,6 +75,7 @@ export interface ClubRanking {
   workout_count: number;
   rank: number;
   is_hall_of_fame?: boolean;  // 명예의 전당 여부
+  hof_reason?: string;  // 명예의 전당 사유
 }
 
 export interface ClubDetailedStats {
@@ -835,11 +836,17 @@ class ClubService {
     // 명예의 전당 멤버 조회
     const { data: hofMembers } = await supabase
       .from('hall_of_fame')
-      .select('user_id')
+      .select('user_id, reason')
       .eq('club_id', clubId)
       .in('user_id', userIds);
 
     const hofSet = new Set(hofMembers?.map((h) => h.user_id) || []);
+    const hofReasonMap: Record<string, string> = {};
+    hofMembers?.forEach((h) => {
+      if (h.reason) {
+        hofReasonMap[h.user_id] = h.reason;
+      }
+    });
 
     // 랭킹 생성 (클럽 닉네임 및 클럽 프로필 이미지 우선 사용)
     const ranking: ClubRanking[] = (users || [])
@@ -851,6 +858,7 @@ class ClubService {
         workout_count: userMileageMap[user.id]?.count || 0,
         rank: 0,
         is_hall_of_fame: hofSet.has(user.id),
+        hof_reason: hofReasonMap[user.id] || undefined,
       }))
       .sort((a, b) => b.total_mileage - a.total_mileage)
       .map((item, index) => ({ ...item, rank: index + 1 }));
