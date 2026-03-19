@@ -1215,7 +1215,7 @@ class ClubService {
   }
 
   // 현재 월의 모든 클럽 멤버 운동 기록 마일리지 재계산 (스냅샷 방식)
-  async recalculateCurrentMonthMileage(clubId: string, newConfig: MileageConfig): Promise<void> {
+  async recalculateCurrentMonthMileage(clubId: string, _newConfig: MileageConfig): Promise<void> {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
