@@ -48,6 +48,17 @@ export const JoinClub = () => {
         setError('존재하지 않거나 승인되지 않은 초대 코드입니다.');
         return;
       }
+
+      // 이미 가입한 클럽인지 확인
+      if (user) {
+        const isMember = await clubService.isClubMember(preview.club.id, user.id);
+        if (isMember) {
+          // 이미 가입한 클럽이면 바로 클럽 메인으로 리디렉트
+          navigate('/club');
+          return;
+        }
+      }
+
       setClubPreview(preview);
     } catch (err) {
       console.error('클럽 미리보기 조회 실패:', err);

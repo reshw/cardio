@@ -30,6 +30,7 @@ export const AddWorkout = () => {
   const [step, setStep] = useState<1 | 2 | 3>(1); // 1: 카테고리, 2: 세부타입, 3: 입력
   const [category, setCategory] = useState<WorkoutCategory | null>(null);
   const [subType, setSubType] = useState<WorkoutSubType>(null);
+  const [subTypeRatio, setSubTypeRatio] = useState(50); // 0-100, 요가/복싱용 비율 슬라이더
   const [value, setValue] = useState('');
   const [workoutDate, setWorkoutDate] = useState(() => {
     // 현재 시간을 기본값으로 설정 (datetime-local 형식)
@@ -103,12 +104,23 @@ export const AddWorkout = () => {
         }
       }
 
+      // 서브타입 비율 계산 (요가/복싱만)
+      let subTypeRatios: Record<string, number> | undefined;
+      if ((category === '요가' || category === '복싱') && subTypeRatio > 0 && subTypeRatio < 100) {
+        const subTypes = SUB_TYPES[category];
+        subTypeRatios = {
+          [subTypes[0]]: (100 - subTypeRatio) / 100,
+          [subTypes[1]]: subTypeRatio / 100,
+        };
+      }
+
       // 운동 기록 저장
       console.log('💾 운동 기록 저장 시작...');
       await workoutService.createWorkout({
         user_id: user.id,
         category,
         sub_type: subType,
+        sub_type_ratios: subTypeRatios,
         value: parseFloat(value),
         unit: selectedCategory!.unit,
         intensity,
@@ -173,17 +185,66 @@ export const AddWorkout = () => {
         {step === 2 && category && (
           <div className="subtype-selection">
             <h3>{selectedCategory?.label} 세부 종류</h3>
-            <div className="subtype-buttons">
-              {SUB_TYPES[category].map((sub) => (
+
+            {/* 요가/복싱: 비율 슬라이더 */}
+            {(category === '요가' || category === '복싱') ? (
+              <div className="subtype-ratio-selector">
+                <p className="ratio-description">
+                  두 종류를 섞어서 했나요? 비율을 조정하세요.
+                </p>
+
+                <div className="ratio-labels">
+                  <span className="ratio-label-left">{SUB_TYPES[category][0]}</span>
+                  <span className="ratio-label-right">{SUB_TYPES[category][1]}</span>
+                </div>
+
+                <div className="ratio-slider-container">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={subTypeRatio}
+                    onChange={(e) => setSubTypeRatio(Number(e.target.value))}
+                    className="ratio-slider"
+                  />
+                  <div className="ratio-values">
+                    <span>{100 - subTypeRatio}%</span>
+                    <span>{subTypeRatio}%</span>
+                  </div>
+                </div>
+
                 <button
-                  key={sub}
-                  className="subtype-button"
-                  onClick={() => handleSubTypeSelect(sub)}
+                  className="primary-button"
+                  onClick={() => {
+                    // 비율이 0% 또는 100%면 단일 서브타입
+                    if (subTypeRatio === 0) {
+                      setSubType(SUB_TYPES[category][0] as WorkoutSubType);
+                    } else if (subTypeRatio === 100) {
+                      setSubType(SUB_TYPES[category][1] as WorkoutSubType);
+                    } else {
+                      // 혼합: 대표 서브타입을 첫 번째로 설정 (표시용)
+                      setSubType(SUB_TYPES[category][0] as WorkoutSubType);
+                    }
+                    setStep(3);
+                  }}
                 >
-                  {sub}
+                  다음
                 </button>
-              ))}
-            </div>
+              </div>
+            ) : (
+              /* 달리기/사이클: 기존 방식 (버튼 선택) */
+              <div className="subtype-buttons">
+                {SUB_TYPES[category].map((sub) => (
+                  <button
+                    key={sub}
+                    className="subtype-button"
+                    onClick={() => handleSubTypeSelect(sub)}
+                  >
+                    {sub}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -193,7 +254,15 @@ export const AddWorkout = () => {
             <div className="input-section">
               <h3>
                 {selectedCategory?.label}
-                {subType && ` - ${subType}`}
+                {/* 비율이 있는 경우 (요가/복싱 혼합) */}
+                {(category === '요가' || category === '복싱') && subTypeRatio > 0 && subTypeRatio < 100 ? (
+                  <span style={{ fontSize: '14px', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
+                    <br />
+                    {SUB_TYPES[category][0]} {100 - subTypeRatio}% / {SUB_TYPES[category][1]} {subTypeRatio}%
+                  </span>
+                ) : (
+                  subType && ` - ${subType}`
+                )}
               </h3>
 
               <div className="form-group">

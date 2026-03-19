@@ -271,13 +271,13 @@ export const History = () => {
 
             <div className="stats-grid">
               <div className="stat-card">
-                <div className="stat-label">총 운동 횟수</div>
-                <div className="stat-value">{stats.totalWorkouts}회</div>
+                <div className="stat-label">운동한 날</div>
+                <div className="stat-value">{stats.workoutDays}일</div>
               </div>
 
               <div className="stat-card">
-                <div className="stat-label">운동한 날</div>
-                <div className="stat-value">{stats.workoutDays}일</div>
+                <div className="stat-label">총 운동 기록</div>
+                <div className="stat-value">{stats.totalWorkouts}개</div>
               </div>
 
               <div className="stat-card">
@@ -287,7 +287,7 @@ export const History = () => {
             </div>
 
             <div className="category-stats">
-              <h4>운동 종류별 횟수</h4>
+              <h4>운동 종류별 기록</h4>
               {Object.entries(stats.categoryCount).length === 0 ? (
                 <p className="empty-message">이번 달 운동 기록이 없습니다.</p>
               ) : (
@@ -297,7 +297,7 @@ export const History = () => {
                     .map(([category, count]) => (
                       <div key={category} className="category-item">
                         <div className="category-name">{category}</div>
-                        <div className="category-count">{count}회</div>
+                        <div className="category-count">{count}개</div>
                       </div>
                     ))}
                 </div>

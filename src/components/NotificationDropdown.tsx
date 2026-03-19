@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, X, Check } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import notificationService from '../services/notificationService';
 import type { Notification } from '../services/notificationService';
