@@ -30,48 +30,55 @@ BEGIN
     v_distance := i; -- 1km, 2km, ..., 50km
     v_mileage := i / 1.0; -- 러닝 마일리지 계수 1 (1km당 1 마일리지)
 
-    -- 유저 생성 (이미 존재하면 스킵)
-    INSERT INTO users (
-      email,
-      display_name,
-      is_tester,
-      created_at
-    )
-    VALUES (
-      v_email,
-      v_display_name,
-      TRUE,
-      NOW()
-    )
-    ON CONFLICT (email) DO UPDATE
-    SET is_tester = TRUE
-    RETURNING id INTO v_user_id;
+    -- 유저가 이미 존재하는지 확인
+    SELECT id INTO v_user_id FROM users WHERE email = v_email;
 
-    -- 유저 ID가 없으면 조회 (이미 존재하는 경우)
+    -- 존재하지 않으면 생성
     IF v_user_id IS NULL THEN
-      SELECT id INTO v_user_id FROM users WHERE email = v_email;
+      INSERT INTO users (
+        email,
+        display_name,
+        is_tester,
+        created_at
+      )
+      VALUES (
+        v_email,
+        v_display_name,
+        TRUE,
+        NOW()
+      )
+      RETURNING id INTO v_user_id;
+    ELSE
+      -- 이미 존재하면 is_tester 플래그만 업데이트
+      UPDATE users
+      SET is_tester = TRUE
+      WHERE id = v_user_id;
     END IF;
 
     -- 클럽 가입 (이미 가입되어 있으면 스킵)
-    INSERT INTO club_members (
-      club_id,
-      user_id,
-      role,
-      club_nickname,
-      show_in_feed,
-      show_mileage,
-      joined_at
-    )
-    VALUES (
-      v_club_id,
-      v_user_id,
-      'member',
-      '테스터' || i,
-      TRUE,
-      TRUE,
-      NOW()
-    )
-    ON CONFLICT (club_id, user_id) DO NOTHING;
+    IF NOT EXISTS (
+      SELECT 1 FROM club_members
+      WHERE club_id = v_club_id AND user_id = v_user_id
+    ) THEN
+      INSERT INTO club_members (
+        club_id,
+        user_id,
+        role,
+        club_nickname,
+        show_in_feed,
+        show_mileage,
+        joined_at
+      )
+      VALUES (
+        v_club_id,
+        v_user_id,
+        'member',
+        '테스터' || i,
+        TRUE,
+        TRUE,
+        NOW()
+      );
+    END IF;
 
     -- 운동 기록 생성 (현재 월 기준, 랜덤 날짜)
     INSERT INTO workouts (
