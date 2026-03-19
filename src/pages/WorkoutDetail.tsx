@@ -110,10 +110,41 @@ export const WorkoutDetail = () => {
   };
 
   const getWorkoutLabel = () => {
+    // 요가/복싱은 항상 "혼합"으로 표시
+    if (workout.category === '요가' || workout.category === '복싱') {
+      return `${workout.category}-혼합`;
+    }
     if (workout.sub_type) {
-      return `${workout.category} - ${workout.sub_type}`;
+      return `${workout.category}-${workout.sub_type}`;
     }
     return workout.category;
+  };
+
+  const getRatioDisplay = () => {
+    if (workout.category !== '요가' && workout.category !== '복싱') {
+      return null;
+    }
+
+    if (!workout.sub_type_ratios) {
+      return null;
+    }
+
+    const ratios = workout.sub_type_ratios as Record<string, number>;
+    const entries = Object.entries(ratios);
+
+    if (entries.length === 0) {
+      return null;
+    }
+
+    // 단일 타입 100%인 경우 비율 표시 안함
+    if (entries.length === 1 && entries[0][1] === 1.0) {
+      return null;
+    }
+
+    // 비율 표시
+    return entries
+      .map(([type, ratio]) => `${type} ${Math.round(ratio * 100)}%`)
+      .join(' | ');
   };
 
   const getIntensityLabel = (intensity: number) => {
@@ -210,7 +241,14 @@ export const WorkoutDetail = () => {
           <>
             <div className="detail-section">
               <div className="detail-label">운동 종류</div>
-              <div className="detail-value">{getWorkoutLabel()}</div>
+              <div className="detail-value">
+                {getWorkoutLabel()}
+                {getRatioDisplay() && (
+                  <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    {getRatioDisplay()}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="detail-section">

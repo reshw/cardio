@@ -4098,24 +4098,6 @@ html {
   position: relative;
 }
 
-/* 비활성화된 카드 (마일리지 미반영) */
-.feed-card-disabled {
-  opacity: 0.5;
-  position: relative;
-}
-
-.feed-card-disabled::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.3);
-  pointer-events: none;
-  border-radius: 16px;
-}
-
 /* 비활성화 배지 */
 .feed-disabled-badge {
   position: absolute;
@@ -4136,6 +4118,24 @@ html {
   display: flex;
   gap: 10px;
   align-items: flex-start;
+  position: relative;
+}
+
+/* 비활성화된 카드의 wrapper만 흐리게 (좋아요/댓글은 선명하게 유지) */
+.feed-card-disabled .feed-card-wrapper {
+  opacity: 0.5;
+}
+
+.feed-card-disabled .feed-card-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  border-radius: 12px;
 }
 
 /* 왼쪽: 프로필 사진 (2줄 고정) */
@@ -4214,12 +4214,11 @@ html {
   white-space: nowrap;
 }
 
-/* 둘째 줄: 데이터 + 좋아요/댓글 (우측 정렬) */
+/* 둘째 줄: 데이터 + 강도 + 좋아요/댓글 */
 .feed-data-line {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .feed-workout-value-v2 {
@@ -4261,6 +4260,25 @@ html {
 .feed-action-btn-v2:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* 비활성화된 카드의 좋아요/댓글 버튼 - 상대적으로 선명하게 */
+.feed-card-disabled .feed-action-btn-v2 {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border-color);
+  position: relative;
+  z-index: 1;
+}
+
+.feed-card-disabled .feed-action-btn-v2:hover {
+  background: white;
+  border-color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+.feed-card-disabled .feed-intensity-badge-v2 {
+  position: relative;
+  z-index: 1;
 }
 
 /* ============================================
@@ -5880,13 +5898,39 @@ html {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.ratio-values span {
-  padding: 4px 12px;
+.ratio-input {
+  width: 60px;
+  padding: 8px 12px;
   background: var(--input-bg);
-  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.ratio-input:focus {
+  border-color: var(--primary-color);
+  background: var(--card-bg);
+}
+
+.ratio-input::-webkit-inner-spin-button,
+.ratio-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ratio-values span {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-left: -4px;
 }

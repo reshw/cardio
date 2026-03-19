@@ -75,15 +75,25 @@ export const ClubMemberDetail = () => {
   };
 
   const getWorkoutLabel = (workout: Workout) => {
+    // 요가/복싱은 항상 "혼합"으로 표시
+    if (workout.category === '요가' || workout.category === '복싱') {
+      return `${workout.category}-혼합`;
+    }
     if (workout.sub_type) {
-      return `${workout.category} - ${workout.sub_type}`;
+      return `${workout.category}-${workout.sub_type}`;
     }
     return workout.category;
   };
 
   const calculateMileage = (workout: Workout) => {
-    if (workout.mileage) return workout.mileage;
-    return clubService.calculateMileage(workout.category, workout.sub_type, workout.value, mileageConfig);
+    // 항상 클럽의 마일리지 계수로 재계산
+    return clubService.calculateMileage(
+      workout.category,
+      workout.sub_type,
+      workout.value,
+      mileageConfig,
+      workout.sub_type_ratios || undefined
+    );
   };
 
   const totalMileage = workouts.reduce((sum, w) => sum + calculateMileage(w), 0);

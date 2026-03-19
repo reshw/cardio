@@ -28,10 +28,41 @@ export const WorkoutFeedCard = ({
   const { workout } = item;
 
   const getWorkoutLabel = () => {
+    // 요가/복싱은 항상 "혼합"으로 표시
+    if (workout.category === '요가' || workout.category === '복싱') {
+      return `${workout.category}-혼합`;
+    }
     if (workout.sub_type) {
-      return `${workout.category} - ${workout.sub_type}`;
+      return `${workout.category}-${workout.sub_type}`;
     }
     return workout.category;
+  };
+
+  const getRatioDisplay = () => {
+    if (workout.category !== '요가' && workout.category !== '복싱') {
+      return null;
+    }
+
+    if (!workout.sub_type_ratios) {
+      return null;
+    }
+
+    const ratios = workout.sub_type_ratios as Record<string, number>;
+    const entries = Object.entries(ratios);
+
+    if (entries.length === 0) {
+      return null;
+    }
+
+    // 단일 타입 100%인 경우 비율 표시 안함
+    if (entries.length === 1 && entries[0][1] === 1.0) {
+      return null;
+    }
+
+    // 비율 표시
+    return entries
+      .map(([type, ratio]) => `${type} ${Math.round(ratio * 100)}%`)
+      .join(' | ');
   };
 
   const renderAvatar = (profileImage: string | undefined, displayName: string, className: string) => {
@@ -123,24 +154,24 @@ export const WorkoutFeedCard = ({
 
         {/* 오른쪽: 내용 */}
         <div className="feed-content-wrapper">
-          {/* 첫째 줄: 이름 + 시간 + 운동종목 + 강도 */}
+          {/* 첫째 줄: 이름 + 시간 + 운동종목 */}
           <div className="feed-header-line" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>
             <span className="feed-user-name-v2">{item.user_display_name}</span>
             <span className="feed-time-v2">{formatTime(workout.created_at)}</span>
             <span className="feed-workout-type-v2">{getWorkoutLabel()}</span>
+          </div>
+
+          {/* 둘째 줄: 데이터 + 강도 + 좋아요/댓글 */}
+          <div className="feed-data-line">
+            <div className="feed-workout-value-v2" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>
+              {workout.value} {workout.unit}
+            </div>
             <span
               className="feed-intensity-badge-v2"
               style={{ backgroundColor: getIntensityColor(workout.intensity) }}
             >
               {getIntensityLabel(workout.intensity)}
             </span>
-          </div>
-
-          {/* 둘째 줄: 데이터 + 좋아요/댓글 (우측 정렬) */}
-          <div className="feed-data-line">
-            <div className="feed-workout-value-v2" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>
-              {workout.value} {workout.unit}
-            </div>
             <div className="feed-actions-v2">
               <button
                 className={`feed-action-btn-v2 ${item.is_liked_by_me ? 'liked' : ''}`}
@@ -186,7 +217,14 @@ export const WorkoutFeedCard = ({
                 <div className="workout-detail-info">
                   <div className="workout-detail-row">
                     <span className="label">종류</span>
-                    <span className="value">{getWorkoutLabel()}</span>
+                    <span className="value">
+                      {getWorkoutLabel()}
+                      {getRatioDisplay() && (
+                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                          {getRatioDisplay()}
+                        </div>
+                      )}
+                    </span>
                   </div>
                   <div className="workout-detail-row">
                     <span className="label">거리/시간</span>
@@ -203,10 +241,7 @@ export const WorkoutFeedCard = ({
                       {getIntensityLabel(workout.intensity)}
                     </span>
                   </div>
-                  <div className="workout-detail-row">
-                    <span className="label">마일리지</span>
-                    <span className="value">{workout.mileage.toFixed(1)}</span>
-                  </div>
+                  {/* 마일리지는 클럽별로 다르므로 표시하지 않음 */}
                   <div className="workout-detail-row">
                     <span className="label">시간</span>
                     <span className="value">

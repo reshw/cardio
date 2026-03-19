@@ -203,13 +203,40 @@ export const AddWorkout = () => {
                     type="range"
                     min="0"
                     max="100"
+                    step="5"
                     value={subTypeRatio}
                     onChange={(e) => setSubTypeRatio(Number(e.target.value))}
                     className="ratio-slider"
                   />
                   <div className="ratio-values">
-                    <span>{100 - subTypeRatio}%</span>
-                    <span>{subTypeRatio}%</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={100 - subTypeRatio}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        if (val >= 0 && val <= 100) {
+                          setSubTypeRatio(100 - val);
+                        }
+                      }}
+                      className="ratio-input"
+                    />
+                    <span>%</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={subTypeRatio}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        if (val >= 0 && val <= 100) {
+                          setSubTypeRatio(val);
+                        }
+                      }}
+                      className="ratio-input"
+                    />
+                    <span>%</span>
                   </div>
                 </div>
 

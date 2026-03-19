@@ -78,6 +78,18 @@ export interface ClubRanking {
   hof_reason?: string;  // 명예의 전당 사유
 }
 
+export interface ClubWorkoutMileage {
+  id: string;
+  club_id: string;
+  workout_id: string;
+  user_id: string;
+  mileage: number;
+  year: number;
+  month: number;
+  calculated_at: string;
+  mileage_config_snapshot?: MileageConfig;
+}
+
 export interface ClubDetailedStats {
   user_id: string;
   display_name: string;
@@ -765,61 +777,187 @@ class ClubService {
       }
     });
 
-    // 운동 기록 조회
-    let query = supabase
-      .from('workouts')
-      .select('user_id, mileage, created_at, category, sub_type, value')
+    // 월 정보 (기본값: 현재 월)
+    const targetMonth = month || {
+      year: new Date().getFullYear(),
+      month: new Date().getMonth() + 1,
+    };
+
+    // 클럽 마일리지 스냅샷 조회
+    const { data: mileageData, error: mileageError } = await supabase
+      .from('club_workout_mileage')
+      .select('user_id, workout_id, mileage')
+      .eq('club_id', clubId)
+      .eq('year', targetMonth.year)
+      .eq('month', targetMonth.month)
       .in('user_id', userIds);
 
-    // 월별 필터
-    if (month) {
-      const startDate = new Date(month.year, month.month - 1, 1);
-      const endDate = new Date(month.year, month.month, 0, 23, 59, 59);
-      query = query
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
+    if (mileageError) {
+      console.error('❌ 마일리지 스냅샷 조회 실패:', mileageError);
+      throw mileageError;
     }
 
-    const { data: workouts, error: workoutsError } = await query;
+    console.log('📊 마일리지 스냅샷:', mileageData);
+
+    // 스냅샷이 없으면 자동 생성
+    if (!mileageData || mileageData.length === 0) {
+      console.log('⚠️ 마일리지 스냅샷 없음 - 자동 생성 시작');
+      await this.recalculateClubMonthMileage(clubId, targetMonth.year, targetMonth.month);
+
+      // 다시 조회
+      const { data: newMileageData, error: newMileageError } = await supabase
+        .from('club_workout_mileage')
+        .select('user_id, workout_id, mileage')
+        .eq('club_id', clubId)
+        .eq('year', targetMonth.year)
+        .eq('month', targetMonth.month)
+        .in('user_id', userIds);
+
+      if (newMileageError) {
+        console.error('❌ 마일리지 스냅샷 재조회 실패:', newMileageError);
+        throw newMileageError;
+      }
+
+      console.log('✅ 마일리지 스냅샷 생성 완료:', newMileageData);
+
+      // 새로 생성된 데이터로 교체
+      const workoutIds = (newMileageData || []).map(m => m.workout_id);
+
+      // 운동 기록 조회 (카테고리 필터링용)
+      const { data: workouts, error: workoutsError } = await supabase
+        .from('workouts')
+        .select('id, category, sub_type')
+        .in('id', workoutIds);
+
+      if (workoutsError) {
+        console.error('❌ 운동 기록 조회 실패:', workoutsError);
+        throw workoutsError;
+      }
+
+      // workout_id별 카테고리 맵
+      const workoutCategoryMap: Record<string, string> = {};
+      (workouts || []).forEach(w => {
+        const key = w.sub_type ? `${w.category}-${w.sub_type}` : w.category;
+        workoutCategoryMap[w.id] = key;
+      });
+
+      // 사용자별 마일리지 집계 (활성화된 카테고리만)
+      const userMileageMap: Record<string, { mileage: number; count: number }> = {};
+      let filteredCount = 0;
+      let includedCount = 0;
+
+      (newMileageData || []).forEach((record) => {
+        const category = workoutCategoryMap[record.workout_id];
+
+        // 활성화된 카테고리만 카운트
+        if (!category || !enabledCategories.includes(category)) {
+          filteredCount++;
+          console.log(`🚫 필터링됨: ${category} (mileage: ${record.mileage})`);
+          return;
+        }
+
+        includedCount++;
+        if (!userMileageMap[record.user_id]) {
+          userMileageMap[record.user_id] = { mileage: 0, count: 0 };
+        }
+
+        userMileageMap[record.user_id].mileage += record.mileage;
+        userMileageMap[record.user_id].count += 1;
+      });
+
+      console.log(`📊 마일리지 필터링: ${includedCount}개 포함, ${filteredCount}개 제외`);
+      console.log('📊 사용자별 마일리지:', userMileageMap);
+
+      // 사용자 정보 조회
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, display_name, profile_image')
+        .in('id', userIds);
+
+      if (usersError) {
+        console.error('사용자 정보 조회 실패:', usersError);
+        throw usersError;
+      }
+
+      // 명예의 전당 멤버 조회
+      const { data: hofMembers } = await supabase
+        .from('hall_of_fame')
+        .select('user_id, reason')
+        .eq('club_id', clubId)
+        .in('user_id', userIds);
+
+      const hofSet = new Set(hofMembers?.map((h) => h.user_id) || []);
+      const hofReasonMap: Record<string, string> = {};
+      hofMembers?.forEach((h) => {
+        if (h.reason) {
+          hofReasonMap[h.user_id] = h.reason;
+        }
+      });
+
+      // 랭킹 생성 (클럽 닉네임 및 클럽 프로필 이미지 우선 사용)
+      const ranking: ClubRanking[] = (users || [])
+        .map((user) => ({
+          user_id: user.id,
+          display_name: nicknameMap[user.id] || user.display_name,
+          profile_image: clubProfileImageMap[user.id] || user.profile_image,
+          total_mileage: userMileageMap[user.id]?.mileage || 0,
+          workout_count: userMileageMap[user.id]?.count || 0,
+          rank: 0,
+          is_hall_of_fame: hofSet.has(user.id),
+          hof_reason: hofReasonMap[user.id] || undefined,
+        }))
+        .sort((a, b) => b.total_mileage - a.total_mileage)
+        .map((item, index) => ({ ...item, rank: index + 1 }));
+
+      return ranking;
+    }
+
+    // workout_id 목록 추출
+    const workoutIds = (mileageData || []).map(m => m.workout_id);
+
+    // 운동 기록 조회 (카테고리 필터링용)
+    const { data: workouts, error: workoutsError } = await supabase
+      .from('workouts')
+      .select('id, category, sub_type')
+      .in('id', workoutIds);
 
     if (workoutsError) {
       console.error('❌ 운동 기록 조회 실패:', workoutsError);
       throw workoutsError;
     }
 
-    console.log('📊 운동 기록:', workouts);
+    // workout_id별 카테고리 맵
+    const workoutCategoryMap: Record<string, string> = {};
+    (workouts || []).forEach(w => {
+      const key = w.sub_type ? `${w.category}-${w.sub_type}` : w.category;
+      workoutCategoryMap[w.id] = key;
+    });
 
-    // 사용자별 마일리지 집계
+    // 사용자별 마일리지 집계 (활성화된 카테고리만)
     const userMileageMap: Record<string, { mileage: number; count: number }> = {};
     let filteredCount = 0;
     let includedCount = 0;
 
-    // DB에 저장된 mileage 사용 (마일리지 설정 변경 시 재계산되므로 항상 정확함)
-    (workouts || []).forEach((workout) => {
-      // 카테고리 키 생성
-      const key = workout.sub_type ? `${workout.category}-${workout.sub_type}` : workout.category;
+    (mileageData || []).forEach((record) => {
+      const category = workoutCategoryMap[record.workout_id];
 
       // 활성화된 카테고리만 카운트
-      if (!enabledCategories.includes(key)) {
+      if (!category || !enabledCategories.includes(category)) {
         filteredCount++;
-        console.log(`🚫 필터링됨: ${key} (mileage: ${workout.mileage})`);
-        return; // 비활성화된 카테고리는 건너뛰기
+        console.log(`🚫 필터링됨: ${category} (mileage: ${record.mileage})`);
+        return;
       }
 
       includedCount++;
-      if (!userMileageMap[workout.user_id]) {
-        userMileageMap[workout.user_id] = { mileage: 0, count: 0 };
+      if (!userMileageMap[record.user_id]) {
+        userMileageMap[record.user_id] = { mileage: 0, count: 0 };
       }
 
-      // DB에 저장된 mileage 사용
-      const mileage = workout.mileage || 0;
-
-      userMileageMap[workout.user_id].mileage += mileage;
-      userMileageMap[workout.user_id].count += 1;
+      userMileageMap[record.user_id].mileage += record.mileage;
+      userMileageMap[record.user_id].count += 1;
     });
 
-    console.log(`📊 운동 기록 필터링: ${includedCount}개 포함, ${filteredCount}개 제외`);
-
+    console.log(`📊 마일리지 필터링: ${includedCount}개 포함, ${filteredCount}개 제외`);
     console.log('📊 사용자별 마일리지:', userMileageMap);
 
     // 사용자 정보 조회
@@ -866,7 +1004,7 @@ class ClubService {
     return ranking;
   }
 
-  // 클럽 상세 통계 조회 (운동별 마일리지)
+  // 클럽 상세 통계 조회 (운동별 마일리지) - 스냅샷 방식
   async getClubDetailedStats(
     clubId: string,
     month?: { year: number; month: number }
@@ -895,21 +1033,35 @@ class ClubService {
       }
     });
 
-    // 운동 기록 조회
-    let query = supabase
-      .from('workouts')
-      .select('user_id, category, sub_type, value, mileage')
+    // 월 정보 (기본값: 현재 월)
+    const targetMonth = month || {
+      year: new Date().getFullYear(),
+      month: new Date().getMonth() + 1,
+    };
+
+    // 클럽 마일리지 스냅샷 조회
+    const { data: mileageData } = await supabase
+      .from('club_workout_mileage')
+      .select('user_id, workout_id, mileage')
+      .eq('club_id', clubId)
+      .eq('year', targetMonth.year)
+      .eq('month', targetMonth.month)
       .in('user_id', userIds);
 
-    if (month) {
-      const startDate = new Date(month.year, month.month - 1, 1);
-      const endDate = new Date(month.year, month.month, 0, 23, 59, 59);
-      query = query
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
-    }
+    const workoutIds = (mileageData || []).map(m => m.workout_id);
 
-    const { data: workouts } = await query;
+    // 운동 기록 조회 (카테고리 정보 얻기 위해)
+    const { data: workouts } = await supabase
+      .from('workouts')
+      .select('id, category, sub_type')
+      .in('id', workoutIds);
+
+    // workout_id별 카테고리 맵
+    const workoutCategoryMap: Record<string, string> = {};
+    (workouts || []).forEach(w => {
+      const key = w.sub_type ? `${w.category}-${w.sub_type}` : w.category;
+      workoutCategoryMap[w.id] = key;
+    });
 
     // 사용자별 운동별 마일리지 집계
     const userStatsMap: Record<
@@ -920,10 +1072,9 @@ class ClubService {
       }
     > = {};
 
-    // DB에 저장된 mileage 사용 (마일리지 설정 변경 시 재계산되므로 항상 정확함)
-    (workouts || []).forEach((workout) => {
-      if (!userStatsMap[workout.user_id]) {
-        userStatsMap[workout.user_id] = {
+    (mileageData || []).forEach((record) => {
+      if (!userStatsMap[record.user_id]) {
+        userStatsMap[record.user_id] = {
           total: 0,
           byWorkout: {
             '달리기-트레드밀': 0,
@@ -940,14 +1091,12 @@ class ClubService {
         };
       }
 
-      const key = workout.sub_type ? `${workout.category}-${workout.sub_type}` : workout.category;
+      const key = workoutCategoryMap[record.workout_id];
+      if (!key) return;
 
-      // DB에 저장된 mileage 사용
-      const mileage = workout.mileage || 0;
-
-      userStatsMap[workout.user_id].total += mileage;
-      if (userStatsMap[workout.user_id].byWorkout[key] !== undefined) {
-        userStatsMap[workout.user_id].byWorkout[key] += mileage;
+      userStatsMap[record.user_id].total += record.mileage;
+      if (userStatsMap[record.user_id].byWorkout[key] !== undefined) {
+        userStatsMap[record.user_id].byWorkout[key] += record.mileage;
       }
     });
 
@@ -1037,12 +1186,23 @@ class ClubService {
     // 예: 요가 60분, 일반 40% + 빈야사 60%
     // = (60 * 0.4) / 3.27 + (60 * 0.6) / 2.45
     if (ratios && Object.keys(ratios).length > 0) {
+      console.log('🔍 [혼합 마일리지 계산]');
+      console.log('  카테고리:', category);
+      console.log('  총 시간/거리:', value);
+      console.log('  비율:', ratios);
+
       let totalMileage = 0;
       for (const [subTypeName, ratio] of Object.entries(ratios)) {
         const key = `${category}-${subTypeName}`;
         const coefficient = config[key as keyof MileageConfig] || 1;
-        totalMileage += (value * ratio) / coefficient;
+        const partialMileage = (value * ratio) / coefficient;
+
+        console.log(`  - ${subTypeName}: (${value} × ${ratio}) / ${coefficient} = ${partialMileage.toFixed(4)}`);
+
+        totalMileage += partialMileage;
       }
+
+      console.log('  → 총 마일리지:', totalMileage.toFixed(4));
       return totalMileage;
     }
 
@@ -1054,71 +1214,13 @@ class ClubService {
     return value / coefficient;
   }
 
-  // 현재 월의 모든 클럽 멤버 운동 기록 마일리지 재계산
+  // 현재 월의 모든 클럽 멤버 운동 기록 마일리지 재계산 (스냅샷 방식)
   async recalculateCurrentMonthMileage(clubId: string, newConfig: MileageConfig): Promise<void> {
-    console.log('🔄 현재 월 마일리지 재계산 시작...');
-
-    // 클럽 멤버 조회
-    const { data: members, error: membersError } = await supabase
-      .from('club_members')
-      .select('user_id')
-      .eq('club_id', clubId);
-
-    if (membersError || !members || members.length === 0) {
-      console.log('📊 클럽 멤버 없음');
-      return;
-    }
-
-    const userIds = members.map((m) => m.user_id);
-
-    // 현재 월의 운동 기록 조회
     const now = new Date();
-    const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
 
-    const { data: workouts, error: workoutsError } = await supabase
-      .from('workouts')
-      .select('id, category, sub_type, value')
-      .in('user_id', userIds)
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString());
-
-    if (workoutsError) {
-      console.error('❌ 운동 기록 조회 실패:', workoutsError);
-      throw workoutsError;
-    }
-
-    if (!workouts || workouts.length === 0) {
-      console.log('📊 현재 월 운동 기록 없음');
-      return;
-    }
-
-    console.log(`📊 재계산할 운동 기록: ${workouts.length}개`);
-
-    // 각 운동 기록의 마일리지 재계산 및 업데이트
-    const updates = workouts.map((workout) => {
-      const newMileage = this.calculateMileage(
-        workout.category,
-        workout.sub_type,
-        workout.value,
-        newConfig
-      );
-
-      return supabase
-        .from('workouts')
-        .update({ mileage: newMileage })
-        .eq('id', workout.id);
-    });
-
-    const results = await Promise.all(updates);
-
-    const errors = results.filter((r) => r.error);
-    if (errors.length > 0) {
-      console.error('❌ 마일리지 재계산 실패:', errors);
-      throw new Error('일부 운동 기록의 마일리지 업데이트에 실패했습니다.');
-    }
-
-    console.log(`✅ ${workouts.length}개 운동 기록 마일리지 재계산 완료`);
+    await this.recalculateClubMonthMileage(clubId, year, month);
   }
 
   // 어드민에게 클럽 생성 신청 이메일 발송
@@ -1452,6 +1554,182 @@ class ClubService {
     }
 
     return !!data;
+  }
+
+  // ============================================
+  // 클럽 운동 마일리지 스냅샷 메서드
+  // ============================================
+
+  /**
+   * 운동의 클럽별 마일리지 저장 (스냅샷)
+   */
+  async saveWorkoutMileage(
+    clubId: string,
+    workoutId: string,
+    userId: string,
+    workout: {
+      category: string;
+      sub_type: string | null;
+      value: number;
+      created_at: string;
+      sub_type_ratios?: Record<string, number>;
+    }
+  ): Promise<void> {
+    const club = await this.getClubById(clubId);
+    const mileageConfig = club.mileage_config || this.getDefaultMileageConfig();
+
+    const mileage = this.calculateMileage(
+      workout.category,
+      workout.sub_type,
+      workout.value,
+      mileageConfig,
+      workout.sub_type_ratios
+    );
+
+    const workoutDate = new Date(workout.created_at);
+    const year = workoutDate.getFullYear();
+    const month = workoutDate.getMonth() + 1;
+
+    const { error } = await supabase
+      .from('club_workout_mileage')
+      .upsert({
+        club_id: clubId,
+        workout_id: workoutId,
+        user_id: userId,
+        mileage,
+        year,
+        month,
+        mileage_config_snapshot: mileageConfig,
+      }, {
+        onConflict: 'club_id,workout_id'
+      });
+
+    if (error) {
+      console.error('클럽 마일리지 저장 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 클럽의 특정 월 마일리지 스냅샷 조회
+   */
+  async getClubMonthMileage(
+    clubId: string,
+    year: number,
+    month: number
+  ): Promise<ClubWorkoutMileage[]> {
+    const { data, error } = await supabase
+      .from('club_workout_mileage')
+      .select('*')
+      .eq('club_id', clubId)
+      .eq('year', year)
+      .eq('month', month);
+
+    if (error) {
+      console.error('클럽 마일리지 조회 실패:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  /**
+   * 사용자의 클럽별 마일리지 합계
+   */
+  async getUserClubMileage(
+    clubId: string,
+    userId: string,
+    year: number,
+    month: number
+  ): Promise<number> {
+    const { data, error } = await supabase
+      .from('club_workout_mileage')
+      .select('mileage')
+      .eq('club_id', clubId)
+      .eq('user_id', userId)
+      .eq('year', year)
+      .eq('month', month);
+
+    if (error) {
+      console.error('사용자 마일리지 조회 실패:', error);
+      throw error;
+    }
+
+    return (data || []).reduce((sum, row) => sum + row.mileage, 0);
+  }
+
+  /**
+   * 클럽의 현재 월 모든 마일리지 재계산 (계수 변경 시)
+   */
+  async recalculateClubMonthMileage(clubId: string, year: number, month: number): Promise<void> {
+    console.log(`🔄 클럽 ${clubId} ${year}년 ${month}월 마일리지 재계산 시작...`);
+
+    const club = await this.getClubById(clubId);
+    const mileageConfig = club.mileage_config || this.getDefaultMileageConfig();
+
+    // 해당 월의 모든 클럽 멤버 조회
+    const { data: members } = await supabase
+      .from('club_members')
+      .select('user_id')
+      .eq('club_id', clubId);
+
+    if (!members || members.length === 0) {
+      console.log('멤버 없음');
+      return;
+    }
+
+    const userIds = members.map(m => m.user_id);
+
+    // 해당 월의 모든 운동 기록 조회
+    const startDate = new Date(year, month - 1, 1).toISOString();
+    const endDate = new Date(year, month, 1).toISOString();
+
+    const { data: workouts } = await supabase
+      .from('workouts')
+      .select('id, user_id, category, sub_type, value, created_at, sub_type_ratios')
+      .in('user_id', userIds)
+      .gte('created_at', startDate)
+      .lt('created_at', endDate);
+
+    if (!workouts || workouts.length === 0) {
+      console.log('운동 기록 없음');
+      return;
+    }
+
+    // 각 운동의 마일리지 재계산 및 저장
+    const updates = workouts.map(workout => {
+      const mileage = this.calculateMileage(
+        workout.category,
+        workout.sub_type,
+        workout.value,
+        mileageConfig,
+        workout.sub_type_ratios || undefined
+      );
+
+      return supabase
+        .from('club_workout_mileage')
+        .upsert({
+          club_id: clubId,
+          workout_id: workout.id,
+          user_id: workout.user_id,
+          mileage,
+          year,
+          month,
+          mileage_config_snapshot: mileageConfig,
+        }, {
+          onConflict: 'club_id,workout_id'
+        });
+    });
+
+    const results = await Promise.all(updates);
+    const errors = results.filter(r => r.error);
+
+    if (errors.length > 0) {
+      console.error('마일리지 재계산 실패:', errors);
+      throw new Error('일부 마일리지 재계산에 실패했습니다.');
+    }
+
+    console.log(`✅ ${workouts.length}개 운동 마일리지 재계산 완료`);
   }
 }
 
