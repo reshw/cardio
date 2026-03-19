@@ -88,18 +88,18 @@ BEGIN
       category,
       sub_type,
       value,
+      unit,
       mileage,
-      created_at,
-      notes
+      created_at
     )
     VALUES (
       v_user_id,
       '달리기',
       '러닝',
       v_distance,
+      'km',
       v_mileage,
-      v_created_at + (INTERVAL '1 day' * (i % 28)), -- 월 내 랜덤 날짜
-      '테스트 데이터 - ' || v_distance || 'km 러닝'
+      v_created_at + (INTERVAL '1 day' * (i % 28)) -- 월 내 랜덤 날짜
     );
 
     RAISE NOTICE '테스터 % 생성 완료 (%.0f km, %.1f 마일리지)', i, v_distance, v_mileage;

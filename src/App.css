@@ -5363,3 +5363,54 @@ html {
   background: #FFF9E6;
   border-color: #B8860B;
 }
+
+/* ============================================
+   랭킹 축약 및 본인 하이라이트
+   ============================================ */
+
+/* 생략 표시 */
+.ranking-ellipsis {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  margin: 8px 0;
+}
+
+.ellipsis-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--border-color) 50%, transparent 100%);
+}
+
+.ellipsis-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* 본인 순위 하이라이트 */
+.ranking-item.my-rank {
+  background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%) !important;
+  border: 2px solid #2196F3 !important;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+}
+
+.ranking-item.my-rank:hover {
+  background: linear-gradient(135deg, #BBDEFB 0%, #90CAF9 100%) !important;
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.3);
+}
+
+/* 본인 표시 배지 */
+.my-rank-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: #2196F3;
+  color: white;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: middle;
+}

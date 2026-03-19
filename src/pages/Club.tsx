@@ -535,13 +535,56 @@ export const Club = () => {
               ? filtered.filter(m => !m.is_hall_of_fame)
               : filtered;
 
-            return filteredByHOF.length === 0 ? (
-              <div className="empty-state">
-                <p>{rankingFilter === 'hof' ? '명예의 전당 멤버가 없습니다.' : rankingFilter === 'regular' ? '일반 회원의 운동 기록이 없습니다.' : '이번 달 운동 기록이 없습니다.'}</p>
-              </div>
-            ) : (
+            if (filteredByHOF.length === 0) {
+              return (
+                <div className="empty-state">
+                  <p>{rankingFilter === 'hof' ? '명예의 전당 멤버가 없습니다.' : rankingFilter === 'regular' ? '일반 회원의 운동 기록이 없습니다.' : '이번 달 운동 기록이 없습니다.'}</p>
+                </div>
+              );
+            }
+
+            // 본인 순위 찾기
+            const myRankIndex = filteredByHOF.findIndex(m => m.user_id === user?.id);
+            const myRank = myRankIndex !== -1 ? myRankIndex : -1;
+
+            // 표시할 멤버 결정
+            let displayMembers: typeof filteredByHOF = [];
+            let showEllipsis1 = false;
+            let showEllipsis2 = false;
+
+            if (filteredByHOF.length <= 10) {
+              // 10명 이하면 전체 표시
+              displayMembers = filteredByHOF;
+            } else {
+              // 상위 10명
+              displayMembers = filteredByHOF.slice(0, 10);
+
+              // 본인이 11위 이하인 경우
+              if (myRank >= 10) {
+                showEllipsis1 = true;
+
+                // 본인 ±1 추가
+                const start = Math.max(10, myRank - 1);
+                const end = Math.min(filteredByHOF.length, myRank + 2);
+                const mySection = filteredByHOF.slice(start, end);
+
+                displayMembers = [...displayMembers, ...mySection];
+
+                // 본인 아래에 더 있으면 생략 표시
+                if (myRank + 2 < filteredByHOF.length) {
+                  showEllipsis2 = true;
+                }
+              }
+            }
+
+            return (
               <div className="ranking-list">
-                {filteredByHOF.map((member) => {
+                {displayMembers.map((member, idx) => {
+                const isMyRank = member.user_id === user?.id;
+
+                // 생략 표시 (10위와 본인 구간 사이)
+                const showEllipsisBefore = showEllipsis1 && idx === 10;
+
                 // 프로필 이미지 렌더링 (default:color 형식 처리)
                 const renderProfileImage = () => {
                   if (member.profile_image?.startsWith('default:')) {
@@ -575,22 +618,32 @@ export const Club = () => {
                 };
 
                 return (
-                  <div
-                    key={member.user_id}
-                    className={`ranking-item clickable ${member.is_hall_of_fame ? 'hof-highlight' : ''}`}
-                    style={{
-                      background: member.is_hall_of_fame
-                        ? 'linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%)'
-                        : undefined,
-                      borderColor: member.is_hall_of_fame ? '#FFD700' : undefined,
-                      borderWidth: member.is_hall_of_fame ? '2px' : undefined,
-                    }}
-                    onClick={() =>
-                      navigate(
-                        `/club/member/${selectedClub?.id}/${member.user_id}/${encodeURIComponent(member.display_name)}`
-                      )
-                    }
-                  >
+                  <>
+                    {showEllipsisBefore && (
+                      <div className="ranking-ellipsis">
+                        <div className="ellipsis-line"></div>
+                        <span className="ellipsis-text">생략 ({member.rank - 11}명)</span>
+                        <div className="ellipsis-line"></div>
+                      </div>
+                    )}
+                    <div
+                      key={member.user_id}
+                      className={`ranking-item clickable ${member.is_hall_of_fame ? 'hof-highlight' : ''} ${isMyRank ? 'my-rank' : ''}`}
+                      style={{
+                        background: member.is_hall_of_fame
+                          ? 'linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%)'
+                          : isMyRank
+                          ? 'linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)'
+                          : undefined,
+                        borderColor: member.is_hall_of_fame ? '#FFD700' : isMyRank ? '#2196F3' : undefined,
+                        borderWidth: member.is_hall_of_fame || isMyRank ? '2px' : undefined,
+                      }}
+                      onClick={() =>
+                        navigate(
+                          `/club/member/${selectedClub?.id}/${member.user_id}/${encodeURIComponent(member.display_name)}`
+                        )
+                      }
+                    >
                     <div className="ranking-left">
                       <div className={`rank-badge rank-${member.rank}`}>
                         {member.rank === 1 ? '🥇' : member.rank === 2 ? '🥈' : member.rank === 3 ? '🥉' : `${member.rank}위`}
@@ -605,12 +658,23 @@ export const Club = () => {
                       </div>
                     </div>
                     <div className="ranking-right">
-                      <div className="ranking-mileage">{member.total_mileage.toFixed(1)}</div>
+                      <div className="ranking-mileage">
+                        {member.total_mileage.toFixed(1)}
+                        {isMyRank && <span className="my-rank-badge">나</span>}
+                      </div>
                       <div className="ranking-unit">마일리지</div>
                     </div>
                   </div>
+                  </>
                 );
               })}
+              {showEllipsis2 && (
+                <div className="ranking-ellipsis">
+                  <div className="ellipsis-line"></div>
+                  <span className="ellipsis-text">이하 생략</span>
+                  <div className="ellipsis-line"></div>
+                </div>
+              )}
               </div>
             );
           })()}
