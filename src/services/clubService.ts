@@ -44,10 +44,22 @@ export interface ClubMember {
   club_profile_image?: string;
   show_in_feed?: boolean;
   show_mileage?: boolean;
+  is_hall_of_fame?: boolean;  // 명예의 전당 여부 (조인 결과)
+  hof_inducted_at?: string;    // 명예의 전당 등재일 (조인 결과)
   user?: {
     display_name: string;
     profile_image?: string;
   };
+}
+
+export interface HallOfFame {
+  id: string;
+  club_id: string;
+  user_id: string;
+  inducted_at: string;
+  inducted_by?: string;
+  reason?: string;
+  created_at: string;
 }
 
 export interface MyClubWithOrder extends Club {
@@ -62,6 +74,7 @@ export interface ClubRanking {
   total_mileage: number;
   workout_count: number;
   rank: number;
+  is_hall_of_fame?: boolean;  // 명예의 전당 여부
 }
 
 export interface ClubDetailedStats {
@@ -544,18 +557,33 @@ class ClubService {
       return [];
     }
 
-    // 사용자 정보 조회
     const userIds = members.map((m) => m.user_id);
+
+    // 사용자 정보 조회
     const { data: users } = await supabase
       .from('users')
       .select('id, display_name, profile_image')
       .in('id', userIds);
 
+    // 명예의 전당 멤버 조회
+    const { data: hofMembers } = await supabase
+      .from('hall_of_fame')
+      .select('user_id, inducted_at')
+      .eq('club_id', clubId)
+      .in('user_id', userIds);
+
+    // HOF 맵 생성
+    const hofMap = new Map(hofMembers?.map((h) => [h.user_id, h.inducted_at]) || []);
+
     // 멤버와 사용자 정보 병합
     return members.map((member) => {
       const user = users?.find((u) => u.id === member.user_id);
+      const hofInductedAt = hofMap.get(member.user_id);
+
       return {
         ...member,
+        is_hall_of_fame: !!hofInductedAt,
+        hof_inducted_at: hofInductedAt,
         user: user
           ? {
               display_name: user.display_name,
@@ -804,6 +832,15 @@ class ClubService {
       throw usersError;
     }
 
+    // 명예의 전당 멤버 조회
+    const { data: hofMembers } = await supabase
+      .from('hall_of_fame')
+      .select('user_id')
+      .eq('club_id', clubId)
+      .in('user_id', userIds);
+
+    const hofSet = new Set(hofMembers?.map((h) => h.user_id) || []);
+
     // 랭킹 생성 (클럽 닉네임 및 클럽 프로필 이미지 우선 사용)
     const ranking: ClubRanking[] = (users || [])
       .map((user) => ({
@@ -813,6 +850,7 @@ class ClubService {
         total_mileage: userMileageMap[user.id]?.mileage || 0,
         workout_count: userMileageMap[user.id]?.count || 0,
         rank: 0,
+        is_hall_of_fame: hofSet.has(user.id),
       }))
       .sort((a, b) => b.total_mileage - a.total_mileage)
       .map((item, index) => ({ ...item, rank: index + 1 }));
@@ -1312,6 +1350,84 @@ class ClubService {
       show_in_feed: data?.show_in_feed ?? true,
       show_mileage: data?.show_mileage ?? true,
     };
+  }
+
+  // ============================================
+  // 명예의 전당 (Hall of Fame) 메서드
+  // ============================================
+
+  /**
+   * 명예의 전당 멤버 조회
+   */
+  async getHallOfFameMembers(clubId: string): Promise<HallOfFame[]> {
+    const { data, error } = await supabase
+      .from('hall_of_fame')
+      .select('*')
+      .eq('club_id', clubId)
+      .order('inducted_at', { ascending: false });
+
+    if (error) {
+      console.error('명예의 전당 멤버 조회 실패:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  /**
+   * 명예의 전당에 멤버 추가
+   */
+  async addToHallOfFame(clubId: string, userId: string, adminUserId: string, reason?: string): Promise<void> {
+    const { error } = await supabase.from('hall_of_fame').insert({
+      club_id: clubId,
+      user_id: userId,
+      inducted_by: adminUserId,
+      reason: reason || null,
+    });
+
+    if (error) {
+      // 이미 존재하는 경우
+      if (error.code === '23505') {
+        throw new Error('이미 명예의 전당에 등재된 멤버입니다.');
+      }
+      console.error('명예의 전당 추가 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 명예의 전당에서 멤버 제거
+   */
+  async removeFromHallOfFame(clubId: string, userId: string): Promise<void> {
+    const { error } = await supabase
+      .from('hall_of_fame')
+      .delete()
+      .eq('club_id', clubId)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('명예의 전당 제거 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 특정 유저가 명예의 전당 멤버인지 확인
+   */
+  async isHallOfFameMember(clubId: string, userId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('hall_of_fame')
+      .select('id')
+      .eq('club_id', clubId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('HOF 멤버 확인 실패:', error);
+      return false;
+    }
+
+    return !!data;
   }
 }
 

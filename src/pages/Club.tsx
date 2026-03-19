@@ -95,6 +95,10 @@ export const Club = () => {
   // 피드 캐시: { clubId-dateString: WorkoutFeedItem[] }
   const [feedCache, setFeedCache] = useState<Record<string, WorkoutFeedItem[]>>({});
 
+  // 명예의 전당 필터 state
+  type RankingFilter = 'all' | 'hof' | 'regular';
+  const [rankingFilter, setRankingFilter] = useState<RankingFilter>('all');
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -496,18 +500,48 @@ export const Club = () => {
             </div>
           </div>
 
+          {/* 명예의 전당 필터 */}
+          <div className="ranking-filter-tabs">
+            <button
+              className={`filter-tab ${rankingFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setRankingFilter('all')}
+            >
+              전체
+            </button>
+            <button
+              className={`filter-tab ${rankingFilter === 'hof' ? 'active' : ''}`}
+              onClick={() => setRankingFilter('hof')}
+            >
+              🏆 명예의 전당
+            </button>
+            <button
+              className={`filter-tab ${rankingFilter === 'regular' ? 'active' : ''}`}
+              onClick={() => setRankingFilter('regular')}
+            >
+              일반 회원
+            </button>
+          </div>
+
           {rankingLoading ? (
             <div className="loading-screen">
               <div className="spinner"></div>
               <p>랭킹 불러오는 중...</p>
             </div>
-          ) : ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0).length === 0 ? (
-            <div className="empty-state">
-              <p>이번 달 운동 기록이 없습니다.</p>
-            </div>
-          ) : (
-            <div className="ranking-list">
-              {ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0).map((member) => {
+          ) : (() => {
+            const filtered = ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0);
+            const filteredByHOF = rankingFilter === 'hof'
+              ? filtered.filter(m => m.is_hall_of_fame)
+              : rankingFilter === 'regular'
+              ? filtered.filter(m => !m.is_hall_of_fame)
+              : filtered;
+
+            return filteredByHOF.length === 0 ? (
+              <div className="empty-state">
+                <p>{rankingFilter === 'hof' ? '명예의 전당 멤버가 없습니다.' : rankingFilter === 'regular' ? '일반 회원의 운동 기록이 없습니다.' : '이번 달 운동 기록이 없습니다.'}</p>
+              </div>
+            ) : (
+              <div className="ranking-list">
+                {filteredByHOF.map((member) => {
                 // 프로필 이미지 렌더링 (default:color 형식 처리)
                 const renderProfileImage = () => {
                   if (member.profile_image?.startsWith('default:')) {
@@ -543,7 +577,14 @@ export const Club = () => {
                 return (
                   <div
                     key={member.user_id}
-                    className="ranking-item clickable"
+                    className={`ranking-item clickable ${member.is_hall_of_fame ? 'hof-highlight' : ''}`}
+                    style={{
+                      background: member.is_hall_of_fame
+                        ? 'linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%)'
+                        : undefined,
+                      borderColor: member.is_hall_of_fame ? '#FFD700' : undefined,
+                      borderWidth: member.is_hall_of_fame ? '2px' : undefined,
+                    }}
                     onClick={() =>
                       navigate(
                         `/club/member/${selectedClub?.id}/${member.user_id}/${encodeURIComponent(member.display_name)}`
@@ -556,7 +597,10 @@ export const Club = () => {
                       </div>
                       {renderProfileImage()}
                       <div className="ranking-info">
-                        <div className="ranking-name">{member.display_name}</div>
+                        <div className="ranking-name">
+                          {member.display_name}
+                          {member.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
+                        </div>
                         <div className="ranking-count">{member.workout_count}회 운동</div>
                       </div>
                     </div>
@@ -567,8 +611,9 @@ export const Club = () => {
                   </div>
                 );
               })}
-            </div>
-          )}
+              </div>
+            );
+          })()}
 
           {/* 명예의 전당 */}
           <div className="hall-of-fame">

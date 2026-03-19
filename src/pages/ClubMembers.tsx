@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Search, Shield, User, UserX } from 'lucide-react';
+import { ChevronLeft, Search, Shield, User, UserX, Award } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 import type { ClubMember } from '../services/clubService';
@@ -116,6 +116,46 @@ export const ClubMembers = () => {
     }
   };
 
+  // 명예의 전당 추가
+  const handleAddToHOF = async (userId: string, displayName: string) => {
+    if (!clubId || !user || (!isOwner && !isAdmin)) return;
+
+    if (!confirm(`"${displayName}"님을 명예의 전당에 추가하시겠습니까?\n\n※ 3개월 연속 1위 달성 등 특별한 업적을 달성한 멤버만 추가해주세요.`)) {
+      return;
+    }
+
+    try {
+      await clubService.addToHallOfFame(clubId, userId, user.id);
+      alert('명예의 전당에 추가되었습니다! 🏆');
+      loadMembers();
+    } catch (error) {
+      console.error('명예의 전당 추가 실패:', error);
+      if (error instanceof Error) {
+        alert(error.message);
+      } else {
+        alert('명예의 전당 추가에 실패했습니다.');
+      }
+    }
+  };
+
+  // 명예의 전당 제거
+  const handleRemoveFromHOF = async (userId: string, displayName: string) => {
+    if (!clubId || (!isOwner && !isAdmin)) return;
+
+    if (!confirm(`"${displayName}"님을 명예의 전당에서 제거하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      await clubService.removeFromHallOfFame(clubId, userId);
+      alert('명예의 전당에서 제거되었습니다.');
+      loadMembers();
+    } catch (error) {
+      console.error('명예의 전당 제거 실패:', error);
+      alert('명예의 전당 제거에 실패했습니다.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="container">
@@ -194,7 +234,11 @@ export const ClubMembers = () => {
               };
 
               return (
-                <div key={member.id} className="member-card">
+                <div key={member.id} className="member-card" style={{
+                  background: member.is_hall_of_fame ? 'linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%)' : undefined,
+                  borderColor: member.is_hall_of_fame ? '#FFD700' : undefined,
+                  borderWidth: member.is_hall_of_fame ? '2px' : undefined,
+                }}>
                   <div className="member-info">
                     {renderAvatar()}
                     <div className="member-details">
@@ -206,10 +250,18 @@ export const ClubMembers = () => {
                         {member.role === 'admin' && !isClubOwner && (
                           <span className="admin-badge">부매니저</span>
                         )}
+                        {member.is_hall_of_fame && (
+                          <span className="hof-badge">🏆 명예의 전당</span>
+                        )}
                       </div>
                       {member.club_nickname && member.user?.display_name && (isOwner || isAdmin) && (
                         <div className="member-original-name">
                           {member.user.display_name}
+                        </div>
+                      )}
+                      {member.is_hall_of_fame && member.hof_inducted_at && (
+                        <div className="member-hof-date">
+                          {new Date(member.hof_inducted_at).toLocaleDateString('ko-KR')} 등재
                         </div>
                       )}
                     </div>
@@ -217,6 +269,25 @@ export const ClubMembers = () => {
 
                   {(isOwner || isAdmin) && !isClubOwner && (
                     <div className="member-actions">
+                      {member.is_hall_of_fame ? (
+                        <button
+                          className="member-action-button hof-remove"
+                          onClick={() => handleRemoveFromHOF(member.user_id, displayName)}
+                          title="명예의 전당에서 제거"
+                        >
+                          <Award size={16} />
+                          <span>명전 제거</span>
+                        </button>
+                      ) : (
+                        <button
+                          className="member-action-button hof-add"
+                          onClick={() => handleAddToHOF(member.user_id, displayName)}
+                          title="명예의 전당에 추가"
+                        >
+                          <Award size={16} />
+                          <span>명전 추가</span>
+                        </button>
+                      )}
                       <button
                         className="member-action-button secondary"
                         onClick={() => handleRoleChange(member.id, member.user_id, member.role)}
