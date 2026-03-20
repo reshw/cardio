@@ -170,6 +170,7 @@ class ClubService {
         invite_code: inviteCode,
         status: 'pending', // 어드민 승인 대기
         enabled_categories: this.getDefaultEnabledCategories(),
+        mileage_config: this.getDefaultMileageConfig(), // 전체 계수 명시적 설정
       })
       .select()
       .single();
@@ -377,6 +378,11 @@ class ClubService {
     if (error) {
       console.error('클럽 조회 실패:', error);
       throw error;
+    }
+
+    // 마일리지 계수 자동 보정 (없는 항목은 0으로 설정)
+    if (club) {
+      club.mileage_config = this.normalizeMileageConfig(club.mileage_config);
     }
 
     return club;
@@ -1149,6 +1155,31 @@ class ClubService {
       '요가-일반': 3.27,         // 3.27분당 1 마일리지 (3 MET)
       '요가-빈야사/아쉬탕가': 2.45, // 2.45분당 1 마일리지 (4 MET)
     };
+  }
+
+  // 불완전한 마일리지 계수 보정 (새 운동 타입 자동 대응)
+  // 기존 클럽이 없는 항목은 0으로 설정 (비활성화)
+  normalizeMileageConfig(partialConfig?: Partial<MileageConfig> | null): MileageConfig {
+    const defaultConfig = this.getDefaultMileageConfig();
+
+    if (!partialConfig) {
+      return defaultConfig;
+    }
+
+    // 기본 설정을 복사하고, 기존 값으로 덮어쓰기
+    const normalized: MileageConfig = { ...defaultConfig };
+
+    for (const key in normalized) {
+      if (key in partialConfig) {
+        // 기존 클럽이 가지고 있던 값 유지
+        normalized[key as keyof MileageConfig] = partialConfig[key as keyof MileageConfig] as number;
+      } else {
+        // 없는 항목은 0으로 설정 (비활성화 개념)
+        normalized[key as keyof MileageConfig] = 0;
+      }
+    }
+
+    return normalized;
   }
 
   // 신규 클럽 기본 활성화 카테고리 (달리기만)
