@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Heart, MessageCircle } from 'lucide-react';
+import { Heart, MessageCircle, MoreVertical } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import feedService from '../services/feedService';
 import { CommentSection } from './CommentSection';
 import type { WorkoutFeedItem } from '../services/feedService';
+
+const REPORT_REASONS = ['스팸', '욕설/혐오발언', '부적절한 내용', '기타'];
 
 interface Props {
   item: WorkoutFeedItem;
@@ -11,6 +13,7 @@ interface Props {
   onOptimisticLike: (workoutId: string, isLiked: boolean) => void;
   onOptimisticCommentAdd: (workoutId: string) => void;
   onOptimisticCommentDelete: (workoutId: string) => void;
+  onBlock: (userId: string) => void;
 }
 
 export const WorkoutFeedCard = ({
@@ -19,11 +22,48 @@ export const WorkoutFeedCard = ({
   onOptimisticLike,
   onOptimisticCommentAdd,
   onOptimisticCommentDelete,
+  onBlock,
 }: Props) => {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [liking, setLiking] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [selectedReason, setSelectedReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const isMyPost = user?.id === item.workout.user_id;
+
+  const handleReport = async () => {
+    if (!user || !selectedReason) return;
+    setSubmitting(true);
+    try {
+      await feedService.reportContent(user.id, item.workout.user_id, item.workout.id, clubId, selectedReason);
+      setShowReportModal(false);
+      setSelectedReason('');
+      alert('신고가 접수되었습니다.');
+    } catch {
+      alert('신고 처리에 실패했습니다.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleBlock = async () => {
+    if (!user) return;
+    setSubmitting(true);
+    try {
+      await feedService.blockUser(user.id, item.workout.user_id);
+      setShowBlockConfirm(false);
+      onBlock(item.workout.user_id);
+    } catch {
+      alert('차단 처리에 실패했습니다.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const { workout } = item;
 
@@ -145,6 +185,25 @@ export const WorkoutFeedCard = ({
         </div>
       )}
 
+      {/* 더보기 버튼 (내 글 제외) */}
+      {!isMyPost && (
+        <div className="feed-more-wrapper">
+          <button className="feed-more-btn" onClick={() => setShowMenu(v => !v)}>
+            <MoreVertical size={16} />
+          </button>
+          {showMenu && (
+            <div className="feed-more-menu">
+              <button onClick={() => { setShowMenu(false); setShowReportModal(true); }}>
+                신고하기
+              </button>
+              <button onClick={() => { setShowMenu(false); setShowBlockConfirm(true); }}>
+                차단하기
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 전체 래퍼: 프사(왼쪽 2줄) + 내용(오른쪽 2줄) */}
       <div className="feed-card-wrapper">
         {/* 왼쪽: 프로필 사진 (2줄 고정) */}
@@ -199,6 +258,79 @@ export const WorkoutFeedCard = ({
           onCommentAdded={() => onOptimisticCommentAdd(workout.id)}
           onCommentDeleted={() => onOptimisticCommentDelete(workout.id)}
         />
+      )}
+
+      {/* 신고 모달 */}
+      {showReportModal && (
+        <div className="modal-overlay" onClick={() => setShowReportModal(false)}>
+          <div className="modal-content" style={{ maxWidth: 320 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>신고하기</h2>
+              <button className="modal-close" onClick={() => setShowReportModal(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 16 }}>
+                신고 사유를 선택해주세요.
+              </p>
+              <div className="report-reasons">
+                {REPORT_REASONS.map(reason => (
+                  <button
+                    key={reason}
+                    className={`report-reason-btn ${selectedReason === reason ? 'selected' : ''}`}
+                    onClick={() => setSelectedReason(reason)}
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+              <button
+                className="btn-primary"
+                style={{ width: '100%', marginTop: 20 }}
+                onClick={handleReport}
+                disabled={!selectedReason || submitting}
+              >
+                {submitting ? '처리 중...' : '신고 제출'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 차단 확인 모달 */}
+      {showBlockConfirm && (
+        <div className="modal-overlay" onClick={() => setShowBlockConfirm(false)}>
+          <div className="modal-content" style={{ maxWidth: 320 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>차단하기</h2>
+              <button className="modal-close" onClick={() => setShowBlockConfirm(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: 20, lineHeight: 1.6 }}>
+                <strong>{item.user_display_name}</strong>님을 차단하시겠어요?<br />
+                <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+                  차단하면 이 클럽 피드에서 해당 유저의 게시물이 나에게만 보이지 않습니다.
+                </span>
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  className="btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setShowBlockConfirm(false)}
+                >
+                  취소
+                </button>
+                <button
+                  className="btn-danger"
+                  style={{ flex: 1 }}
+                  onClick={handleBlock}
+                  disabled={submitting}
+                >
+                  {submitting ? '처리 중...' : '차단하기'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 상세보기 모달 */}

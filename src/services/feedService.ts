@@ -412,6 +412,45 @@ class FeedService {
     return likesMap;
   }
 
+  // ==================== 차단 / 신고 ====================
+
+  // 내가 차단한 유저 ID 목록
+  async getMyBlockedIds(userId: string): Promise<string[]> {
+    const { data } = await supabase
+      .from('user_blocks')
+      .select('blocked_id')
+      .eq('blocker_id', userId);
+    return data?.map((b: any) => b.blocked_id) || [];
+  }
+
+  // 유저 차단
+  async blockUser(blockerId: string, blockedId: string): Promise<void> {
+    const { error } = await supabase
+      .from('user_blocks')
+      .insert({ blocker_id: blockerId, blocked_id: blockedId });
+    if (error && error.code !== '23505') throw error;
+  }
+
+  // 신고
+  async reportContent(
+    reporterId: string,
+    reportedUserId: string,
+    workoutId: string,
+    clubId: string,
+    reason: string
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('reports')
+      .insert({
+        reporter_id: reporterId,
+        reported_user_id: reportedUserId,
+        workout_id: workoutId,
+        club_id: clubId,
+        reason,
+      });
+    if (error) throw error;
+  }
+
   // 모든 클럽의 댓글 통합 조회 (좋아요 정보 포함)
   async getCommentsFromAllClubsWithLikes(
     workoutId: string,

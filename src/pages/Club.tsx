@@ -315,6 +315,18 @@ export const Club = () => {
     }
   };
 
+  // 차단 처리: 해당 유저의 게시물을 피드 state + 캐시에서 즉시 제거
+  const handleBlock = (blockedUserId: string) => {
+    setFeedItems(prev => prev.filter(item => item.workout.user_id !== blockedUserId));
+    setFeedCache(prev => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach(key => {
+        updated[key] = updated[key].filter(item => item.workout.user_id !== blockedUserId);
+      });
+      return updated;
+    });
+  };
+
   useEffect(() => {
     loadMyClubs();
   }, [user]);
@@ -793,6 +805,7 @@ export const Club = () => {
           onOptimisticLike={handleOptimisticLike}
           onOptimisticCommentAdd={handleOptimisticCommentAdd}
           onOptimisticCommentDelete={handleOptimisticCommentDelete}
+          onBlock={handleBlock}
         />
       )}
 

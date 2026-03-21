@@ -11,6 +11,7 @@ interface Props {
   onOptimisticLike: (workoutId: string, isLiked: boolean) => void;
   onOptimisticCommentAdd: (workoutId: string) => void;
   onOptimisticCommentDelete: (workoutId: string) => void;
+  onBlock: (userId: string) => void;
 }
 
 export const WorkoutFeed = ({
@@ -22,6 +23,7 @@ export const WorkoutFeed = ({
   onOptimisticLike,
   onOptimisticCommentAdd,
   onOptimisticCommentDelete,
+  onBlock,
 }: Props) => {
   const formatDate = (date: Date) => {
     const today = new Date();
@@ -71,6 +73,7 @@ export const WorkoutFeed = ({
               onOptimisticLike={onOptimisticLike}
               onOptimisticCommentAdd={onOptimisticCommentAdd}
               onOptimisticCommentDelete={onOptimisticCommentDelete}
+              onBlock={onBlock}
             />
           ))}
         </div>

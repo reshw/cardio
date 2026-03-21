@@ -1385,6 +1385,18 @@ class ClubService {
 
     if (!members || members.length === 0) return [];
 
+    // 1-1) 내가 차단한 유저 제외
+    const { data: blocks } = await supabase
+      .from('user_blocks')
+      .select('blocked_id')
+      .eq('blocker_id', currentUserId);
+    const blockedIds = blocks?.map((b: any) => b.blocked_id) || [];
+    const filteredMembers = blockedIds.length > 0
+      ? members.filter((m) => !blockedIds.includes(m.user_id))
+      : members;
+
+    if (filteredMembers.length === 0) return [];
+
     // 2) 해당 날짜 운동 조회 (created_at ASC)
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
@@ -1396,7 +1408,7 @@ class ClubService {
       .select('*')
       .in(
         'user_id',
-        members.map((m) => m.user_id)
+        filteredMembers.map((m) => m.user_id)
       )
       .gte('created_at', startOfDay.toISOString())
       .lte('created_at', endOfDay.toISOString())
@@ -1410,7 +1422,7 @@ class ClubService {
       .select('id, display_name, profile_image')
       .in(
         'id',
-        members.map((m) => m.user_id)
+        filteredMembers.map((m) => m.user_id)
       );
 
     // 4) 좋아요/댓글 수 조회
@@ -1430,10 +1442,10 @@ class ClubService {
     // 5) 맵 구성 및 반환
     const userMap = new Map(users?.map((u) => [u.id, u]) || []);
     const nicknameMap = Object.fromEntries(
-      members.filter((m) => m.club_nickname).map((m) => [m.user_id, m.club_nickname!])
+      filteredMembers.filter((m) => m.club_nickname).map((m) => [m.user_id, m.club_nickname!])
     );
     const clubProfileImageMap = Object.fromEntries(
-      members.filter((m) => m.club_profile_image).map((m) => [m.user_id, m.club_profile_image!])
+      filteredMembers.filter((m) => m.club_profile_image).map((m) => [m.user_id, m.club_profile_image!])
     );
 
     const likesMap = new Map();

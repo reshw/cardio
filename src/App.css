@@ -4098,6 +4098,111 @@ html {
   position: relative;
 }
 
+/* 더보기 버튼 (...) */
+.feed-more-wrapper {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 20;
+}
+
+.feed-more-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.feed-more-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.feed-more-menu {
+  position: absolute;
+  top: 28px;
+  right: 0;
+  background: var(--card-bg, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  min-width: 120px;
+}
+
+.feed-more-menu button {
+  display: block;
+  width: 100%;
+  padding: 11px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: background 0.15s;
+}
+
+.feed-more-menu button:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* 신고 사유 버튼 */
+.report-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-reason-btn {
+  padding: 10px 14px;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: none;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.15s;
+}
+
+.report-reason-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.report-reason-btn.selected {
+  border-color: var(--primary, #4FC3F7);
+  background: rgba(79, 195, 247, 0.08);
+  color: var(--primary, #4FC3F7);
+  font-weight: 600;
+}
+
+/* 위험 버튼 */
+.btn-danger {
+  padding: 10px 16px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* 비활성화 배지 */
 .feed-disabled-badge {
   position: absolute;
