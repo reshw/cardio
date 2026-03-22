@@ -55,11 +55,11 @@ export const WorkoutFeedCard = ({
     if (!user) return;
     setSubmitting(true);
     try {
-      await feedService.blockUser(user.id, item.workout.user_id);
+      await feedService.blockUser(user.id, item.workout.user_id, clubId);
       setShowBlockConfirm(false);
       onBlock(item.workout.user_id);
-    } catch {
-      alert('차단 처리에 실패했습니다.');
+    } catch (err: any) {
+      alert('차단 처리에 실패했습니다.\n' + (err?.message || JSON.stringify(err)));
     } finally {
       setSubmitting(false);
     }
@@ -399,6 +399,24 @@ export const WorkoutFeedCard = ({
                   <span>{item.user_display_name}</span>
                 </div>
               </div>
+
+              {/* 신고/차단 버튼 (내 글 제외) */}
+              {!isMyPost && (
+                <div className="workout-detail-actions">
+                  <button
+                    className="detail-action-btn detail-action-report"
+                    onClick={() => { setShowDetail(false); setShowReportModal(true); }}
+                  >
+                    신고하기
+                  </button>
+                  <button
+                    className="detail-action-btn detail-action-block"
+                    onClick={() => { setShowDetail(false); setShowBlockConfirm(true); }}
+                  >
+                    차단하기
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

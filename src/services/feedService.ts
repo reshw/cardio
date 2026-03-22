@@ -414,20 +414,80 @@ class FeedService {
 
   // ==================== 차단 / 신고 ====================
 
-  // 내가 차단한 유저 ID 목록
-  async getMyBlockedIds(userId: string): Promise<string[]> {
+  // 내가 차단한 유저 목록 — club_members에서 현재 닉네임 live 조회
+  async getMyBlockedUsers(userId: string): Promise<Array<{
+    id: string;
+    blocked_id: string;
+    club_id: string;
+    club_name: string;
+    club_nickname: string;
+    club_profile_image?: string;
+    created_at: string;
+  }>> {
+    // 1) 차단 목록 + 클럽명
+    const { data: blocks, error } = await supabase
+      .from('user_blocks')
+      .select('id, blocked_id, club_id, created_at, club:clubs!club_id(name)')
+      .eq('blocker_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (!blocks || blocks.length === 0) return [];
+
+    // 2) club_members에서 현재 닉네임 live 조회
+    const clubIds = [...new Set(blocks.map((b: any) => b.club_id))];
+    const blockedIds = [...new Set(blocks.map((b: any) => b.blocked_id))];
+
+    const { data: members } = await supabase
+      .from('club_members')
+      .select('club_id, user_id, club_nickname, club_profile_image')
+      .in('club_id', clubIds)
+      .in('user_id', blockedIds);
+
+    const memberMap = new Map(
+      members?.map((m: any) => [`${m.club_id}_${m.user_id}`, m]) || []
+    );
+
+    return blocks.map((b: any) => {
+      const m = memberMap.get(`${b.club_id}_${b.blocked_id}`);
+      return {
+        id: b.id,
+        blocked_id: b.blocked_id,
+        club_id: b.club_id,
+        club_name: (b.club as any)?.name || '알 수 없는 클럽',
+        club_nickname: m?.club_nickname || '(닉네임 없음)',
+        club_profile_image: m?.club_profile_image,
+        created_at: b.created_at,
+      };
+    });
+  }
+
+  // 차단 해제 (club_id 포함)
+  async unblockUser(blockerId: string, blockedId: string, clubId: string): Promise<void> {
+    const { error } = await supabase
+      .from('user_blocks')
+      .delete()
+      .eq('blocker_id', blockerId)
+      .eq('blocked_id', blockedId)
+      .eq('club_id', clubId);
+    if (error) throw error;
+  }
+
+  // 특정 클럽에서 내가 차단한 유저 ID 목록
+  async getMyBlockedIds(userId: string, clubId: string): Promise<string[]> {
     const { data } = await supabase
       .from('user_blocks')
       .select('blocked_id')
-      .eq('blocker_id', userId);
+      .eq('blocker_id', userId)
+      .eq('club_id', clubId);
     return data?.map((b: any) => b.blocked_id) || [];
   }
 
-  // 유저 차단
-  async blockUser(blockerId: string, blockedId: string): Promise<void> {
+  // 유저 차단 (club_id 포함)
+  async blockUser(blockerId: string, blockedId: string, clubId: string): Promise<void> {
     const { error } = await supabase
       .from('user_blocks')
-      .insert({ blocker_id: blockerId, blocked_id: blockedId });
+      .insert({ blocker_id: blockerId, blocked_id: blockedId, club_id: clubId });
     if (error && error.code !== '23505') throw error;
   }
 

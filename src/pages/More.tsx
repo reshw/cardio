@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Shield, BookOpen, Smartphone } from 'lucide-react';
+import { Shield, BookOpen, Smartphone, UserX } from 'lucide-react';
 import { InstallGuideModal } from '../components/InstallGuideModal';
 
 export const More = () => {
@@ -27,6 +27,21 @@ export const More = () => {
           </button>
         </div>
       )}
+
+      <div className="section">
+        <h3>멤버 관리</h3>
+        <div className="menu-list">
+          <button
+            className="menu-item-btn"
+            onClick={() => navigate('/blocked-members')}
+          >
+            <div className="menu-item-left">
+              <UserX size={20} />
+              <span>차단한 멤버 관리</span>
+            </div>
+          </button>
+        </div>
+      </div>
 
       <div className="section">
         <h3>앱 정보</h3>

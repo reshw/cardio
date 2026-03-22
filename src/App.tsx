@@ -14,6 +14,7 @@ import { ClubTransferOwnership } from './pages/ClubTransferOwnership';
 import { ClubMembers } from './pages/ClubMembers';
 import { ProtectedClubRoute } from './components/ProtectedClubRoute';
 import { More } from './pages/More';
+import { BlockedMembers } from './pages/BlockedMembers';
 import { AdminPage } from './pages/AdminPage';
 import { AdminClubApproval } from './pages/AdminClubApproval';
 import { JoinClub } from './pages/JoinClub';
@@ -88,6 +89,7 @@ function ProtectedRoutes() {
           <Route path="/join" element={<JoinClub />} />
           <Route path="/join/:code" element={<JoinClub />} />
           <Route path="/more" element={<More />} />
+          <Route path="/blocked-members" element={<BlockedMembers />} />
           <Route path="/guide" element={<AppGuide />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/club-approval" element={<AdminClubApproval />} />

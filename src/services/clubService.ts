@@ -1385,11 +1385,12 @@ class ClubService {
 
     if (!members || members.length === 0) return [];
 
-    // 1-1) 내가 차단한 유저 제외
+    // 1-1) 이 클럽에서 내가 차단한 유저 제외
     const { data: blocks } = await supabase
       .from('user_blocks')
       .select('blocked_id')
-      .eq('blocker_id', currentUserId);
+      .eq('blocker_id', currentUserId)
+      .eq('club_id', clubId);
     const blockedIds = blocks?.map((b: any) => b.blocked_id) || [];
     const filteredMembers = blockedIds.length > 0
       ? members.filter((m) => !blockedIds.includes(m.user_id))

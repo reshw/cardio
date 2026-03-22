@@ -4198,6 +4198,115 @@ html {
   background: #dc2626;
 }
 
+/* 차단 멤버 관리 페이지 */
+.blocked-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: rgba(0,0,0,0.06);
+  border-radius: 14px;
+  overflow: hidden;
+  margin: 16px 0;
+}
+
+.blocked-user-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--card-bg, #fff);
+}
+
+.blocked-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.blocked-user-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.blocked-user-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.blocked-user-club {
+  font-size: 12px;
+  color: var(--primary, #4FC3F7);
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.blocked-user-date {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 1px;
+}
+
+.unblock-btn {
+  padding: 7px 14px;
+  border: 1.5px solid rgba(0,0,0,0.15);
+  border-radius: 8px;
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.unblock-btn:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.unblock-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 차단된 유저 접근 화면 */
+.blocked-user-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+  gap: 12px;
+}
+
+.blocked-user-icon {
+  font-size: 52px;
+  margin-bottom: 8px;
+}
+
+.blocked-user-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.blocked-user-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 8px;
+}
+
 .btn-danger:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -4485,6 +4594,45 @@ html {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+/* 상세 모달 신고/차단 버튼 */
+.workout-detail-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.detail-action-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1.5px solid;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: none;
+}
+
+.detail-action-report {
+  border-color: rgba(0, 0, 0, 0.15);
+  color: var(--text-secondary);
+}
+
+.detail-action-report:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.detail-action-block {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.detail-action-block:hover {
+  background: rgba(239, 68, 68, 0.06);
 }
 
 /* 체감 난이도 스펙트럼 바 */

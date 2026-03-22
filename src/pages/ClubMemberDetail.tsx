@@ -5,6 +5,8 @@ import workoutService from '../services/workoutService';
 import type { Workout } from '../services/workoutService';
 import clubService from '../services/clubService';
 import type { MileageConfig } from '../services/clubService';
+import feedService from '../services/feedService';
+import { useAuth } from '../contexts/AuthContext';
 
 export const ClubMemberDetail = () => {
   const { clubId, userId, userName } = useParams<{
@@ -13,9 +15,11 @@ export const ClubMemberDetail = () => {
     userName: string;
   }>();
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
   const [mileageConfig, setMileageConfig] = useState<MileageConfig>(
     clubService.getDefaultMileageConfig()
   );
@@ -23,9 +27,16 @@ export const ClubMemberDetail = () => {
   useEffect(() => {
     if (clubId && userId) {
       loadClubConfig();
+      checkBlocked();
       loadWorkouts();
     }
   }, [clubId, userId]);
+
+  const checkBlocked = async () => {
+    if (!currentUser || !userId) return;
+    const blockedIds = await feedService.getMyBlockedIds(currentUser.id, clubId!);
+    setIsBlocked(blockedIds.includes(userId!));
+  };
 
   const loadClubConfig = async () => {
     if (!clubId) return;
@@ -97,6 +108,30 @@ export const ClubMemberDetail = () => {
   };
 
   const totalMileage = workouts.reduce((sum, w) => sum + calculateMileage(w), 0);
+
+  if (isBlocked) {
+    return (
+      <div className="container">
+        <div className="header">
+          <button className="back-button" onClick={() => navigate(-1)}>
+            <ChevronLeft size={24} />
+          </button>
+          <h1>{decodeURIComponent(userName || '')}</h1>
+        </div>
+        <div className="blocked-user-screen">
+          <div className="blocked-user-icon">🚫</div>
+          <p className="blocked-user-title">차단된 유저입니다</p>
+          <p className="blocked-user-desc">
+            이 유저를 차단했습니다.<br />
+            차단을 해제하려면 더보기 → 차단한 멤버 관리에서 해제할 수 있습니다.
+          </p>
+          <button className="btn-secondary" onClick={() => navigate('/blocked-members')}>
+            차단 멤버 관리
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
