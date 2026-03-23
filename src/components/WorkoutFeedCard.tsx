@@ -264,20 +264,23 @@ export const WorkoutFeedCard = ({
         </button>
         {showMenu && (
           <div className="feed-more-menu">
-            {/* 공유 옵션 (모든 글) */}
-            <button onClick={handleKakaoShare}>
-              <Share2 size={14} style={{ marginRight: 8 }} />
-              카톡으로 공유
-            </button>
-            <button onClick={handleCopyText}>
-              <Copy size={14} style={{ marginRight: 8 }} />
-              텍스트 복사
-            </button>
+            {/* 공유 옵션 (내 글만) */}
+            {isMyPost && (
+              <>
+                <button onClick={handleKakaoShare}>
+                  <Share2 size={14} style={{ marginRight: 8 }} />
+                  카톡으로 공유
+                </button>
+                <button onClick={handleCopyText}>
+                  <Copy size={14} style={{ marginRight: 8 }} />
+                  텍스트 복사
+                </button>
+              </>
+            )}
 
-            {/* 신고/차단 (내 글 제외) */}
+            {/* 신고/차단 (남의 글만) */}
             {!isMyPost && (
               <>
-                <div style={{ borderTop: '1px solid var(--border-color)', margin: '4px 0' }} />
                 <button onClick={() => { setShowMenu(false); setShowReportModal(true); }}>
                   신고하기
                 </button>
