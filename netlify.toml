@@ -1,10 +1,11 @@
 [build]
-  command = "npm run build"
+  command = "npm install && npm run build"
   publish = "dist"
   functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "22"
+  NPM_FLAGS = "--legacy-peer-deps"
   SECRETS_SCAN_SMART_DETECTION_ENABLED = "true"
 
 # Master 브랜치 (production): console.log 제거
