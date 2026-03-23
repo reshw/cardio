@@ -43,6 +43,15 @@ export const WorkoutFeedCard = ({
 
   const isMyPost = user?.id === item.workout.user_id;
 
+  // 디버깅: isMyPost 체크
+  console.log('🔍 isMyPost 체크:', {
+    userId: user?.id,
+    workoutUserId: item.workout.user_id,
+    isMyPost,
+    userIdType: typeof user?.id,
+    workoutUserIdType: typeof item.workout.user_id,
+  });
+
   const handleReport = async () => {
     if (!user || !selectedReason) return;
     setSubmitting(true);
