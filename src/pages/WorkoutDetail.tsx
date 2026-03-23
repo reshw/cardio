@@ -469,7 +469,7 @@ export const WorkoutDetail = () => {
               onClick={() => {
                 setIsEditing(false);
                 setValue(workout.value.toString());
-                setCreatedAt(new Date(workout.created_at).toISOString().slice(0, 16));
+                setWorkoutTime(new Date(workout.workout_time).toISOString().slice(0, 16));
                 setIntensity(workout.intensity);
                 setProofImage(null);
                 setImagePreview(null);

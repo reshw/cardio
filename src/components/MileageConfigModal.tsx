@@ -76,10 +76,10 @@ export const MileageConfigModal = ({ config, enabledCategories, onClose }: Props
                 </div>
                 <div className="mileage-config-value">
                   <div className="mileage-config-example">
-                    {getExplanation(config[workout.key], workout.unit as 'km' | 'm' | '층' | '분')}
+                    {getExplanation((config as any)[workout.key], workout.unit as 'km' | 'm' | '층' | '분')}
                   </div>
                   <div className="mileage-config-coefficient">
-                    계수 {config[workout.key] ?? '-'}
+                    계수 {(config as any)[workout.key] ?? '-'}
                   </div>
                 </div>
               </div>
