@@ -128,7 +128,7 @@ class WorkoutService {
       .from('workouts')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .order('workout_time', { ascending: false });
 
     if (error) {
       console.error('운동 기록 조회 실패:', error);

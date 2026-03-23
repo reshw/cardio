@@ -555,15 +555,15 @@ class FeedService {
     return comments;
   }
 
-  // 오늘의 n번째 운동 계산 (created_at 기준)
+  // 오늘의 n번째 운동 계산 (workout_time 기준)
   async getTodayWorkoutNumber(clubId: string, workoutId: string): Promise<number | null> {
     try {
       console.log('📊 getTodayWorkoutNumber - clubId:', clubId, 'workoutId:', workoutId);
 
-      // 1. workouts 테이블에서 해당 workout의 created_at 가져오기
+      // 1. workouts 테이블에서 해당 workout의 workout_time 가져오기
       const { data: workout, error: workoutError } = await supabase
         .from('workouts')
-        .select('created_at')
+        .select('workout_time')
         .eq('id', workoutId)
         .single();
 
@@ -572,10 +572,10 @@ class FeedService {
         return null;
       }
 
-      console.log('✅ Found workout with created_at:', workout.created_at);
+      console.log('✅ Found workout with workout_time:', workout.workout_time);
 
-      // 2. created_at에서 날짜 추출 (시간은 제외)
-      const workoutDate = new Date(workout.created_at);
+      // 2. workout_time에서 날짜 추출 (시간은 제외)
+      const workoutDate = new Date(workout.workout_time);
       const startOfDay = new Date(workoutDate);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(workoutDate);
@@ -597,14 +597,14 @@ class FeedService {
       const workoutIdsInClub = mileageRecords.map(r => r.workout_id);
       console.log('📋 Found', workoutIdsInClub.length, 'workouts in club');
 
-      // 4. workouts 테이블에서 해당 날짜의 운동들을 created_at 순서로 가져오기
+      // 4. workouts 테이블에서 해당 날짜의 운동들을 workout_time 순서로 가져오기
       const { data: todayWorkouts, error: listError } = await supabase
         .from('workouts')
-        .select('id, created_at')
+        .select('id, workout_time, created_at')
         .in('id', workoutIdsInClub)
-        .gte('created_at', startOfDay.toISOString())
-        .lte('created_at', endOfDay.toISOString())
-        .order('created_at', { ascending: true });
+        .gte('workout_time', startOfDay.toISOString())
+        .lte('workout_time', endOfDay.toISOString())
+        .order('workout_time', { ascending: true });
 
       if (listError || !todayWorkouts) {
         console.error('❌ Failed to get today workouts:', listError);

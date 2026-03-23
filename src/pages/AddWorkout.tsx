@@ -1,28 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import workoutService from '../services/workoutService';
+import workoutTypeService from '../services/workoutTypeService';
+import type { WorkoutType } from '../services/workoutTypeService';
 import { uploadToCloudinary } from '../utils/cloudinary';
 import type { WorkoutCategory, WorkoutSubType, WorkoutUnit } from '../services/workoutService';
-
-const CATEGORIES = [
-  { id: '달리기' as WorkoutCategory, label: '🏃 달리기', unit: 'km' as WorkoutUnit },
-  { id: '사이클' as WorkoutCategory, label: '🚴 사이클', unit: 'km' as WorkoutUnit },
-  { id: '수영' as WorkoutCategory, label: '🏊 수영', unit: 'm' as WorkoutUnit },
-  { id: '계단' as WorkoutCategory, label: '🪜 계단', unit: '층' as WorkoutUnit },
-  { id: '복싱' as WorkoutCategory, label: '🥊 복싱', unit: '분' as WorkoutUnit },
-  { id: '요가' as WorkoutCategory, label: '🧘 요가', unit: '분' as WorkoutUnit },
-];
-
-const SUB_TYPES = {
-  달리기: ['트레드밀', '러닝'],
-  사이클: ['실외', '실내'],
-  수영: [],
-  계단: [],
-  복싱: ['샌드백/미트', '스파링'],
-  요가: ['일반', '빈야사/아쉬탕가'],
-};
 
 export const AddWorkout = () => {
   const { user } = useAuth();
@@ -44,7 +28,41 @@ export const AddWorkout = () => {
   const [uploading, setUploading] = useState(false);
   const [intensity, setIntensity] = useState(4); // 기본값 4
 
+  // 동적 운동 종목 로딩
+  const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
+  const [loadingTypes, setLoadingTypes] = useState(true);
+  const [showOtherWorkouts, setShowOtherWorkouts] = useState(false); // 기타운동 표시 여부
+
+  useEffect(() => {
+    const loadWorkoutTypes = async () => {
+      try {
+        const types = await workoutTypeService.getActiveWorkoutTypes();
+        setWorkoutTypes(types);
+      } catch (error) {
+        console.error('운동 종목 로드 실패:', error);
+        alert('운동 종목을 불러오는데 실패했습니다.');
+      } finally {
+        setLoadingTypes(false);
+      }
+    };
+    loadWorkoutTypes();
+  }, []);
+
+  // 동적 카테고리 및 서브타입 매핑
+  const CATEGORIES = workoutTypes.map((type) => ({
+    id: type.name as WorkoutCategory,
+    label: `${type.emoji} ${type.name}`,
+    unit: type.unit as WorkoutUnit,
+  }));
+
+  const SUB_TYPES = workoutTypes.reduce((acc, type) => {
+    acc[type.name] = type.sub_types || [];
+    return acc;
+  }, {} as Record<string, string[]>);
+
   const selectedCategory = CATEGORIES.find((c) => c.id === category);
+  const selectedWorkoutType = workoutTypes.find((t) => t.name === category);
+  const isMixedMode = selectedWorkoutType?.sub_type_mode === 'mixed';
 
   // 카테고리 선택
   const handleCategorySelect = (cat: WorkoutCategory) => {
@@ -104,9 +122,9 @@ export const AddWorkout = () => {
         }
       }
 
-      // 서브타입 비율 계산 (요가/복싱만)
+      // 서브타입 비율 계산 (복합형만)
       let subTypeRatios: Record<string, number> | undefined;
-      if ((category === '요가' || category === '복싱') && subTypeRatio > 0 && subTypeRatio < 100) {
+      if (isMixedMode && subTypeRatio > 0 && subTypeRatio < 100) {
         const subTypes = SUB_TYPES[category];
         subTypeRatios = {
           [subTypes[0]]: (100 - subTypeRatio) / 100,
@@ -153,6 +171,18 @@ export const AddWorkout = () => {
     }
   };
 
+  // 운동 종목 로딩 중
+  if (loadingTypes) {
+    return (
+      <div className="container">
+        <div className="loading-screen">
+          <div className="spinner"></div>
+          <p>운동 종목 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container add-workout-page">
       <div className="detail-header">
@@ -167,16 +197,69 @@ export const AddWorkout = () => {
         {step === 1 && (
           <div className="category-selection">
             <h3>운동 종류를 선택하세요</h3>
-            <div className="category-buttons">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  className="category-button"
-                  onClick={() => handleCategorySelect(cat.id)}
-                >
-                  {cat.label}
-                </button>
-              ))}
+
+            {/* 기본운동 */}
+            <div style={{ marginBottom: '16px' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', color: 'var(--primary-color)' }}>
+                ⭐ 기본운동
+              </h4>
+              <div className="category-buttons">
+                {CATEGORIES.filter(cat => {
+                  const workoutType = workoutTypes.find(t => t.name === cat.id);
+                  return workoutType?.is_core;
+                }).map((cat) => (
+                  <button
+                    key={cat.id}
+                    className="category-button"
+                    onClick={() => handleCategorySelect(cat.id)}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 기타운동 (접힘/펼침) */}
+            <div>
+              <button
+                onClick={() => setShowOtherWorkouts(!showOtherWorkouts)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  marginBottom: showOtherWorkouts ? '12px' : '0',
+                }}
+              >
+                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  📦 기타운동
+                </span>
+                <span style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>
+                  {showOtherWorkouts ? '▼' : '▶'}
+                </span>
+              </button>
+
+              {showOtherWorkouts && (
+                <div className="category-buttons">
+                  {CATEGORIES.filter(cat => {
+                    const workoutType = workoutTypes.find(t => t.name === cat.id);
+                    return !workoutType?.is_core;
+                  }).map((cat) => (
+                    <button
+                      key={cat.id}
+                      className="category-button"
+                      onClick={() => handleCategorySelect(cat.id)}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -186,8 +269,8 @@ export const AddWorkout = () => {
           <div className="subtype-selection">
             <h3>{selectedCategory?.label} 세부 종류</h3>
 
-            {/* 요가/복싱: 비율 슬라이더 */}
-            {(category === '요가' || category === '복싱') ? (
+            {/* 복합형: 비율 슬라이더 */}
+            {isMixedMode ? (
               <div className="subtype-ratio-selector">
                 <p className="ratio-description">
                   두 종류를 섞어서 했나요? 비율을 조정하세요.
@@ -259,7 +342,7 @@ export const AddWorkout = () => {
                 </button>
               </div>
             ) : (
-              /* 달리기/사이클: 기존 방식 (버튼 선택) */
+              /* 선택형: 버튼 선택 */
               <div className="subtype-buttons">
                 {SUB_TYPES[category].map((sub) => (
                   <button
@@ -281,8 +364,8 @@ export const AddWorkout = () => {
             <div className="input-section">
               <h3>
                 {selectedCategory?.label}
-                {/* 비율이 있는 경우 (요가/복싱 혼합) */}
-                {(category === '요가' || category === '복싱') && subTypeRatio > 0 && subTypeRatio < 100 ? (
+                {/* 비율이 있는 경우 (복합형 혼합) */}
+                {isMixedMode && subTypeRatio > 0 && subTypeRatio < 100 ? (
                   <span style={{ fontSize: '14px', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
                     <br />
                     {SUB_TYPES[category][0]} {100 - subTypeRatio}% / {SUB_TYPES[category][1]} {subTypeRatio}%

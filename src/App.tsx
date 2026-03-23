@@ -18,6 +18,7 @@ import { BlockedMembers } from './pages/BlockedMembers';
 import { AdminPage } from './pages/AdminPage';
 import { AdminClubApproval } from './pages/AdminClubApproval';
 import { AdminUserManagement } from './pages/AdminUserManagement';
+import { AdminWorkoutTypes } from './pages/AdminWorkoutTypes';
 import { JoinClub } from './pages/JoinClub';
 import { AppGuide } from './pages/AppGuide';
 import { Header } from './components/Header';
@@ -95,6 +96,7 @@ function ProtectedRoutes() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/club-approval" element={<AdminClubApproval />} />
           <Route path="/admin/users" element={<AdminUserManagement />} />
+          <Route path="/admin/workout-types" element={<AdminWorkoutTypes />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

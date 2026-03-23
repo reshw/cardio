@@ -13,6 +13,7 @@ export const ClubGeneralSettings = () => {
   const [inviteCode, setInviteCode] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [countExcludedWorkouts, setCountExcludedWorkouts] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -32,6 +33,7 @@ export const ClubGeneralSettings = () => {
       setDescription(club.description || '');
       setInviteCode(club.invite_code);
       setLogoPreview(club.logo_url || null);
+      setCountExcludedWorkouts(club.count_excluded_workouts_in_days ?? true);
     } catch (error) {
       console.error('클럽 정보 불러오기 실패:', error);
       alert('클럽 정보를 불러올 수 없습니다.');
@@ -99,6 +101,7 @@ export const ClubGeneralSettings = () => {
         name: name.trim(),
         description: description.trim(),
         logo_url: logoUrl || undefined,
+        count_excluded_workouts_in_days: countExcludedWorkouts,
       });
 
       alert('클럽 정보가 수정되었습니다.');
@@ -185,6 +188,24 @@ export const ClubGeneralSettings = () => {
             </button>
           </div>
           <p className="form-hint">초대 코드는 변경할 수 없습니다.</p>
+        </div>
+
+        <div className="form-group">
+          <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={countExcludedWorkouts}
+              onChange={(e) => setCountExcludedWorkouts(e.target.checked)}
+              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '15px', fontWeight: '600' }}>
+              📊 미산입 운동도 운동일수에 포함 (상세통계)
+            </span>
+          </label>
+          <p className="form-hint">
+            마일리지 계수가 0인 운동(미산입)도 운동일수 집계에 포함합니다.<br />
+            체크 해제 시, 마일리지가 0보다 큰 운동만 운동일수로 계산됩니다.
+          </p>
         </div>
 
         <button type="submit" className="primary-button-full" disabled={updating}>

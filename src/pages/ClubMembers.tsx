@@ -81,8 +81,8 @@ export const ClubMembers = () => {
       return;
     }
 
-    const newRole = currentRole === 'admin' ? 'member' : 'admin';
-    const roleText = newRole === 'admin' ? '부매니저' : '일반 회원';
+    const newRole = currentRole === 'vice-manager' ? 'member' : 'vice-manager';
+    const roleText = newRole === 'vice-manager' ? '부매니저' : '일반 회원';
 
     if (!confirm(`이 회원을 ${roleText}로 변경하시겠습니까?`)) {
       return;
@@ -267,7 +267,7 @@ export const ClubMembers = () => {
                         {isClubOwner && (
                           <span className="owner-badge">방장</span>
                         )}
-                        {member.role === 'admin' && !isClubOwner && (
+                        {member.role === 'vice-manager' && (
                           <span className="admin-badge">부매니저</span>
                         )}
                         {member.is_hall_of_fame && (
@@ -311,9 +311,9 @@ export const ClubMembers = () => {
                       <button
                         className="member-action-button secondary"
                         onClick={() => handleRoleChange(member.id, member.user_id, member.role)}
-                        title={member.role === 'admin' ? '일반 회원으로 변경' : '부매니저로 지정'}
+                        title={member.role === 'vice-manager' ? '일반 회원으로 변경' : '부매니저로 지정'}
                       >
-                        {member.role === 'admin' ? (
+                        {member.role === 'vice-manager' ? (
                           <>
                             <User size={16} />
                             <span>회원으로</span>

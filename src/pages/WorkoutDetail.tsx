@@ -148,11 +148,16 @@ export const WorkoutDetail = () => {
   };
 
   const getIntensityLabel = (intensity: number) => {
-    if (intensity <= 2) return '편안함';
-    if (intensity <= 4) return '기분좋음';
-    if (intensity <= 6) return '약간 숨참';
-    if (intensity <= 8) return '힘듬';
-    return '한계 돌파';
+    // 1단계 (1-2): 편안
+    if (intensity <= 2) return '1단계 - 편안';
+    // 2단계 (3-4): 경쾌
+    if (intensity <= 4) return '2단계 - 경쾌';
+    // 3단계 (5-6): 자극
+    if (intensity <= 6) return '3단계 - 자극';
+    // 4단계 (7-8): 고강도
+    if (intensity <= 8) return '4단계 - 고강도';
+    // 5단계 (9-10): 한계돌파
+    return '5단계 - 한계돌파';
   };
 
   const getIntensityColor = (intensity: number) => {
@@ -261,7 +266,7 @@ export const WorkoutDetail = () => {
 
             <div className="detail-section">
               <div className="detail-label">날짜</div>
-              <div className="detail-value">{formatDate(workout.created_at)}</div>
+              <div className="detail-value">{formatDate(workout.workout_time)}</div>
             </div>
 
             <div className="detail-section">
@@ -361,7 +366,7 @@ export const WorkoutDetail = () => {
                   onClick={() => setIntensity(2)}
                 >
                   <div className="difficulty-number">1</div>
-                  <div className="difficulty-label">편안함</div>
+                  <div className="difficulty-label">편안</div>
                 </button>
                 <button
                   type="button"
@@ -369,7 +374,7 @@ export const WorkoutDetail = () => {
                   onClick={() => setIntensity(4)}
                 >
                   <div className="difficulty-number">2</div>
-                  <div className="difficulty-label">기분좋음</div>
+                  <div className="difficulty-label">경쾌</div>
                 </button>
                 <button
                   type="button"
@@ -377,7 +382,7 @@ export const WorkoutDetail = () => {
                   onClick={() => setIntensity(6)}
                 >
                   <div className="difficulty-number">3</div>
-                  <div className="difficulty-label">약간 숨참</div>
+                  <div className="difficulty-label">자극</div>
                 </button>
                 <button
                   type="button"
@@ -385,7 +390,7 @@ export const WorkoutDetail = () => {
                   onClick={() => setIntensity(8)}
                 >
                   <div className="difficulty-number">4</div>
-                  <div className="difficulty-label">힘듬</div>
+                  <div className="difficulty-label">고강도</div>
                 </button>
                 <button
                   type="button"
@@ -393,7 +398,7 @@ export const WorkoutDetail = () => {
                   onClick={() => setIntensity(10)}
                 >
                   <div className="difficulty-number">5</div>
-                  <div className="difficulty-label">한계 돌파</div>
+                  <div className="difficulty-label">한계돌파</div>
                 </button>
               </div>
 

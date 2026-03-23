@@ -148,7 +148,7 @@ export const ClubTransferOwnership = () => {
                     <div className="member-select-info">
                       <div className="member-select-name">{displayName}</div>
                       <div className="member-select-role">
-                        {member.role === 'admin' ? '관리자' : '멤버'}
+                        {member.role === 'manager' ? '방장' : member.role === 'vice-manager' ? '부매니저' : '멤버'}
                       </div>
                     </div>
                     <div className="member-select-radio">

@@ -14,6 +14,7 @@ interface Props {
 export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Props) => {
   const [stats, setStats] = useState<ClubDetailedStats[]>([]);
   const [loading, setLoading] = useState(false);
+  const [workoutKeys, setWorkoutKeys] = useState<string[]>([]);
   const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,8 +24,24 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
   const loadStats = async () => {
     setLoading(true);
     try {
+      // 클럽 정보 조회 (enabled_categories 확인)
+      const club = await clubService.getClubById(clubId);
+      const enabledCategories = club.enabled_categories || [];
+
       const data = await clubService.getClubDetailedStats(clubId, month);
       setStats(data);
+
+      // 모든 운동 종목 키 추출 (마일리지가 있고, enabled_categories에 포함된 것만)
+      const allKeys = new Set<string>();
+      data.forEach(member => {
+        Object.keys(member.by_workout).forEach(key => {
+          // 마일리지가 있고, 클럽에서 활성화된 운동만 포함
+          if (member.by_workout[key] > 0 && enabledCategories.includes(key)) {
+            allKeys.add(key);
+          }
+        });
+      });
+      setWorkoutKeys(Array.from(allKeys).sort());
     } catch (error) {
       console.error('상세 통계 불러오기 실패:', error);
     } finally {
@@ -33,36 +50,14 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
   };
 
   const downloadCSV = () => {
-    const headers = [
-      '순위',
-      '이름',
-      '달리기-트레드밀',
-      '달리기-러닝',
-      '사이클-실외',
-      '사이클-실내',
-      '수영',
-      '계단',
-      '복싱-샌드백/미트',
-      '복싱-스파링',
-      '요가-일반',
-      '요가-빈야사/아쉬탕가',
-      '총 마일리지',
-    ];
+    const headers = ['순위', '이름', '운동일수', ...workoutKeys, '총 마일리지'];
 
     const filteredStats = stats.filter(m => m.total_mileage > 0);
     const rows = filteredStats.map((member) => [
       member.rank,
       member.display_name,
-      member.by_workout['달리기-트레드밀'].toFixed(1),
-      member.by_workout['달리기-러닝'].toFixed(1),
-      member.by_workout['사이클-실외'].toFixed(1),
-      member.by_workout['사이클-실내'].toFixed(1),
-      member.by_workout['수영'].toFixed(1),
-      member.by_workout['계단'].toFixed(1),
-      member.by_workout['복싱-샌드백/미트'].toFixed(1),
-      member.by_workout['복싱-스파링'].toFixed(1),
-      member.by_workout['요가-일반'].toFixed(1),
-      member.by_workout['요가-빈야사/아쉬탕가'].toFixed(1),
+      member.workout_days,
+      ...workoutKeys.map(key => (member.by_workout[key] || 0).toFixed(1)),
       member.total_mileage.toFixed(1),
     ]);
 
@@ -83,10 +78,31 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
     if (!tableRef.current) return;
 
     try {
-      const canvas = await html2canvas(tableRef.current, {
+      // 스크롤 컨테이너 찾기
+      const container = tableRef.current;
+      const originalOverflow = container.style.overflow;
+      const originalHeight = container.style.height;
+      const originalMaxHeight = container.style.maxHeight;
+
+      // 스크롤 제거하고 전체 높이로 확장
+      container.style.overflow = 'visible';
+      container.style.height = 'auto';
+      container.style.maxHeight = 'none';
+
+      const canvas = await html2canvas(container, {
         backgroundColor: '#ffffff',
         scale: 2,
+        scrollY: 0,
+        scrollX: 0,
+        windowWidth: container.scrollWidth,
+        windowHeight: container.scrollHeight,
+        useCORS: true,
       });
+
+      // 스타일 복원
+      container.style.overflow = originalOverflow;
+      container.style.height = originalHeight;
+      container.style.maxHeight = originalMaxHeight;
 
       const link = document.createElement('a');
       link.download = `${clubName}_${month.year}-${month.month}_상세통계.png`;
@@ -142,16 +158,10 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
                     <tr>
                       <th>순위</th>
                       <th>이름</th>
-                      <th>트레드밀</th>
-                      <th>러닝</th>
-                      <th>실외 사이클</th>
-                      <th>실내 사이클</th>
-                      <th>수영</th>
-                      <th>계단</th>
-                      <th>복싱 샌드백</th>
-                      <th>복싱 스파링</th>
-                      <th>요가 일반</th>
-                      <th>요가 빈야사</th>
+                      <th>운동일수</th>
+                      {workoutKeys.map((key) => (
+                        <th key={key}>{key}</th>
+                      ))}
                       <th>총 마일리지</th>
                     </tr>
                   </thead>
@@ -162,16 +172,10 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
                           {member.rank === 1 ? '🥇' : member.rank === 2 ? '🥈' : member.rank === 3 ? '🥉' : member.rank}
                         </td>
                         <td className="name-cell">{member.display_name}</td>
-                        <td>{member.by_workout['달리기-트레드밀'].toFixed(1)}</td>
-                        <td>{member.by_workout['달리기-러닝'].toFixed(1)}</td>
-                        <td>{member.by_workout['사이클-실외'].toFixed(1)}</td>
-                        <td>{member.by_workout['사이클-실내'].toFixed(1)}</td>
-                        <td>{member.by_workout['수영'].toFixed(1)}</td>
-                        <td>{member.by_workout['계단'].toFixed(1)}</td>
-                        <td>{member.by_workout['복싱-샌드백/미트'].toFixed(1)}</td>
-                        <td>{member.by_workout['복싱-스파링'].toFixed(1)}</td>
-                        <td>{member.by_workout['요가-일반'].toFixed(1)}</td>
-                        <td>{member.by_workout['요가-빈야사/아쉬탕가'].toFixed(1)}</td>
+                        <td>{member.workout_days}일</td>
+                        {workoutKeys.map((key) => (
+                          <td key={key}>{(member.by_workout[key] || 0).toFixed(1)}</td>
+                        ))}
                         <td className="total-cell">{member.total_mileage.toFixed(1)}</td>
                       </tr>
                     ))}

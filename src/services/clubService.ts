@@ -18,26 +18,17 @@ export interface Club {
   rejection_reason?: string;
   approved_at?: string;
   approved_by?: string;
+  count_excluded_workouts_in_days?: boolean; // 미산입 운동도 운동일수에 포함할지 여부
 }
 
-export interface MileageConfig {
-  '달리기-트레드밀': number;
-  '달리기-러닝': number;
-  '사이클-실외': number;
-  '사이클-실내': number;
-  '수영': number;
-  '계단': number;
-  '복싱-샌드백/미트': number;
-  '복싱-스파링': number;
-  '요가-일반': number;
-  '요가-빈야사/아쉬탕가': number;
-}
+// 동적 마일리지 설정 (모든 운동 종목 지원)
+export type MileageConfig = Record<string, number>;
 
 export interface ClubMember {
   id: string;
   club_id: string;
   user_id: string;
-  role: 'admin' | 'member';
+  role: 'manager' | 'vice-manager' | 'member';
   joined_at: string;
   display_order: number;
   club_nickname?: string;
@@ -65,6 +56,7 @@ export interface HallOfFame {
 export interface MyClubWithOrder extends Club {
   display_order: number;
   member_id: string;
+  role: 'manager' | 'vice-manager' | 'member';
 }
 
 export interface ClubRanking {
@@ -95,18 +87,8 @@ export interface ClubDetailedStats {
   display_name: string;
   rank: number;
   total_mileage: number;
-  by_workout: {
-    '달리기-트레드밀': number;
-    '달리기-러닝': number;
-    '사이클-실외': number;
-    '사이클-실내': number;
-    '수영': number;
-    '계단': number;
-    '복싱-샌드백/미트': number;
-    '복싱-스파링': number;
-    '요가-일반': number;
-    '요가-빈야사/아쉬탕가': number;
-  };
+  workout_days: number; // 운동일수
+  by_workout: Record<string, number>; // 동적 운동 종목 지원
 }
 
 class ClubService {
@@ -170,7 +152,7 @@ class ClubService {
         invite_code: inviteCode,
         status: 'pending', // 어드민 승인 대기
         enabled_categories: this.getDefaultEnabledCategories(),
-        mileage_config: this.getDefaultMileageConfig(), // 전체 계수 명시적 설정
+        mileage_config: await this.getDefaultMileageConfig(), // 전체 계수 명시적 설정
       })
       .select()
       .single();
@@ -300,7 +282,7 @@ class ClubService {
   async getMyClubs(userId: string): Promise<MyClubWithOrder[]> {
     const { data: members, error } = await supabase
       .from('club_members')
-      .select('id, club_id, display_order')
+      .select('id, club_id, display_order, role')
       .eq('user_id', userId)
       .order('display_order', { ascending: true });
 
@@ -339,6 +321,7 @@ class ClubService {
             ...club,
             display_order: member.display_order,
             member_id: member.id,
+            role: member.role,
           };
         }
         return null;
@@ -380,9 +363,9 @@ class ClubService {
       throw error;
     }
 
-    // 마일리지 계수 자동 보정 (없는 항목은 0으로 설정)
+    // 마일리지 계수 자동 보정 (없는 항목은 기본값으로 설정)
     if (club) {
-      club.mileage_config = this.normalizeMileageConfig(club.mileage_config);
+      club.mileage_config = await this.normalizeMileageConfig(club.mileage_config);
     }
 
     return club;
@@ -451,7 +434,7 @@ class ClubService {
       return false;
     }
 
-    return data?.role === 'admin';
+    return data?.role === 'manager';
   }
 
   // 클럽 가입
@@ -1037,10 +1020,14 @@ class ClubService {
     clubId: string,
     month?: { year: number; month: number }
   ): Promise<ClubDetailedStats[]> {
+    // 클럽 정보 조회 (설정 가져오기)
+    const club = await this.getClubById(clubId);
+    const countExcludedWorkouts = club.count_excluded_workouts_in_days ?? true;
+
     // 클럽 멤버 조회
     const { data: members } = await supabase
       .from('club_members')
-      .select('user_id, club_nickname, club_profile_image')
+      .select('user_id, club_nickname')
       .eq('club_id', clubId);
 
     if (!members || members.length === 0) {
@@ -1049,15 +1036,11 @@ class ClubService {
 
     const userIds = members.map((m) => m.user_id);
 
-    // 닉네임 및 프로필 이미지 맵 생성
+    // 닉네임 맵 생성
     const nicknameMap: Record<string, string> = {};
-    const clubProfileImageMap: Record<string, string> = {};
     members.forEach((m) => {
       if (m.club_nickname) {
         nicknameMap[m.user_id] = m.club_nickname;
-      }
-      if (m.club_profile_image) {
-        clubProfileImageMap[m.user_id] = m.club_profile_image;
       }
     });
 
@@ -1067,18 +1050,21 @@ class ClubService {
       month: new Date().getMonth() + 1,
     };
 
-    // 클럽 마일리지 스냅샷 조회
+    // 클럽 마일리지 스냅샷 조회 (workout_date 포함)
     const { data: mileageData } = await supabase
       .from('club_workout_mileage')
-      .select('user_id, workout_id, mileage')
+      .select('user_id, workout_id, mileage, workout_date')
       .eq('club_id', clubId)
       .eq('year', targetMonth.year)
       .eq('month', targetMonth.month)
       .in('user_id', userIds);
 
-    const workoutIds = (mileageData || []).map(m => m.workout_id);
+    if (!mileageData || mileageData.length === 0) {
+      return [];
+    }
 
-    // 운동 기록 조회 (카테고리 정보 얻기 위해)
+    // workout_id로 운동 종목 조회
+    const workoutIds = Array.from(new Set(mileageData.map(m => m.workout_id)));
     const { data: workouts } = await supabase
       .from('workouts')
       .select('id, category, sub_type')
@@ -1091,40 +1077,43 @@ class ClubService {
       workoutCategoryMap[w.id] = key;
     });
 
-    // 사용자별 운동별 마일리지 집계
+    // 사용자별 통계 집계
     const userStatsMap: Record<
       string,
       {
         total: number;
         byWorkout: Record<string, number>;
+        workoutDates: Set<string>; // 운동한 날짜들 (YYYY-MM-DD)
       }
     > = {};
 
-    (mileageData || []).forEach((record) => {
-      if (!userStatsMap[record.user_id]) {
-        userStatsMap[record.user_id] = {
-          total: 0,
-          byWorkout: {
-            '달리기-트레드밀': 0,
-            '달리기-러닝': 0,
-            '사이클-실외': 0,
-            '사이클-실내': 0,
-            '수영': 0,
-            '계단': 0,
-            '복싱-샌드백/미트': 0,
-            '복싱-스파링': 0,
-            '요가-일반': 0,
-            '요가-빈야사/아쉬탕가': 0,
-          },
-        };
+    // 초기화
+    userIds.forEach(userId => {
+      userStatsMap[userId] = {
+        total: 0,
+        byWorkout: {},
+        workoutDates: new Set(),
+      };
+    });
+
+    // 마일리지 데이터에서 집계
+    mileageData.forEach((record) => {
+      const mileage = record.mileage || 0;
+      const workoutDate = record.workout_date;
+
+      // 운동일수 집계 (미산입 운동 포함 여부 확인)
+      if (workoutDate && (countExcludedWorkouts || mileage > 0)) {
+        userStatsMap[record.user_id].workoutDates.add(workoutDate);
       }
 
-      const key = workoutCategoryMap[record.workout_id];
-      if (!key) return;
-
-      userStatsMap[record.user_id].total += record.mileage;
-      if (userStatsMap[record.user_id].byWorkout[key] !== undefined) {
-        userStatsMap[record.user_id].byWorkout[key] += record.mileage;
+      // 마일리지가 있는 운동만 집계
+      if (mileage > 0) {
+        const category = workoutCategoryMap[record.workout_id];
+        if (category) {
+          userStatsMap[record.user_id].total += mileage;
+          userStatsMap[record.user_id].byWorkout[category] =
+            (userStatsMap[record.user_id].byWorkout[category] || 0) + mileage;
+        }
       }
     });
 
@@ -1142,19 +1131,9 @@ class ClubService {
           user_id: user.id,
           display_name: nicknameMap[user.id] || user.display_name,
           rank: 0,
-          total_mileage: userStats?.total || 0,
-          by_workout: {
-            '달리기-트레드밀': userStats?.byWorkout['달리기-트레드밀'] || 0,
-            '달리기-러닝': userStats?.byWorkout['달리기-러닝'] || 0,
-            '사이클-실외': userStats?.byWorkout['사이클-실외'] || 0,
-            '사이클-실내': userStats?.byWorkout['사이클-실내'] || 0,
-            '수영': userStats?.byWorkout['수영'] || 0,
-            '계단': userStats?.byWorkout['계단'] || 0,
-            '복싱-샌드백/미트': userStats?.byWorkout['복싱-샌드백/미트'] || 0,
-            '복싱-스파링': userStats?.byWorkout['복싱-스파링'] || 0,
-            '요가-일반': userStats?.byWorkout['요가-일반'] || 0,
-            '요가-빈야사/아쉬탕가': userStats?.byWorkout['요가-빈야사/아쉬탕가'] || 0,
-          },
+          total_mileage: userStats.total,
+          workout_days: userStats.workoutDates.size,
+          by_workout: userStats.byWorkout,
         };
       })
       .sort((a, b) => b.total_mileage - a.total_mileage)
@@ -1164,25 +1143,51 @@ class ClubService {
   }
 
   // 기본 마일리지 계수 (나눗셈 방식: X km/m/층/분 당 1 마일리지)
-  getDefaultMileageConfig(): MileageConfig {
-    return {
-      '달리기-트레드밀': 1,      // 1km당 1 마일리지
-      '달리기-러닝': 1,          // 1km당 1 마일리지
-      '사이클-실외': 3,          // 3km당 1 마일리지
-      '사이클-실내': 5,          // 5km당 1 마일리지
-      '수영': 200,               // 200m당 1 마일리지
-      '계단': 20,                // 20층당 1 마일리지
-      '복싱-샌드백/미트': 1.78,  // 1.78분당 1 마일리지 (5.5 MET)
-      '복싱-스파링': 0.77,       // 0.77분당 1 마일리지 (12.8 MET)
-      '요가-일반': 3.27,         // 3.27분당 1 마일리지 (3 MET)
-      '요가-빈야사/아쉬탕가': 2.45, // 2.45분당 1 마일리지 (4 MET)
-    };
+  // 동적으로 workout_types에서 로드하되, 기본값 제공
+  async getDefaultMileageConfig(): Promise<MileageConfig> {
+    const config: MileageConfig = {};
+
+    try {
+      // workout_types 테이블에서 모든 운동 종목 조회
+      const workoutTypes = await import('./workoutTypeService').then(m => m.default.getActiveWorkoutTypes());
+
+      // 각 운동 종목과 세부타입에 대한 기본 계수 생성
+      for (const type of workoutTypes) {
+        if (type.sub_types && type.sub_types.length > 0) {
+          // 세부타입이 있는 경우
+          for (const subType of type.sub_types) {
+            const key = `${type.name}-${subType}`;
+            config[key] = 1; // 기본값 1
+          }
+        } else {
+          // 세부타입이 없는 경우
+          config[type.name] = 1; // 기본값 1
+        }
+      }
+    } catch (error) {
+      console.error('workout_types 로드 실패, 하드코딩 기본값 사용:', error);
+      // 폴백: 기존 하드코딩 값
+      return {
+        '달리기-트레드밀': 1,
+        '달리기-러닝': 1,
+        '사이클-실외': 3,
+        '사이클-실내': 5,
+        '수영': 200,
+        '계단': 20,
+        '복싱-샌드백/미트': 1.78,
+        '복싱-스파링': 0.77,
+        '요가-일반': 3.27,
+        '요가-빈야사/아쉬탕가': 2.45,
+      };
+    }
+
+    return config;
   }
 
   // 불완전한 마일리지 계수 보정 (새 운동 타입 자동 대응)
   // 기존 클럽이 없는 항목은 0으로 설정 (비활성화)
-  normalizeMileageConfig(partialConfig?: Partial<MileageConfig> | null): MileageConfig {
-    const defaultConfig = this.getDefaultMileageConfig();
+  async normalizeMileageConfig(partialConfig?: Partial<MileageConfig> | null): Promise<MileageConfig> {
+    const defaultConfig = await this.getDefaultMileageConfig();
 
     if (!partialConfig) {
       return defaultConfig;
@@ -1194,10 +1199,20 @@ class ClubService {
     for (const key in normalized) {
       if (key in partialConfig) {
         // 기존 클럽이 가지고 있던 값 유지
-        normalized[key as keyof MileageConfig] = partialConfig[key as keyof MileageConfig] as number;
+        normalized[key] = partialConfig[key] as number;
       } else {
-        // 없는 항목은 0으로 설정 (비활성화 개념)
-        normalized[key as keyof MileageConfig] = 0;
+        // 없는 항목은 기본값 유지 (새로운 운동 종목)
+        // 기존 항목인데 partialConfig에 없으면 0 (비활성화)
+        if (!(key in partialConfig)) {
+          normalized[key] = defaultConfig[key] || 0;
+        }
+      }
+    }
+
+    // partialConfig에 있지만 defaultConfig에 없는 항목도 유지 (이전 운동 종목)
+    for (const key in partialConfig) {
+      if (!(key in normalized)) {
+        normalized[key] = partialConfig[key] as number;
       }
     }
 
@@ -1233,7 +1248,8 @@ class ClubService {
     mileageConfig?: MileageConfig,
     ratios?: Record<string, number>
   ): number {
-    const config = mileageConfig || this.getDefaultMileageConfig();
+    // config가 없으면 빈 객체 사용 (모든 키는 기본값 1 사용)
+    const config = mileageConfig || {};
 
     // 비율이 있는 경우: 각 서브타입의 마일리지를 비율에 따라 합산
     // 예: 요가 60분, 일반 40% + 빈야사 60%
@@ -1247,7 +1263,7 @@ class ClubService {
       let totalMileage = 0;
       for (const [subTypeName, ratio] of Object.entries(ratios)) {
         const key = `${category}-${subTypeName}`;
-        const coefficient = config[key as keyof MileageConfig] || 1;
+        const coefficient = config[key] || 1;
         const partialMileage = (value * ratio) / coefficient;
 
         console.log(`  - ${subTypeName}: (${value} × ${ratio}) / ${coefficient} = ${partialMileage.toFixed(4)}`);
@@ -1261,7 +1277,7 @@ class ClubService {
 
     // 비율이 없는 경우: 기존 방식 (단일 서브타입)
     const key = subType ? `${category}-${subType}` : category;
-    const coefficient = config[key as keyof MileageConfig] || 1;
+    const coefficient = config[key] || 1;
     // 나눗셈 방식: 거리 / 계수 = 마일리지
     // 예: 3km / 3 = 1 마일리지
     return value / coefficient;
@@ -1420,7 +1436,7 @@ class ClubService {
 
     if (filteredMembers.length === 0) return [];
 
-    // 2) 해당 날짜 운동 조회 (created_at ASC)
+    // 2) 해당 날짜 운동 조회 (workout_time ASC)
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
@@ -1433,9 +1449,9 @@ class ClubService {
         'user_id',
         filteredMembers.map((m) => m.user_id)
       )
-      .gte('created_at', startOfDay.toISOString())
-      .lte('created_at', endOfDay.toISOString())
-      .order('created_at', { ascending: true });
+      .gte('workout_time', startOfDay.toISOString())
+      .lte('workout_time', endOfDay.toISOString())
+      .order('workout_time', { ascending: true });
 
     if (!workouts || workouts.length === 0) return [];
 
@@ -1642,7 +1658,7 @@ class ClubService {
     }
   ): Promise<void> {
     const club = await this.getClubById(clubId);
-    const mileageConfig = club.mileage_config || this.getDefaultMileageConfig();
+    const mileageConfig = club.mileage_config || await this.getDefaultMileageConfig();
 
     const mileage = this.calculateMileage(
       workout.category,
@@ -1731,7 +1747,7 @@ class ClubService {
     console.log(`🔄 클럽 ${clubId} ${year}년 ${month}월 마일리지 재계산 시작...`);
 
     const club = await this.getClubById(clubId);
-    const mileageConfig = club.mileage_config || this.getDefaultMileageConfig();
+    const mileageConfig = club.mileage_config || await this.getDefaultMileageConfig();
 
     // 해당 월의 모든 클럽 멤버 조회
     const { data: members } = await supabase
@@ -1746,16 +1762,16 @@ class ClubService {
 
     const userIds = members.map(m => m.user_id);
 
-    // 해당 월의 모든 운동 기록 조회
+    // 해당 월의 모든 운동 기록 조회 (workout_time 기준)
     const startDate = new Date(year, month - 1, 1).toISOString();
     const endDate = new Date(year, month, 1).toISOString();
 
     const { data: workouts } = await supabase
       .from('workouts')
-      .select('id, user_id, category, sub_type, value, created_at, sub_type_ratios')
+      .select('id, user_id, category, sub_type, value, workout_time, created_at, sub_type_ratios')
       .in('user_id', userIds)
-      .gte('created_at', startDate)
-      .lt('created_at', endDate);
+      .gte('workout_time', startDate)
+      .lt('workout_time', endDate);
 
     if (!workouts || workouts.length === 0) {
       console.log('운동 기록 없음');
@@ -1781,6 +1797,7 @@ class ClubService {
           mileage,
           year,
           month,
+          workout_date: new Date(workout.workout_time).toISOString().split('T')[0], // YYYY-MM-DD
           mileage_config_snapshot: mileageConfig,
         }, {
           onConflict: 'club_id,workout_id'

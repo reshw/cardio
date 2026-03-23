@@ -374,17 +374,11 @@ export const WorkoutFeedCard = ({
             <span className="feed-workout-type-v2">{getWorkoutLabel()}</span>
           </div>
 
-          {/* 둘째 줄: 데이터 + 강도 + 좋아요/댓글 */}
+          {/* 둘째 줄: 데이터 + 좋아요/댓글 */}
           <div className="feed-data-line">
             <div className="feed-workout-value-v2" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>
               {workout.value} {workout.unit}
             </div>
-            <span
-              className="feed-intensity-badge-v2"
-              style={{ backgroundColor: getIntensityColor(workout.intensity) }}
-            >
-              {getIntensityLabel(workout.intensity)}
-            </span>
             <div className="feed-actions-v2">
               <button
                 className={`feed-action-btn-v2 ${item.is_liked_by_me ? 'liked' : ''}`}

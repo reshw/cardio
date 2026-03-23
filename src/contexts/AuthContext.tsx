@@ -11,6 +11,7 @@ interface User {
   provider?: string;
   profile_image?: string;
   is_admin?: boolean;
+  is_super_admin?: boolean;
 }
 
 interface AuthContextType {

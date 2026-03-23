@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
@@ -8,7 +8,7 @@ import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
 import { WorkoutFeed } from '../components/WorkoutFeed';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
-import { Share2, Menu, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User } from 'lucide-react';
+import { Share2, Menu, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -325,6 +325,30 @@ export const Club = () => {
       });
       return updated;
     });
+  };
+
+  // 마일리지 재계산
+  const handleRecalculateMileage = async () => {
+    if (!selectedClub) return;
+
+    if (!confirm('현재 월의 모든 운동 기록 마일리지를 재계산하시겠습니까?\n\n현재 클럽의 마일리지 계수로 전체 재계산됩니다.')) {
+      return;
+    }
+
+    try {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+
+      await clubService.recalculateClubMonthMileage(selectedClub.id, year, month);
+      alert('마일리지 재계산이 완료되었습니다.');
+
+      // 랭킹 새로고침
+      loadClubRanking(selectedClub.id);
+    } catch (error) {
+      console.error('마일리지 재계산 실패:', error);
+      alert('마일리지 재계산에 실패했습니다.');
+    }
   };
 
   useEffect(() => {
@@ -705,7 +729,7 @@ export const Club = () => {
                 };
 
                 return (
-                  <>
+                  <React.Fragment key={member.user_id}>
                     {showEllipsisBefore && (
                       <div className="ranking-ellipsis">
                         <div className="ellipsis-line"></div>
@@ -714,7 +738,6 @@ export const Club = () => {
                       </div>
                     )}
                     <div
-                      key={member.user_id}
                       className={`ranking-item clickable ${member.is_hall_of_fame ? 'hof-highlight' : ''} ${isMyRank ? 'my-rank' : ''}`}
                       style={{
                         background: member.is_hall_of_fame
@@ -775,7 +798,7 @@ export const Club = () => {
                       </>
                     )}
                   </div>
-                  </>
+                  </React.Fragment>
                 );
               })}
               {showEllipsis2 && (
@@ -887,6 +910,23 @@ export const Club = () => {
                     <div className="more-menu-desc">클럽원 목록 및 관리</div>
                   </div>
                 </button>
+
+                {/* 마일리지 재계산 - 매니저/부매니저만 */}
+                {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
+                  <button
+                    className="more-menu-item"
+                    onClick={() => {
+                      setShowClubMenu(false);
+                      handleRecalculateMileage();
+                    }}
+                  >
+                    <RefreshCw size={20} />
+                    <div className="more-menu-text">
+                      <div className="more-menu-title">마일리지 재계산</div>
+                      <div className="more-menu-desc">현재 월 전체 마일리지 새로고침</div>
+                    </div>
+                  </button>
+                )}
 
                 {user && selectedClub.created_by === user.id && (
                   <>

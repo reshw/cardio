@@ -17,9 +17,9 @@ export const AdminUserManagement = () => {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    // 어드민 권한 확인
-    if (!currentUser?.is_admin) {
-      alert('접근 권한이 없습니다.');
+    // 슈퍼어드민 권한 확인
+    if (!currentUser?.is_super_admin) {
+      alert('슈퍼어드민만 접근할 수 있습니다.');
       navigate('/admin');
       return;
     }
@@ -77,9 +77,32 @@ export const AdminUserManagement = () => {
     }
   };
 
+  const handleToggleAdmin = async (user: User) => {
+    if (user.is_super_admin) {
+      alert('슈퍼어드민은 권한을 변경할 수 없습니다.');
+      return;
+    }
+
+    const newStatus = !user.is_admin;
+    const action = newStatus ? '지정' : '해제';
+
+    if (!confirm(`${user.display_name}님을 어드민으로 ${action}하시겠습니까?\n\n어드민은 클럽 승인과 운동 종목 관리 권한을 갖게 됩니다.`)) {
+      return;
+    }
+
+    try {
+      await userService.setAdmin(user.id, newStatus);
+      alert(`어드민 ${action}이 완료되었습니다.`);
+      loadUsers();
+    } catch (error) {
+      console.error('어드민 설정 실패:', error);
+      alert('어드민 설정에 실패했습니다.');
+    }
+  };
+
   const handleToggleSubAdmin = async (user: User) => {
-    if (user.is_admin) {
-      alert('슈퍼 어드민은 부어드민 설정을 변경할 수 없습니다.');
+    if (user.is_admin || user.is_super_admin) {
+      alert('어드민은 부어드민 설정을 변경할 수 없습니다.');
       return;
     }
 
@@ -169,8 +192,11 @@ export const AdminUserManagement = () => {
                   <div className="user-info">
                     <div className="user-name">
                       {user.display_name}
-                      {user.is_admin && (
-                        <span className="badge badge-admin">슈퍼 어드민</span>
+                      {user.is_super_admin && (
+                        <span className="badge badge-super-admin">슈퍼어드민</span>
+                      )}
+                      {user.is_admin && !user.is_super_admin && (
+                        <span className="badge badge-admin">어드민</span>
                       )}
                       {user.is_sub_admin && !user.is_admin && (
                         <span className="badge badge-sub-admin">부어드민</span>
@@ -186,8 +212,20 @@ export const AdminUserManagement = () => {
                   </div>
 
                   <div className="user-actions">
+                    {/* 어드민 지정/해제 */}
+                    {!user.is_super_admin && (
+                      <button
+                        className={`btn-icon ${user.is_admin ? 'active' : ''}`}
+                        onClick={() => handleToggleAdmin(user)}
+                        title={user.is_admin ? '어드민 해제' : '어드민 지정'}
+                        style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '6px' }}
+                      >
+                        {user.is_admin ? '🛡️ 어드민' : '어드민'}
+                      </button>
+                    )}
+
                     {/* 부어드민 지정/해제 */}
-                    {!user.is_admin && (
+                    {!user.is_admin && !user.is_super_admin && (
                       <button
                         className={`btn-icon ${user.is_sub_admin ? 'active' : ''}`}
                         onClick={() => handleToggleSubAdmin(user)}
@@ -202,7 +240,7 @@ export const AdminUserManagement = () => {
                     )}
 
                     {/* 강제 탈퇴 */}
-                    {user.id !== currentUser?.id && !user.is_admin && (
+                    {user.id !== currentUser?.id && !user.is_admin && !user.is_super_admin && (
                       <button
                         className="btn-icon btn-danger"
                         onClick={() => {

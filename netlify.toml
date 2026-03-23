@@ -7,4 +7,14 @@
   NODE_VERSION = "22"
   SECRETS_SCAN_SMART_DETECTION_ENABLED = "true"
 
+# Master 브랜치 (production): console.log 제거
+[context.production]
+  [context.production.environment]
+    NODE_ENV = "production"
+
+# Dev 브랜치: console.log 유지
+[context.dev]
+  [context.dev.environment]
+    NODE_ENV = "development"
+
 # Redirects are now handled by public/_redirects file

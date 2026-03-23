@@ -2,10 +2,53 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import clubService from '../services/clubService';
+import workoutTypeService from '../services/workoutTypeService';
 import type { MileageConfig } from '../services/clubService';
+import type { WorkoutType } from '../services/workoutTypeService';
+
+// 운동 종목을 마일리지 설정 카테고리로 변환
+interface WorkoutCategory {
+  key: string;
+  label: string;
+  emoji: string;
+  unit: string;
+  is_core: boolean;
+}
+
+const getWorkoutCategories = (workoutTypes: WorkoutType[]): WorkoutCategory[] => {
+  const categories: WorkoutCategory[] = [];
+
+  for (const type of workoutTypes) {
+    if (type.sub_types && type.sub_types.length > 0) {
+      // 세부타입이 있는 경우
+      for (const subType of type.sub_types) {
+        categories.push({
+          key: `${type.name}-${subType}`,
+          label: `${type.name} - ${subType}`,
+          emoji: type.emoji,
+          unit: type.unit,
+          is_core: type.is_core || false,
+        });
+      }
+    } else {
+      // 세부타입이 없는 경우
+      categories.push({
+        key: type.name,
+        label: type.name,
+        emoji: type.emoji,
+        unit: type.unit,
+        is_core: type.is_core || false,
+      });
+    }
+  }
+
+  return categories;
+};
 
 // 마일리지 계산 예시 생성 (나눗셈 방식)
 const getExplanation = (coefficient: number, unit: string = 'km'): string => {
+  // undefined 또는 null 체크
+  if (coefficient == null || isNaN(coefficient)) return '설정 필요';
   if (coefficient === 0) return '마일리지 없음';
 
   // 나눗셈 방식: coefficient 자체가 "X 단위당 1 마일리지"
@@ -32,19 +75,36 @@ export const ClubMileageSettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
   const navigate = useNavigate();
 
-  const [mileageConfig, setMileageConfig] = useState<MileageConfig>(
-    clubService.getDefaultMileageConfig()
-  );
+  const [mileageConfig, setMileageConfig] = useState<MileageConfig>({});
   const [enabledCategories, setEnabledCategories] = useState<string[]>([]);
   const [updating, setUpdating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+  // 동적 운동 종목
+  const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
+  const [workoutCategories, setWorkoutCategories] = useState<WorkoutCategory[]>([]);
+  const [showOtherWorkouts, setShowOtherWorkouts] = useState(false);
+
   useEffect(() => {
-    if (clubId) {
+    loadWorkoutTypes();
+  }, []);
+
+  useEffect(() => {
+    if (clubId && workoutCategories.length > 0) {
       loadClub();
     }
-  }, [clubId]);
+  }, [clubId, workoutCategories]);
+
+  const loadWorkoutTypes = async () => {
+    try {
+      const types = await workoutTypeService.getActiveWorkoutTypes(); // 활성화된 운동만
+      setWorkoutTypes(types);
+      setWorkoutCategories(getWorkoutCategories(types));
+    } catch (error) {
+      console.error('운동 종목 로드 실패:', error);
+    }
+  };
 
   const loadClub = async () => {
     if (!clubId) return;
@@ -52,7 +112,7 @@ export const ClubMileageSettings = () => {
     setLoading(true);
     try {
       const club = await clubService.getClubById(clubId);
-      setMileageConfig(club.mileage_config || clubService.getDefaultMileageConfig());
+      setMileageConfig(club.mileage_config || await clubService.getDefaultMileageConfig());
       setEnabledCategories(club.enabled_categories || clubService.getAllCategories());
     } catch (error) {
       console.error('클럽 정보 불러오기 실패:', error);
@@ -145,33 +205,74 @@ export const ClubMileageSettings = () => {
           </p>
 
           <div className="category-checkboxes">
-            {Object.entries({
-              '달리기-트레드밀': '🏃 달리기 - 트레드밀',
-              '달리기-러닝': '🏃‍♂️ 달리기 - 러닝',
-              '사이클-실외': '🚴 사이클 - 실외',
-              '사이클-실내': '🚴‍♀️ 사이클 - 실내',
-              '수영': '🏊 수영',
-              '계단': '🪜 계단',
-              '복싱-샌드백/미트': '🥊 복싱 - 샌드백/미트',
-              '복싱-스파링': '🥊 복싱 - 스파링',
-              '요가-일반': '🧘 요가 - 일반',
-              '요가-빈야사/아쉬탕가': '🧘‍♀️ 요가 - 빈야사/아쉬탕가',
-            }).map(([key, label]) => (
-              <label key={key} className="category-checkbox-item">
-                <input
-                  type="checkbox"
-                  checked={enabledCategories.includes(key)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setEnabledCategories([...enabledCategories, key]);
-                    } else {
-                      setEnabledCategories(enabledCategories.filter((k) => k !== key));
-                    }
+            {/* 기본운동 */}
+            <div style={{ marginBottom: '16px' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', color: 'var(--primary-color)' }}>
+                ⭐ 기본운동
+              </h4>
+              {workoutCategories.filter(c => c.is_core).map((category) => (
+                <label key={category.key} className="category-checkbox-item">
+                  <input
+                    type="checkbox"
+                    checked={enabledCategories.includes(category.key)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setEnabledCategories([...enabledCategories, category.key]);
+                      } else {
+                        setEnabledCategories(enabledCategories.filter((k) => k !== category.key));
+                      }
+                    }}
+                  />
+                  <span>{category.emoji} {category.label}</span>
+                </label>
+              ))}
+            </div>
+
+            {/* 기타운동 (접기/펼치기) */}
+            {workoutCategories.filter(c => !c.is_core).length > 0 && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowOtherWorkouts(!showOtherWorkouts)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    marginBottom: showOtherWorkouts ? '12px' : '0',
                   }}
-                />
-                <span>{label}</span>
-              </label>
-            ))}
+                >
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                    📦 기타운동
+                  </span>
+                  <span style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>
+                    {showOtherWorkouts ? '▼' : '▶'}
+                  </span>
+                </button>
+
+                {showOtherWorkouts && workoutCategories.filter(c => !c.is_core).map((category) => (
+                  <label key={category.key} className="category-checkbox-item">
+                    <input
+                      type="checkbox"
+                      checked={enabledCategories.includes(category.key)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setEnabledCategories([...enabledCategories, category.key]);
+                        } else {
+                          setEnabledCategories(enabledCategories.filter((k) => k !== category.key));
+                        }
+                      }}
+                    />
+                    <span>{category.emoji} {category.label}</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -183,195 +284,33 @@ export const ClubMileageSettings = () => {
         </div>
 
         <div className="mileage-edit-list">
-          <div className="mileage-edit-item">
-            <div className="mileage-edit-header">
-              <span className="mileage-edit-emoji">🏃</span>
-              <label>달리기 - 트레드밀</label>
-            </div>
-            <input
-              type="number"
-              step="0.1"
-              min="0.1"
-              value={mileageConfig['달리기-트레드밀']}
-              onChange={(e) => handleMileageChange('달리기-트레드밀', e.target.value)}
-              className="mileage-input"
-              placeholder="예: 3 (3km당 1 마일리지)"
-            />
-            <div className="mileage-edit-preview">
-              {getExplanation(mileageConfig['달리기-트레드밀'], 'km')}
-            </div>
-          </div>
+          {workoutCategories.map((category) => {
+            if (!enabledCategories.includes(category.key)) return null;
 
-          <div className="mileage-edit-item">
-            <div className="mileage-edit-header">
-              <span className="mileage-edit-emoji">🏃‍♂️</span>
-              <label>달리기 - 러닝</label>
-            </div>
-            <input
-              type="number"
-              step="0.1"
-              min="0.1"
-              value={mileageConfig['달리기-러닝']}
-              onChange={(e) => handleMileageChange('달리기-러닝', e.target.value)}
-              className="mileage-input"
-              placeholder="예: 1 (1km당 1 마일리지)"
-            />
-            <div className="mileage-edit-preview">
-              {getExplanation(mileageConfig['달리기-러닝'], 'km')}
-            </div>
-          </div>
+            const step = category.unit === '분' ? 0.01 : 0.1;
+            const unitLabel = category.unit === 'km' ? 'km' : category.unit === 'm' ? 'm' : category.unit === '분' ? '분' : '층';
 
-          <div className="mileage-edit-item">
-            <div className="mileage-edit-header">
-              <span className="mileage-edit-emoji">🚴</span>
-              <label>사이클 - 실외</label>
-            </div>
-            <input
-              type="number"
-              step="0.1"
-              min="0.1"
-              value={mileageConfig['사이클-실외']}
-              onChange={(e) => handleMileageChange('사이클-실외', e.target.value)}
-              className="mileage-input"
-              placeholder="예: 5 (5km당 1 마일리지)"
-            />
-            <div className="mileage-edit-preview">
-              {getExplanation(mileageConfig['사이클-실외'], 'km')}
-            </div>
-          </div>
-
-          <div className="mileage-edit-item">
-            <div className="mileage-edit-header">
-              <span className="mileage-edit-emoji">🚴‍♀️</span>
-              <label>사이클 - 실내</label>
-            </div>
-            <input
-              type="number"
-              step="0.1"
-              min="0.1"
-              value={mileageConfig['사이클-실내']}
-              onChange={(e) => handleMileageChange('사이클-실내', e.target.value)}
-              className="mileage-input"
-              placeholder="예: 7 (7km당 1 마일리지)"
-            />
-            <div className="mileage-edit-preview">
-              {getExplanation(mileageConfig['사이클-실내'], 'km')}
-            </div>
-          </div>
-
-          <div className="mileage-edit-item">
-            <div className="mileage-edit-header">
-              <span className="mileage-edit-emoji">🏊</span>
-              <label>수영</label>
-            </div>
-            <input
-              type="number"
-              step="0.1"
-              min="0.1"
-              value={mileageConfig['수영']}
-              onChange={(e) => handleMileageChange('수영', e.target.value)}
-              className="mileage-input"
-              placeholder="예: 200 (200m당 1 마일리지)"
-            />
-            <div className="mileage-edit-preview">
-              {getExplanation(mileageConfig['수영'], 'm')}
-            </div>
-          </div>
-
-          <div className="mileage-edit-item">
-            <div className="mileage-edit-header">
-              <span className="mileage-edit-emoji">🪜</span>
-              <label>계단</label>
-            </div>
-            <input
-              type="number"
-              step="0.1"
-              min="0.1"
-              value={mileageConfig['계단']}
-              onChange={(e) => handleMileageChange('계단', e.target.value)}
-              className="mileage-input"
-              placeholder="예: 20 (20층당 1 마일리지)"
-            />
-            <div className="mileage-edit-preview">
-              {getExplanation(mileageConfig['계단'], '층')}
-            </div>
-          </div>
-
-          <div className="mileage-edit-item">
-            <div className="mileage-edit-header">
-              <span className="mileage-edit-emoji">🥊</span>
-              <label>복싱 - 샌드백/미트</label>
-            </div>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={mileageConfig['복싱-샌드백/미트']}
-              onChange={(e) => handleMileageChange('복싱-샌드백/미트', e.target.value)}
-              className="mileage-input"
-              placeholder="예: 1.78 (1.78분당 1 마일리지)"
-            />
-            <div className="mileage-edit-preview">
-              {getExplanation(mileageConfig['복싱-샌드백/미트'], '분')}
-            </div>
-          </div>
-
-          <div className="mileage-edit-item">
-            <div className="mileage-edit-header">
-              <span className="mileage-edit-emoji">🥊</span>
-              <label>복싱 - 스파링</label>
-            </div>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={mileageConfig['복싱-스파링']}
-              onChange={(e) => handleMileageChange('복싱-스파링', e.target.value)}
-              className="mileage-input"
-              placeholder="예: 0.77 (0.77분당 1 마일리지)"
-            />
-            <div className="mileage-edit-preview">
-              {getExplanation(mileageConfig['복싱-스파링'], '분')}
-            </div>
-          </div>
-
-          <div className="mileage-edit-item">
-            <div className="mileage-edit-header">
-              <span className="mileage-edit-emoji">🧘</span>
-              <label>요가 - 일반</label>
-            </div>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={mileageConfig['요가-일반']}
-              onChange={(e) => handleMileageChange('요가-일반', e.target.value)}
-              className="mileage-input"
-              placeholder="예: 3.27 (3.27분당 1 마일리지)"
-            />
-            <div className="mileage-edit-preview">
-              {getExplanation(mileageConfig['요가-일반'], '분')}
-            </div>
-          </div>
-
-          <div className="mileage-edit-item">
-            <div className="mileage-edit-header">
-              <span className="mileage-edit-emoji">🧘</span>
-              <label>요가 - 빈야사/아쉬탕가</label>
-            </div>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={mileageConfig['요가-빈야사/아쉬탕가']}
-              onChange={(e) => handleMileageChange('요가-빈야사/아쉬탕가', e.target.value)}
-              className="mileage-input"
-              placeholder="예: 2.45 (2.45분당 1 마일리지)"
-            />
-            <div className="mileage-edit-preview">
-              {getExplanation(mileageConfig['요가-빈야사/아쉬탕가'], '분')}
-            </div>
-          </div>
+            return (
+              <div key={category.key} className="mileage-edit-item">
+                <div className="mileage-edit-header">
+                  <span className="mileage-edit-emoji">{category.emoji}</span>
+                  <label>{category.label}</label>
+                </div>
+                <input
+                  type="number"
+                  step={step}
+                  min={step}
+                  value={mileageConfig[category.key as keyof MileageConfig] ?? ''}
+                  onChange={(e) => handleMileageChange(category.key as keyof MileageConfig, e.target.value)}
+                  className="mileage-input"
+                  placeholder={`${unitLabel}당 1 마일리지`}
+                />
+                <div className="mileage-edit-preview">
+                  {getExplanation(mileageConfig[category.key as keyof MileageConfig], category.unit)}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <button type="submit" className="primary-button-full" disabled={updating}>

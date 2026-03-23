@@ -5,6 +5,7 @@ interface AdminUser {
   email: string;
   display_name: string;
   is_admin: boolean;
+  is_super_admin: boolean;
 }
 
 export interface User {
@@ -14,6 +15,7 @@ export interface User {
   profile_image?: string;
   phone_number?: string;
   is_admin: boolean;
+  is_super_admin: boolean;
   is_sub_admin: boolean;
   created_at: string;
   last_login?: string;
@@ -24,7 +26,7 @@ class UserService {
   async getAdminUsers(): Promise<AdminUser[]> {
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, display_name, is_admin')
+      .select('id, email, display_name, is_admin, is_super_admin')
       .eq('is_admin', true);
 
     if (error) {
@@ -88,6 +90,19 @@ class UserService {
     }
 
     console.log('✅ users 테이블에서 삭제 완료');
+  }
+
+  // 어드민 지정/해제
+  async setAdmin(userId: string, isAdmin: boolean): Promise<void> {
+    const { error } = await supabase
+      .from('users')
+      .update({ is_admin: isAdmin })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('어드민 설정 실패:', error);
+      throw error;
+    }
   }
 
   // 부어드민 지정/해제

@@ -39,9 +39,13 @@ export const History = () => {
   // 날짜 포맷팅
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
+
+    // 오늘, 어제 판단을 위해 날짜만 비교 (시간 제거)
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const workoutDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffTime = today.getTime() - workoutDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) {
       return `오늘 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
@@ -69,7 +73,7 @@ export const History = () => {
   // 특정 날짜에 운동이 있는지 확인
   const hasWorkoutOnDate = (date: Date) => {
     return workouts.some((workout) => {
-      const workoutDate = new Date(workout.created_at);
+      const workoutDate = new Date(workout.workout_time);
       return (
         workoutDate.getFullYear() === date.getFullYear() &&
         workoutDate.getMonth() === date.getMonth() &&
@@ -81,7 +85,7 @@ export const History = () => {
   // 특정 날짜의 운동 목록
   const getWorkoutsOnDate = (date: Date) => {
     return workouts.filter((workout) => {
-      const workoutDate = new Date(workout.created_at);
+      const workoutDate = new Date(workout.workout_time);
       return (
         workoutDate.getFullYear() === date.getFullYear() &&
         workoutDate.getMonth() === date.getMonth() &&
@@ -97,7 +101,7 @@ export const History = () => {
     const currentYear = now.getFullYear();
 
     const monthWorkouts = workouts.filter((workout) => {
-      const workoutDate = new Date(workout.created_at);
+      const workoutDate = new Date(workout.workout_time);
       return (
         workoutDate.getMonth() === currentMonth &&
         workoutDate.getFullYear() === currentYear
@@ -109,7 +113,7 @@ export const History = () => {
       .reduce((sum, w) => sum + w.value, 0);
 
     const uniqueDays = new Set(
-      monthWorkouts.map((w) => new Date(w.created_at).toDateString())
+      monthWorkouts.map((w) => new Date(w.workout_time).toDateString())
     ).size;
 
     const categoryCount: Record<string, number> = {};
@@ -200,7 +204,7 @@ export const History = () => {
                         </div>
                         <div className="workout-item-right">
                           <div className="workout-date">
-                            {formatDate(workout.created_at)}
+                            {formatDate(workout.workout_time)}
                           </div>
                         </div>
                       </div>
@@ -251,7 +255,7 @@ export const History = () => {
                     </div>
                     <div className="workout-item-right">
                       <div className="workout-date">
-                        {formatDate(workout.created_at)}
+                        {formatDate(workout.workout_time)}
                       </div>
                     </div>
                   </div>

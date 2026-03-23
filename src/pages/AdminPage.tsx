@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ChevronLeft, Shield, CheckCircle, ChevronRight, Users } from 'lucide-react';
+import { ChevronLeft, Shield, CheckCircle, ChevronRight, Users, Activity } from 'lucide-react';
 
 export const AdminPage = () => {
   const navigate = useNavigate();
@@ -16,7 +16,8 @@ export const AdminPage = () => {
     }
   }, [user, navigate]);
 
-  const menuItems = [
+  // 일반 어드민 메뉴
+  const adminMenuItems = [
     {
       icon: <CheckCircle size={24} />,
       title: '클럽 생성 승인',
@@ -24,13 +25,26 @@ export const AdminPage = () => {
       path: '/admin/club-approval',
     },
     {
+      icon: <Activity size={24} />,
+      title: '운동 종목 관리',
+      description: '운동 목록 추가/수정/삭제, 순서 변경',
+      path: '/admin/workout-types',
+    },
+  ];
+
+  // 슈퍼어드민 전용 메뉴
+  const superAdminMenuItems = [
+    {
       icon: <Users size={24} />,
       title: '회원 관리',
-      description: '회원 목록 조회, 강제 탈퇴, 부어드민 지정',
+      description: '회원 목록 조회, 강제 탈퇴, 어드민 지정',
       path: '/admin/users',
     },
-    // 추가 메뉴는 여기에 추가
   ];
+
+  const menuItems = user?.is_super_admin
+    ? [...adminMenuItems, ...superAdminMenuItems]
+    : adminMenuItems;
 
   return (
     <div className="settings-page">
