@@ -4,6 +4,7 @@ import type { WorkoutFeedItem } from '../services/feedService';
 
 interface Props {
   clubId: string;
+  clubName: string;
   selectedDate: Date;
   feedItems: WorkoutFeedItem[];
   loading: boolean;
@@ -16,6 +17,7 @@ interface Props {
 
 export const WorkoutFeed = ({
   clubId,
+  clubName,
   selectedDate,
   feedItems,
   loading,
@@ -70,6 +72,7 @@ export const WorkoutFeed = ({
               key={item.workout.id}
               item={item}
               clubId={clubId}
+              clubName={clubName}
               onOptimisticLike={onOptimisticLike}
               onOptimisticCommentAdd={onOptimisticCommentAdd}
               onOptimisticCommentDelete={onOptimisticCommentDelete}

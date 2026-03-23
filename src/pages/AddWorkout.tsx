@@ -125,7 +125,7 @@ export const AddWorkout = () => {
         unit: selectedCategory!.unit,
         intensity,
         proof_image: imageUrl,
-        created_at: new Date(workoutDate).toISOString(),
+        workout_time: new Date(workoutDate).toISOString(), // 사용자가 입력한 운동 시간
       });
       console.log('✅ 운동 기록 저장 성공');
       navigate('/');

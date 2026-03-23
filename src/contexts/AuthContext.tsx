@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // localStorage에서 사용자 정보 복원 (우선)
+        // localStorage에서 사용자 정보 복원
         const savedUser = localStorage.getItem('current_user');
         if (savedUser) {
           setUser(JSON.parse(savedUser));
@@ -69,61 +69,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const loginWithKakao = async (userData: User) => {
-    try {
-      // Supabase Auth 세션 생성 시도 (RLS용, 실패해도 무시)
-      const authEmail = `kakao_${userData.kakao_id}@internal.app`;
-      const authPassword = `kakao_${userData.kakao_id}_secret_key_2024`;
-
-      // 먼저 기존 세션이 있는지 확인
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (!session) {
-          // 로그인 시도 (모든 에러 무시)
-          try {
-            await supabase.auth.signInWithPassword({
-              email: authEmail,
-              password: authPassword,
-            });
-          } catch {
-            // 로그인 실패 시 회원가입 시도
-            try {
-              await supabase.auth.signUp({
-                email: authEmail,
-                password: authPassword,
-                options: {
-                  data: {
-                    user_id: userData.id,
-                  },
-                },
-              });
-            } catch {
-              // 모든 Auth 에러 무시
-            }
-          }
-        }
-      } catch {
-        // getSession 에러도 무시
-      }
-
-      // localStorage에 사용자 정보 저장
-      setUser(userData);
-      localStorage.setItem('current_user', JSON.stringify(userData));
-    } catch {
-      // 최종 fallback: 어떤 에러든 무시하고 로그인 진행
-      setUser(userData);
-      localStorage.setItem('current_user', JSON.stringify(userData));
-    }
+    setUser(userData);
+    localStorage.setItem('current_user', JSON.stringify(userData));
   };
 
-  const logout = async () => {
-    try {
-      // Supabase Auth 로그아웃 (에러 무시)
-      await supabase.auth.signOut();
-    } catch {
-      // 에러 무시
-    }
-
+  const logout = () => {
     setUser(null);
     localStorage.removeItem('current_user');
 

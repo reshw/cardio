@@ -26,7 +26,8 @@ export interface Workout {
   mileage?: number; // deprecated - 클럽별로 다름, club_workout_mileage 사용
   intensity: number; // 1-10 단계, 기본값 4
   proof_image?: string;
-  created_at: string;
+  created_at: string; // 기록을 올린 시점 (스냅샷, 순서 결정용, 수정 불가)
+  workout_time: string; // 실제 운동한 시간 (사용자 수정 가능)
 }
 
 export interface CreateWorkoutData {
@@ -38,7 +39,8 @@ export interface CreateWorkoutData {
   unit: WorkoutUnit;
   intensity?: number; // 1-10 단계, 기본값 4
   proof_image?: string;
-  created_at?: string;
+  workout_time?: string; // 실제 운동한 시간 (사용자 입력/수정 가능)
+  created_at?: string; // deprecated - use workout_time instead
 }
 
 class WorkoutService {
@@ -62,9 +64,15 @@ class WorkoutService {
       insertData.sub_type_ratios = data.sub_type_ratios;
     }
 
-    // created_at이 제공되면 포함
-    if (data.created_at) {
-      insertData.created_at = data.created_at;
+    // workout_time이 제공되면 포함 (사용자가 입력한 운동 시간)
+    if (data.workout_time) {
+      insertData.workout_time = data.workout_time;
+    }
+
+    // created_at은 DB에서 자동 생성 (NOW())
+    // Backward compatibility: created_at이 제공되면 workout_time으로 사용
+    if (data.created_at && !data.workout_time) {
+      insertData.workout_time = data.created_at;
     }
 
     console.log('📤 Insert 데이터:', insertData);
@@ -151,7 +159,8 @@ class WorkoutService {
     workoutId: string,
     data: {
       value?: number;
-      created_at?: string;
+      workout_time?: string; // 실제 운동한 시간 (수정 가능)
+      created_at?: string; // deprecated - use workout_time instead
       intensity?: number;
       proof_image?: string;
     }
@@ -163,8 +172,13 @@ class WorkoutService {
       // 마일리지는 클럽별로 club_workout_mileage에서 관리
     }
 
-    if (data.created_at !== undefined) {
-      updateData.created_at = data.created_at;
+    if (data.workout_time !== undefined) {
+      updateData.workout_time = data.workout_time;
+    }
+
+    // Backward compatibility
+    if (data.created_at !== undefined && !data.workout_time) {
+      updateData.workout_time = data.created_at;
     }
 
     if (data.intensity !== undefined) {

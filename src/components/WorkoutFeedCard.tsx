@@ -17,6 +17,7 @@ declare global {
 interface Props {
   item: WorkoutFeedItem;
   clubId: string;
+  clubName: string;
   onOptimisticLike: (workoutId: string, isLiked: boolean) => void;
   onOptimisticCommentAdd: (workoutId: string) => void;
   onOptimisticCommentDelete: (workoutId: string) => void;
@@ -26,6 +27,7 @@ interface Props {
 export const WorkoutFeedCard = ({
   item,
   clubId,
+  clubName,
   onOptimisticLike,
   onOptimisticCommentAdd,
   onOptimisticCommentDelete,
@@ -92,7 +94,7 @@ export const WorkoutFeedCard = ({
   };
 
   // 카카오톡으로 공유하기
-  const handleKakaoShare = () => {
+  const handleKakaoShare = async () => {
     if (!window.Kakao || !window.Kakao.isInitialized()) {
       alert('카카오톡 공유 기능을 사용할 수 없습니다.');
       return;
@@ -100,8 +102,20 @@ export const WorkoutFeedCard = ({
 
     const workoutLabel = getWorkoutLabel();
     const appUrl = `${window.location.origin}/club`;
-    const shareTitle = `🏃 ${item.user_display_name}님의 운동 기록`;
-    const shareDescription = `${workoutLabel}: ${workout.value}${workout.unit}`;
+
+    // 날짜 포맷팅
+    const workoutDate = new Date(workout.workout_time);
+    const dateStr = `${workoutDate.getFullYear()}.${String(workoutDate.getMonth() + 1).padStart(2, '0')}.${String(workoutDate.getDate()).padStart(2, '0')}`;
+
+    const shareTitle = `[${clubName}] ${item.user_display_name}님 (${dateStr})`;
+
+    // 오늘의 n번째 운동 가져오기
+    console.log('🔢 Fetching workout number for clubId:', clubId, 'workoutId:', workout.id);
+    const workoutNumber = await feedService.getTodayWorkoutNumber(clubId, workout.id);
+    console.log('🔢 Workout number result:', workoutNumber);
+    const numberText = workoutNumber ? `\n오늘 클럽 ${workoutNumber}번째` : '';
+
+    const shareDescription = `${workoutLabel}: ${workout.value}${workout.unit}${numberText}`;
 
     try {
       const shareData: any = {
@@ -109,7 +123,6 @@ export const WorkoutFeedCard = ({
         content: {
           title: shareTitle,
           description: shareDescription,
-          imageUrl: workout.proof_image || undefined,
           link: {
             mobileWebUrl: appUrl,
             webUrl: appUrl,
@@ -126,6 +139,11 @@ export const WorkoutFeedCard = ({
         ],
       };
 
+      // imageUrl은 존재할 때만 추가 (undefined 방지)
+      if (workout.proof_image) {
+        shareData.content.imageUrl = workout.proof_image;
+      }
+
       console.log('카카오 공유 데이터:', shareData);
       window.Kakao.Share.sendDefault(shareData);
       setShowMenu(false);
@@ -140,8 +158,20 @@ export const WorkoutFeedCard = ({
     const workoutLabel = getWorkoutLabel();
     const shareUrl = `${window.location.origin}/workout/${workout.id}?clubId=${clubId}`;
 
-    let shareText = `🏃 ${item.user_display_name}님의 운동 기록\n`;
+    // 날짜 포맷팅
+    const workoutDate = new Date(workout.workout_time);
+    const dateStr = `${workoutDate.getFullYear()}.${String(workoutDate.getMonth() + 1).padStart(2, '0')}.${String(workoutDate.getDate()).padStart(2, '0')}`;
+
+    // 오늘의 n번째 운동 가져오기
+    console.log('🔢 [복사] Fetching workout number for clubId:', clubId, 'workoutId:', workout.id);
+    const workoutNumber = await feedService.getTodayWorkoutNumber(clubId, workout.id);
+    console.log('🔢 [복사] Workout number result:', workoutNumber);
+
+    let shareText = `[${clubName}] ${item.user_display_name}님 (${dateStr})\n`;
     shareText += `${workoutLabel}: ${workout.value}${workout.unit}\n`;
+    if (workoutNumber) {
+      shareText += `오늘 클럽 ${workoutNumber}번째\n`;
+    }
 
     if (workout.proof_image) {
       shareText += `\n📸 인증샷: ${workout.proof_image}\n`;
@@ -340,7 +370,7 @@ export const WorkoutFeedCard = ({
           {/* 첫째 줄: 이름 + 시간 + 운동종목 */}
           <div className="feed-header-line" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>
             <span className="feed-user-name-v2">{item.user_display_name}</span>
-            <span className="feed-time-v2">{formatTime(workout.created_at)}</span>
+            <span className="feed-time-v2">{formatTime(workout.workout_time)}</span>
             <span className="feed-workout-type-v2">{getWorkoutLabel()}</span>
           </div>
 
@@ -501,7 +531,7 @@ export const WorkoutFeedCard = ({
                   <div className="workout-detail-row">
                     <span className="label">시간</span>
                     <span className="value">
-                      {new Date(workout.created_at).toLocaleString('ko-KR')}
+                      {new Date(workout.workout_time).toLocaleString('ko-KR')}
                     </span>
                   </div>
                 </div>

@@ -554,6 +554,77 @@ class FeedService {
 
     return comments;
   }
+
+  // 오늘의 n번째 운동 계산 (created_at 기준)
+  async getTodayWorkoutNumber(clubId: string, workoutId: string): Promise<number | null> {
+    try {
+      console.log('📊 getTodayWorkoutNumber - clubId:', clubId, 'workoutId:', workoutId);
+
+      // 1. workouts 테이블에서 해당 workout의 created_at 가져오기
+      const { data: workout, error: workoutError } = await supabase
+        .from('workouts')
+        .select('created_at')
+        .eq('id', workoutId)
+        .single();
+
+      if (workoutError || !workout) {
+        console.error('❌ Workout not found:', workoutError);
+        return null;
+      }
+
+      console.log('✅ Found workout with created_at:', workout.created_at);
+
+      // 2. created_at에서 날짜 추출 (시간은 제외)
+      const workoutDate = new Date(workout.created_at);
+      const startOfDay = new Date(workoutDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(workoutDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      console.log('📅 Date range:', startOfDay.toISOString(), 'to', endOfDay.toISOString());
+
+      // 3. club_workout_mileage에서 같은 날짜, 같은 클럽의 workout_id 목록 가져오기
+      const { data: mileageRecords, error: mileageError } = await supabase
+        .from('club_workout_mileage')
+        .select('workout_id')
+        .eq('club_id', clubId);
+
+      if (mileageError || !mileageRecords) {
+        console.error('❌ Failed to get club mileage records:', mileageError);
+        return null;
+      }
+
+      const workoutIdsInClub = mileageRecords.map(r => r.workout_id);
+      console.log('📋 Found', workoutIdsInClub.length, 'workouts in club');
+
+      // 4. workouts 테이블에서 해당 날짜의 운동들을 created_at 순서로 가져오기
+      const { data: todayWorkouts, error: listError } = await supabase
+        .from('workouts')
+        .select('id, created_at')
+        .in('id', workoutIdsInClub)
+        .gte('created_at', startOfDay.toISOString())
+        .lte('created_at', endOfDay.toISOString())
+        .order('created_at', { ascending: true });
+
+      if (listError || !todayWorkouts) {
+        console.error('❌ Failed to get today workouts:', listError);
+        return null;
+      }
+
+      console.log('📋 Found', todayWorkouts.length, 'workouts today');
+
+      // 5. 해당 workout의 순번 찾기
+      const index = todayWorkouts.findIndex((w) => w.id === workoutId);
+      const workoutNumber = index >= 0 ? index + 1 : null;
+
+      console.log('🎯 Workout position:', workoutNumber, '(index:', index, ')');
+
+      return workoutNumber;
+    } catch (error) {
+      console.error('❌ getTodayWorkoutNumber error:', error);
+      return null;
+    }
+  }
 }
 
 export default new FeedService();

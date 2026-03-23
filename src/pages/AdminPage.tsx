@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ChevronLeft, Shield, CheckCircle, ChevronRight } from 'lucide-react';
+import { ChevronLeft, Shield, CheckCircle, ChevronRight, Users } from 'lucide-react';
 
 export const AdminPage = () => {
   const navigate = useNavigate();
@@ -22,6 +22,12 @@ export const AdminPage = () => {
       title: '클럽 생성 승인',
       description: '신규 클럽 생성 요청을 승인하거나 거부합니다',
       path: '/admin/club-approval',
+    },
+    {
+      icon: <Users size={24} />,
+      title: '회원 관리',
+      description: '회원 목록 조회, 강제 탈퇴, 부어드민 지정',
+      path: '/admin/users',
     },
     // 추가 메뉴는 여기에 추가
   ];

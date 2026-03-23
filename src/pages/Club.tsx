@@ -427,6 +427,16 @@ export const Club = () => {
         </div>
       </div>
 
+      {/* 클럽이 없을 때 안내 */}
+      {!loading && myClubs.length === 0 && (
+        <div className="empty-state" style={{ marginTop: '60px', marginBottom: '60px' }}>
+          <p style={{ fontSize: '16px', marginBottom: '12px' }}>아직 가입한 클럽이 없습니다</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+            상단의 "코드로 가입" 또는 "클럽 만들기"를 눌러 시작해보세요!
+          </p>
+        </div>
+      )}
+
       {/* 클럽 드롭다운 */}
       {myClubs.length > 0 && (
         <div className="club-dropdown-container">
@@ -798,6 +808,7 @@ export const Club = () => {
       {activeTab === 'feed' && selectedClub && (
         <WorkoutFeed
           clubId={selectedClub.id}
+          clubName={selectedClub.name}
           selectedDate={selectedDate}
           feedItems={feedItems}
           loading={feedLoading}
@@ -820,6 +831,7 @@ export const Club = () => {
       {showMileageConfig && selectedClub && (
         <MileageConfigModal
           config={selectedClub.mileage_config || clubService.getDefaultMileageConfig()}
+          enabledCategories={selectedClub.enabled_categories}
           onClose={() => setShowMileageConfig(false)}
         />
       )}

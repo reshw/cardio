@@ -20,8 +20,8 @@ export const WorkoutDetail = () => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(workout?.value.toString() || '');
-  const [createdAt, setCreatedAt] = useState(
-    workout ? new Date(workout.created_at).toISOString().slice(0, 16) : ''
+  const [workoutTime, setWorkoutTime] = useState(
+    workout ? new Date(workout.workout_time).toISOString().slice(0, 16) : ''
   );
   const [intensity, setIntensity] = useState(workout?.intensity || 4);
   const [proofImage, setProofImage] = useState<File | null>(null);
@@ -66,7 +66,7 @@ export const WorkoutDetail = () => {
       }
       setWorkout(data);
       setValue(data.value.toString());
-      setCreatedAt(new Date(data.created_at).toISOString().slice(0, 16));
+      setWorkoutTime(new Date(data.workout_time).toISOString().slice(0, 16));
       setIntensity(data.intensity);
     } catch (error) {
       console.error('운동 조회 실패:', error);
@@ -193,7 +193,7 @@ export const WorkoutDetail = () => {
 
       await workoutService.updateWorkout(workout.id, {
         value: parseFloat(value),
-        created_at: new Date(createdAt).toISOString(),
+        workout_time: new Date(workoutTime).toISOString(),
         intensity,
         proof_image: imageUrl,
       });
@@ -335,8 +335,8 @@ export const WorkoutDetail = () => {
               <input
                 id="edit-date"
                 type="datetime-local"
-                value={createdAt}
-                onChange={(e) => setCreatedAt(e.target.value)}
+                value={workoutTime}
+                onChange={(e) => setWorkoutTime(e.target.value)}
                 className="value-input"
               />
             </div>
