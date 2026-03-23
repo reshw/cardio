@@ -20,9 +20,7 @@ export const ClubMemberDetail = () => {
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
-  const [mileageConfig, setMileageConfig] = useState<MileageConfig>(
-    clubService.getDefaultMileageConfig()
-  );
+  const [mileageConfig, setMileageConfig] = useState<MileageConfig>({});
 
   useEffect(() => {
     if (clubId && userId) {

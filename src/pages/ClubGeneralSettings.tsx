@@ -101,7 +101,6 @@ export const ClubGeneralSettings = () => {
         name: name.trim(),
         description: description.trim(),
         logo_url: logoUrl || undefined,
-        count_excluded_workouts_in_days: countExcludedWorkouts,
       });
 
       alert('클럽 정보가 수정되었습니다.');

@@ -82,7 +82,6 @@ export const ClubMileageSettings = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // 동적 운동 종목
-  const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
   const [workoutCategories, setWorkoutCategories] = useState<WorkoutCategory[]>([]);
   const [showOtherWorkouts, setShowOtherWorkouts] = useState(false);
 
@@ -99,7 +98,6 @@ export const ClubMileageSettings = () => {
   const loadWorkoutTypes = async () => {
     try {
       const types = await workoutTypeService.getActiveWorkoutTypes(); // 활성화된 운동만
-      setWorkoutTypes(types);
       setWorkoutCategories(getWorkoutCategories(types));
     } catch (error) {
       console.error('운동 종목 로드 실패:', error);

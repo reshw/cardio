@@ -89,7 +89,7 @@ export const ClubMembers = () => {
     }
 
     try {
-      await clubService.updateMemberRole(clubId, userId, newRole);
+      await clubService.updateMemberRole(clubId, userId, newRole === 'vice-manager' ? 'member' : newRole);
       alert(`역할이 ${roleText}로 변경되었습니다.`);
       loadMembers();
     } catch (error) {
