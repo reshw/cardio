@@ -917,6 +917,20 @@ export const Club = () => {
                         <div className="more-menu-desc">운동별 계수 조정</div>
                       </div>
                     </button>
+
+                    <button
+                      className="more-menu-item"
+                      onClick={() => {
+                        setShowClubMenu(false);
+                        navigate(`/club/settings/${selectedClub.id}/transfer`);
+                      }}
+                    >
+                      <span style={{ fontSize: '20px' }}>👑</span>
+                      <div className="more-menu-text">
+                        <div className="more-menu-title">클럽장 권한 넘기기</div>
+                        <div className="more-menu-desc">다른 멤버에게 클럽장 위임</div>
+                      </div>
+                    </button>
                   </>
                 )}
 

@@ -643,6 +643,28 @@ class ClubService {
         .eq('user_id', currentOwnerId);
       throw newOwnerError;
     }
+
+    // clubs 테이블의 created_by 업데이트
+    const { error: clubError } = await supabase
+      .from('clubs')
+      .update({ created_by: newOwnerId })
+      .eq('id', clubId);
+
+    if (clubError) {
+      console.error('클럽 소유자 업데이트 실패:', clubError);
+      // 롤백
+      await supabase
+        .from('club_members')
+        .update({ role: 'admin' })
+        .eq('club_id', clubId)
+        .eq('user_id', currentOwnerId);
+      await supabase
+        .from('club_members')
+        .update({ role: 'member' })
+        .eq('club_id', clubId)
+        .eq('user_id', newOwnerId);
+      throw clubError;
+    }
   }
 
   // 회원 역할 변경 (부매니저 지정/해제)
