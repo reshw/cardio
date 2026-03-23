@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Heart, MessageCircle, MoreVertical, Share2, Copy } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import feedService from '../services/feedService';
@@ -41,16 +41,26 @@ export const WorkoutFeedCard = ({
   const [selectedReason, setSelectedReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const isMyPost = user?.id === item.workout.user_id;
+  // 메뉴 외부 클릭 감지
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  // 디버깅: isMyPost 체크
-  console.log('🔍 isMyPost 체크:', {
-    userId: user?.id,
-    workoutUserId: item.workout.user_id,
-    isMyPost,
-    userIdType: typeof user?.id,
-    workoutUserIdType: typeof item.workout.user_id,
-  });
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
+
+  const isMyPost = user?.id === item.workout.user_id;
 
   const handleReport = async () => {
     if (!user || !selectedReason) return;
@@ -137,7 +147,20 @@ export const WorkoutFeedCard = ({
     shareText += `\n🔗 자세히 보기: ${shareUrl}`;
 
     try {
-      await navigator.clipboard.writeText(shareText);
+      // 최신 Clipboard API 시도
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareText);
+      } else {
+        // Fallback: 구형 방식
+        const textarea = document.createElement('textarea');
+        textarea.value = shareText;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
       alert('클립보드에 복사되었습니다!\n카카오톡에 붙여넣기 하세요.');
       setShowMenu(false);
     } catch (error) {
@@ -267,7 +290,7 @@ export const WorkoutFeedCard = ({
       )}
 
       {/* 더보기 버튼 */}
-      <div className="feed-more-wrapper">
+      <div className="feed-more-wrapper" ref={menuRef}>
         <button className="feed-more-btn" onClick={() => setShowMenu(v => !v)}>
           <MoreVertical size={16} />
         </button>
