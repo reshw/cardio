@@ -99,32 +99,35 @@ export const WorkoutFeedCard = ({
     }
 
     const workoutLabel = getWorkoutLabel();
-    const shareUrl = `${window.location.origin}/workout/${workout.id}?clubId=${clubId}`;
+    const appUrl = `${window.location.origin}/club`;
     const shareTitle = `🏃 ${item.user_display_name}님의 운동 기록`;
     const shareDescription = `${workoutLabel}: ${workout.value}${workout.unit}`;
 
     try {
-      window.Kakao.Share.sendDefault({
+      const shareData: any = {
         objectType: 'feed',
         content: {
           title: shareTitle,
           description: shareDescription,
-          imageUrl: workout.proof_image || 'https://cardio.scnd.kr/default-workout.png',
+          imageUrl: workout.proof_image || undefined,
           link: {
-            mobileWebUrl: shareUrl,
-            webUrl: shareUrl,
+            mobileWebUrl: appUrl,
+            webUrl: appUrl,
           },
         },
         buttons: [
           {
-            title: '자세히 보기',
+            title: '나도 기록하기',
             link: {
-              mobileWebUrl: shareUrl,
-              webUrl: shareUrl,
+              mobileWebUrl: appUrl,
+              webUrl: appUrl,
             },
           },
         ],
-      });
+      };
+
+      console.log('카카오 공유 데이터:', shareData);
+      window.Kakao.Share.sendDefault(shareData);
       setShowMenu(false);
     } catch (error) {
       console.error('카카오톡 공유 실패:', error);
