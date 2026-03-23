@@ -4135,7 +4135,8 @@ html {
 }
 
 .feed-more-menu button {
-  display: block;
+  display: flex;
+  align-items: center;
   width: 100%;
   padding: 11px 16px;
   background: none;

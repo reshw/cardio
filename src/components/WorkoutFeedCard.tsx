@@ -1,11 +1,18 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, MoreVertical } from 'lucide-react';
+import { Heart, MessageCircle, MoreVertical, Share2, Copy } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import feedService from '../services/feedService';
 import { CommentSection } from './CommentSection';
 import type { WorkoutFeedItem } from '../services/feedService';
 
 const REPORT_REASONS = ['스팸', '욕설/혐오발언', '부적절한 내용', '기타'];
+
+// Kakao SDK 타입 선언
+declare global {
+  interface Window {
+    Kakao: any;
+  }
+}
 
 interface Props {
   item: WorkoutFeedItem;
@@ -62,6 +69,71 @@ export const WorkoutFeedCard = ({
       alert('차단 처리에 실패했습니다.\n' + (err?.message || JSON.stringify(err)));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // 카카오톡으로 공유하기
+  const handleKakaoShare = () => {
+    if (!window.Kakao || !window.Kakao.isInitialized()) {
+      alert('카카오톡 공유 기능을 사용할 수 없습니다.');
+      return;
+    }
+
+    const workoutLabel = getWorkoutLabel();
+    const shareUrl = `${window.location.origin}/workout/${workout.id}?clubId=${clubId}`;
+    const shareTitle = `🏃 ${item.user_display_name}님의 운동 기록`;
+    const shareDescription = `${workoutLabel}: ${workout.value}${workout.unit}`;
+
+    try {
+      window.Kakao.Share.sendDefault({
+        objectType: 'feed',
+        content: {
+          title: shareTitle,
+          description: shareDescription,
+          imageUrl: workout.proof_image || 'https://cardio.scnd.kr/default-workout.png',
+          link: {
+            mobileWebUrl: shareUrl,
+            webUrl: shareUrl,
+          },
+        },
+        buttons: [
+          {
+            title: '자세히 보기',
+            link: {
+              mobileWebUrl: shareUrl,
+              webUrl: shareUrl,
+            },
+          },
+        ],
+      });
+      setShowMenu(false);
+    } catch (error) {
+      console.error('카카오톡 공유 실패:', error);
+      alert('카카오톡 공유에 실패했습니다.');
+    }
+  };
+
+  // 텍스트 복사하기
+  const handleCopyText = async () => {
+    const workoutLabel = getWorkoutLabel();
+    const shareUrl = `${window.location.origin}/workout/${workout.id}?clubId=${clubId}`;
+
+    let shareText = `🏃 ${item.user_display_name}님의 운동 기록\n`;
+    shareText += `${workoutLabel}: ${workout.value}${workout.unit}\n`;
+
+    if (workout.proof_image) {
+      shareText += `\n📸 인증샷: ${workout.proof_image}\n`;
+    }
+
+    shareText += `\n🔗 자세히 보기: ${shareUrl}`;
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+      alert('클립보드에 복사되었습니다!\n카카오톡에 붙여넣기 하세요.');
+      setShowMenu(false);
+    } catch (error) {
+      console.error('복사 실패:', error);
+      alert('복사에 실패했습니다.');
     }
   };
 
@@ -185,24 +257,38 @@ export const WorkoutFeedCard = ({
         </div>
       )}
 
-      {/* 더보기 버튼 (내 글 제외) */}
-      {!isMyPost && (
-        <div className="feed-more-wrapper">
-          <button className="feed-more-btn" onClick={() => setShowMenu(v => !v)}>
-            <MoreVertical size={16} />
-          </button>
-          {showMenu && (
-            <div className="feed-more-menu">
-              <button onClick={() => { setShowMenu(false); setShowReportModal(true); }}>
-                신고하기
-              </button>
-              <button onClick={() => { setShowMenu(false); setShowBlockConfirm(true); }}>
-                차단하기
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      {/* 더보기 버튼 */}
+      <div className="feed-more-wrapper">
+        <button className="feed-more-btn" onClick={() => setShowMenu(v => !v)}>
+          <MoreVertical size={16} />
+        </button>
+        {showMenu && (
+          <div className="feed-more-menu">
+            {/* 공유 옵션 (모든 글) */}
+            <button onClick={handleKakaoShare}>
+              <Share2 size={14} style={{ marginRight: 8 }} />
+              카톡으로 공유
+            </button>
+            <button onClick={handleCopyText}>
+              <Copy size={14} style={{ marginRight: 8 }} />
+              텍스트 복사
+            </button>
+
+            {/* 신고/차단 (내 글 제외) */}
+            {!isMyPost && (
+              <>
+                <div style={{ borderTop: '1px solid var(--border-color)', margin: '4px 0' }} />
+                <button onClick={() => { setShowMenu(false); setShowReportModal(true); }}>
+                  신고하기
+                </button>
+                <button onClick={() => { setShowMenu(false); setShowBlockConfirm(true); }}>
+                  차단하기
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* 전체 래퍼: 프사(왼쪽 2줄) + 내용(오른쪽 2줄) */}
       <div className="feed-card-wrapper">
