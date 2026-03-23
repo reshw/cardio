@@ -731,6 +731,18 @@ html {
   color: var(--text-secondary);
 }
 
+.more-menu-item.danger {
+  color: #FF6B6B;
+}
+
+.more-menu-item.danger:hover {
+  background: #fff5f5;
+}
+
+.more-menu-item.danger .more-menu-title {
+  color: #FF6B6B;
+}
+
 /* Category Selection */
 .category-selection h3,
 .subtype-selection h3,

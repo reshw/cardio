@@ -919,6 +919,34 @@ export const Club = () => {
                     </button>
                   </>
                 )}
+
+                {/* 클럽 탈퇴 */}
+                {user && selectedClub.created_by !== user.id && (
+                  <button
+                    className="more-menu-item danger"
+                    onClick={async () => {
+                      if (!confirm(`${selectedClub.name}에서 탈퇴하시겠습니까?\n\n탈퇴 후에도 초대코드로 다시 가입할 수 있습니다.`)) {
+                        return;
+                      }
+
+                      try {
+                        await clubService.leaveClub(selectedClub.id, user.id);
+                        alert('클럽에서 탈퇴했습니다.');
+                        setShowClubMenu(false);
+                        loadMyClubs();
+                      } catch (error) {
+                        console.error('클럽 탈퇴 실패:', error);
+                        alert('클럽 탈퇴에 실패했습니다.');
+                      }
+                    }}
+                  >
+                    <span style={{ fontSize: '20px' }}>🚪</span>
+                    <div className="more-menu-text">
+                      <div className="more-menu-title">클럽 탈퇴</div>
+                      <div className="more-menu-desc">이 클럽에서 나가기</div>
+                    </div>
+                  </button>
+                )}
               </div>
             </div>
           </div>
