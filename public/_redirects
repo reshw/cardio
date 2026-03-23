@@ -1,0 +1,6 @@
+# Don't redirect static assets
+/assets/*  /assets/:splat  200
+/vite.svg  /vite.svg  200
+
+# SPA fallback - redirect all other routes to index.html
+/*  /index.html  200
