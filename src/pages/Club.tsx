@@ -685,6 +685,9 @@ export const Club = () => {
                 if (myRank + 2 < filteredByHOF.length) {
                   showEllipsis2 = true;
                 }
+              } else {
+                // 본인이 10위 안이지만 10위 뒤에 더 있으면 생략 표시
+                showEllipsis2 = true;
               }
             }
 

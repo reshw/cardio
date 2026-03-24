@@ -31,17 +31,8 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
       const data = await clubService.getClubDetailedStats(clubId, month);
       setStats(data);
 
-      // 모든 운동 종목 키 추출 (마일리지가 있고, enabled_categories에 포함된 것만)
-      const allKeys = new Set<string>();
-      data.forEach(member => {
-        Object.keys(member.by_workout).forEach(key => {
-          // 마일리지가 있고, 클럽에서 활성화된 운동만 포함
-          if (member.by_workout[key] > 0 && enabledCategories.includes(key)) {
-            allKeys.add(key);
-          }
-        });
-      });
-      setWorkoutKeys(Array.from(allKeys).sort());
+      // 클럽에서 활성화한 모든 운동 종목을 칼럼으로 표시 (마일리지 0이어도 표시)
+      setWorkoutKeys([...enabledCategories].sort());
     } catch (error) {
       console.error('상세 통계 불러오기 실패:', error);
     } finally {

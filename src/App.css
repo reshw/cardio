@@ -3802,8 +3802,7 @@ html {
   font-weight: 600;
   font-size: 16px;
   border: 2px solid var(--border-color);
-  text-align: center;
-  line-height: 40px;
+  flex-shrink: 0;
 }
 
 .feed-user-info {
@@ -4474,6 +4473,7 @@ html {
   font-weight: 600;
   font-size: 14px;
   border: 1.5px solid var(--border-color);
+  flex-shrink: 0;
 }
 
 /* 오른쪽: 내용 영역 */

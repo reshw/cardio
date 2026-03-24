@@ -164,8 +164,8 @@ class ClubService {
 
     console.log('✅ 클럽 생성 성공:', club);
 
-    // 생성자를 admin으로 자동 가입
-    await this.joinClub(club.id, data.created_by, 'admin', data.club_nickname, data.club_profile_image);
+    // 생성자를 manager로 자동 가입
+    await this.joinClub(club.id, data.created_by, 'manager', data.club_nickname, data.club_profile_image);
 
     // 어드민에게 이메일 발송 (비동기, 실패해도 클럽 생성은 성공)
     this.sendClubRequestNotification(club, data.created_by).catch((error) => {
@@ -219,7 +219,7 @@ class ClubService {
       .select('club_nickname')
       .eq('club_id', club.id)
       .eq('user_id', club.created_by)
-      .eq('role', 'admin')
+      .eq('role', 'manager')
       .maybeSingle();
 
     if (memberError && memberError.code !== 'PGRST116') {
@@ -438,7 +438,7 @@ class ClubService {
   }
 
   // 클럽 가입
-  async joinClub(clubId: string, userId: string, role: 'admin' | 'member' = 'member', clubNickname?: string, clubProfileImage?: string): Promise<void> {
+  async joinClub(clubId: string, userId: string, role: 'manager' | 'vice-manager' | 'member' = 'member', clubNickname?: string, clubProfileImage?: string): Promise<void> {
     const { error } = await supabase.from('club_members').insert({
       club_id: clubId,
       user_id: userId,
@@ -598,7 +598,7 @@ class ClubService {
 
   // 클럽장 위임
   async transferClubOwnership(clubId: string, currentOwnerId: string, newOwnerId: string): Promise<void> {
-    // 트랜잭션처럼 처리: 현재 관리자를 멤버로, 새 관리자를 admin으로 변경
+    // 트랜잭션처럼 처리: 현재 관리자를 멤버로, 새 관리자를 manager로 변경
     const { error: currentOwnerError } = await supabase
       .from('club_members')
       .update({ role: 'member' })
@@ -612,7 +612,7 @@ class ClubService {
 
     const { error: newOwnerError } = await supabase
       .from('club_members')
-      .update({ role: 'admin' })
+      .update({ role: 'manager' })
       .eq('club_id', clubId)
       .eq('user_id', newOwnerId);
 
@@ -621,7 +621,7 @@ class ClubService {
       // 롤백: 현재 관리자 권한 복구
       await supabase
         .from('club_members')
-        .update({ role: 'admin' })
+        .update({ role: 'manager' })
         .eq('club_id', clubId)
         .eq('user_id', currentOwnerId);
       throw newOwnerError;
@@ -638,7 +638,7 @@ class ClubService {
       // 롤백
       await supabase
         .from('club_members')
-        .update({ role: 'admin' })
+        .update({ role: 'manager' })
         .eq('club_id', clubId)
         .eq('user_id', currentOwnerId);
       await supabase
@@ -651,7 +651,7 @@ class ClubService {
   }
 
   // 회원 역할 변경 (부매니저 지정/해제)
-  async updateMemberRole(clubId: string, userId: string, role: 'admin' | 'member'): Promise<void> {
+  async updateMemberRole(clubId: string, userId: string, role: 'manager' | 'vice-manager' | 'member'): Promise<void> {
     const { error } = await supabase
       .from('club_members')
       .update({ role })
@@ -1023,6 +1023,8 @@ class ClubService {
     // 클럽 정보 조회 (설정 가져오기)
     const club = await this.getClubById(clubId);
     const countExcludedWorkouts = club.count_excluded_workouts_in_days ?? true;
+    const enabledCategories = club.enabled_categories || this.getAllCategories();
+    console.log('📊 [상세통계] 활성화된 카테고리:', enabledCategories);
 
     // 클럽 멤버 조회
     const { data: members } = await supabase
@@ -1100,6 +1102,12 @@ class ClubService {
     mileageData.forEach((record) => {
       const mileage = record.mileage || 0;
       const workoutDate = record.workout_date;
+      const category = workoutCategoryMap[record.workout_id];
+
+      // 활성화된 카테고리만 처리
+      if (!category || !enabledCategories.includes(category)) {
+        return;
+      }
 
       // 운동일수 집계 (미산입 운동 포함 여부 확인)
       if (workoutDate && (countExcludedWorkouts || mileage > 0)) {
@@ -1108,12 +1116,9 @@ class ClubService {
 
       // 마일리지가 있는 운동만 집계
       if (mileage > 0) {
-        const category = workoutCategoryMap[record.workout_id];
-        if (category) {
-          userStatsMap[record.user_id].total += mileage;
-          userStatsMap[record.user_id].byWorkout[category] =
-            (userStatsMap[record.user_id].byWorkout[category] || 0) + mileage;
-        }
+        userStatsMap[record.user_id].total += mileage;
+        userStatsMap[record.user_id].byWorkout[category] =
+          (userStatsMap[record.user_id].byWorkout[category] || 0) + mileage;
       }
     });
 
