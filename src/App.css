@@ -4427,7 +4427,7 @@ html {
 .feed-card-wrapper {
   display: flex;
   gap: 10px;
-  align-items: flex-start;
+  align-items: center;
   position: relative;
 }
 
@@ -4451,7 +4451,9 @@ html {
 /* 왼쪽: 프로필 사진 (2줄 고정) */
 .feed-avatar-wrapper {
   flex-shrink: 0;
-  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .feed-user-avatar-v2 {
@@ -4460,6 +4462,13 @@ html {
   border-radius: 50%;
   object-fit: cover;
   border: 1.5px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
 }
 
 .feed-user-avatar-placeholder-v2 {
@@ -4483,6 +4492,7 @@ html {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  justify-content: center;
 }
 
 /* 첫째 줄: 이름 + 시간 + 운동종목 + 강도 */
