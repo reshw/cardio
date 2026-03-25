@@ -12,6 +12,7 @@ interface User {
   profile_image?: string;
   is_admin?: boolean;
   is_super_admin?: boolean;
+  is_sub_admin?: boolean;
 }
 
 interface AuthContextType {
@@ -54,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Supabase에서 사용자 조회
       const { data, error } = await supabase
         .from('users')
-        .select('id, username, display_name, email')
+        .select('id, username, display_name, email, profile_image, is_admin, is_super_admin, is_sub_admin')
         .eq('username', username)
         .single();
 
