@@ -9,6 +9,7 @@ export const ClubSettings = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,6 +25,10 @@ export const ClubSettings = () => {
     try {
       const admin = await clubService.isClubAdmin(clubId, user.id);
       setIsAdmin(admin);
+
+      // 방장 여부 확인
+      const club = await clubService.getClubById(clubId);
+      setIsOwner(club.created_by === user.id);
     } catch (error) {
       console.error('권한 확인 실패:', error);
     } finally {
@@ -97,8 +102,35 @@ export const ClubSettings = () => {
           </div>
         )}
 
-        {/* 관리자 전용 설정 */}
+        {/* 관리자 전용 설정 (매니저/부매니저) */}
         {isAdmin && (
+          <div className="settings-section">
+            <button
+              className="settings-menu-item"
+              onClick={() => navigate(`/club/settings/${clubId}/mileage`)}
+            >
+              <div className="menu-item-left">
+                <TrendingUp size={20} />
+                <span>마일리지 계수 설정</span>
+              </div>
+              <ChevronRight size={20} />
+            </button>
+
+            <button
+              className="settings-menu-item"
+              onClick={() => navigate(`/club/members/${clubId}`)}
+            >
+              <div className="menu-item-left">
+                <Users size={20} />
+                <span>클럽원 관리</span>
+              </div>
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        )}
+
+        {/* 방장 전용 설정 */}
+        {isOwner && (
           <>
             <div className="settings-section">
               <button
@@ -108,28 +140,6 @@ export const ClubSettings = () => {
                 <div className="menu-item-left">
                   <Info size={20} />
                   <span>클럽 일반정보 변경</span>
-                </div>
-                <ChevronRight size={20} />
-              </button>
-
-              <button
-                className="settings-menu-item"
-                onClick={() => navigate(`/club/settings/${clubId}/mileage`)}
-              >
-                <div className="menu-item-left">
-                  <TrendingUp size={20} />
-                  <span>마일리지 계수 설정</span>
-                </div>
-                <ChevronRight size={20} />
-              </button>
-
-              <button
-                className="settings-menu-item"
-                onClick={() => navigate(`/club/members/${clubId}`)}
-              >
-                <div className="menu-item-left">
-                  <Users size={20} />
-                  <span>클럽원 관리</span>
                 </div>
                 <ChevronRight size={20} />
               </button>

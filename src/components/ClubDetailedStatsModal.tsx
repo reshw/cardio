@@ -48,7 +48,13 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
       member.rank,
       member.display_name,
       member.workout_days,
-      ...workoutKeys.map(key => (member.by_workout[key] || 0).toFixed(1)),
+      ...workoutKeys.map(key => {
+        const mileage = member.by_workout[key] || 0;
+        const value = member.by_workout_values[key] || 0;
+        const unit = member.by_workout_units[key] || '';
+        if (mileage === 0) return '-';
+        return `${value.toFixed(value >= 100 ? 0 : 1)}${unit} (${mileage.toFixed(1)})`;
+      }),
       member.total_mileage.toFixed(1),
     ]);
 
@@ -74,26 +80,38 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
       const originalOverflow = container.style.overflow;
       const originalHeight = container.style.height;
       const originalMaxHeight = container.style.maxHeight;
+      const originalWidth = container.style.width;
+      const originalMaxWidth = container.style.maxWidth;
 
-      // 스크롤 제거하고 전체 높이로 확장
+      // 스크롤 제거하고 전체 크기로 확장
       container.style.overflow = 'visible';
       container.style.height = 'auto';
       container.style.maxHeight = 'none';
+      container.style.width = 'auto';
+      container.style.maxWidth = 'none';
+
+      // DOM 업데이트 대기
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       const canvas = await html2canvas(container, {
         backgroundColor: '#ffffff',
         scale: 2,
-        scrollY: 0,
-        scrollX: 0,
+        scrollY: -window.scrollY,
+        scrollX: -window.scrollX,
+        width: container.scrollWidth,
+        height: container.scrollHeight,
         windowWidth: container.scrollWidth,
         windowHeight: container.scrollHeight,
         useCORS: true,
+        allowTaint: true,
       });
 
       // 스타일 복원
       container.style.overflow = originalOverflow;
       container.style.height = originalHeight;
       container.style.maxHeight = originalMaxHeight;
+      container.style.width = originalWidth;
+      container.style.maxWidth = originalMaxWidth;
 
       const link = document.createElement('a');
       link.download = `${clubName}_${month.year}-${month.month}_상세통계.png`;
@@ -164,9 +182,21 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
                         </td>
                         <td className="name-cell">{member.display_name}</td>
                         <td>{member.workout_days}일</td>
-                        {workoutKeys.map((key) => (
-                          <td key={key}>{(member.by_workout[key] || 0).toFixed(1)}</td>
-                        ))}
+                        {workoutKeys.map((key) => {
+                          const mileage = member.by_workout[key] || 0;
+                          const value = member.by_workout_values[key] || 0;
+                          const unit = member.by_workout_units[key] || '';
+
+                          if (mileage === 0) {
+                            return <td key={key}>-</td>;
+                          }
+
+                          return (
+                            <td key={key}>
+                              {value.toFixed(value >= 100 ? 0 : 1)}{unit} ({mileage.toFixed(1)})
+                            </td>
+                          );
+                        })}
                         <td className="total-cell">{member.total_mileage.toFixed(1)}</td>
                       </tr>
                     ))}

@@ -931,6 +931,23 @@ export const Club = () => {
                   </button>
                 )}
 
+                {/* 마일리지 계수 설정 - 매니저/부매니저만 */}
+                {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
+                  <button
+                    className="more-menu-item"
+                    onClick={() => {
+                      setShowClubMenu(false);
+                      navigate(`/club/settings/${selectedClub.id}/mileage`);
+                    }}
+                  >
+                    <TrendingUp size={20} />
+                    <div className="more-menu-text">
+                      <div className="more-menu-title">마일리지 계수 설정</div>
+                      <div className="more-menu-desc">운동별 계수 조정</div>
+                    </div>
+                  </button>
+                )}
+
                 {user && selectedClub.created_by === user.id && (
                   <>
                     <button
@@ -944,20 +961,6 @@ export const Club = () => {
                       <div className="more-menu-text">
                         <div className="more-menu-title">클럽 정보 변경</div>
                         <div className="more-menu-desc">이름, 설명, 로고 수정</div>
-                      </div>
-                    </button>
-
-                    <button
-                      className="more-menu-item"
-                      onClick={() => {
-                        setShowClubMenu(false);
-                        navigate(`/club/settings/${selectedClub.id}/mileage`);
-                      }}
-                    >
-                      <TrendingUp size={20} />
-                      <div className="more-menu-text">
-                        <div className="more-menu-title">마일리지 계수 설정</div>
-                        <div className="more-menu-desc">운동별 계수 조정</div>
                       </div>
                     </button>
 

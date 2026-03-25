@@ -88,7 +88,9 @@ export interface ClubDetailedStats {
   rank: number;
   total_mileage: number;
   workout_days: number; // 운동일수
-  by_workout: Record<string, number>; // 동적 운동 종목 지원
+  by_workout: Record<string, number>; // 동적 운동 종목 지원 (마일리지)
+  by_workout_values: Record<string, number>; // 실제 운동 기록 값
+  by_workout_units: Record<string, string>; // 운동 종목별 단위
 }
 
 class ClubService {
@@ -434,7 +436,7 @@ class ClubService {
       return false;
     }
 
-    return data?.role === 'manager';
+    return data?.role === 'manager' || data?.role === 'vice-manager';
   }
 
   // 클럽 가입
@@ -1065,18 +1067,22 @@ class ClubService {
       return [];
     }
 
-    // workout_id로 운동 종목 조회
+    // workout_id로 운동 종목 조회 (value, unit 포함)
     const workoutIds = Array.from(new Set(mileageData.map(m => m.workout_id)));
     const { data: workouts } = await supabase
       .from('workouts')
-      .select('id, category, sub_type')
+      .select('id, category, sub_type, value, unit')
       .in('id', workoutIds);
 
-    // workout_id별 카테고리 맵
+    // workout_id별 카테고리, 값, 단위 맵
     const workoutCategoryMap: Record<string, string> = {};
+    const workoutValueMap: Record<string, number> = {};
+    const workoutUnitMap: Record<string, string> = {};
     (workouts || []).forEach(w => {
       const key = w.sub_type ? `${w.category}-${w.sub_type}` : w.category;
       workoutCategoryMap[w.id] = key;
+      workoutValueMap[w.id] = w.value || 0;
+      workoutUnitMap[w.id] = w.unit || '';
     });
 
     // 사용자별 통계 집계
@@ -1085,6 +1091,8 @@ class ClubService {
       {
         total: number;
         byWorkout: Record<string, number>;
+        byWorkoutValues: Record<string, number>;
+        byWorkoutUnits: Record<string, string>;
         workoutDates: Set<string>; // 운동한 날짜들 (YYYY-MM-DD)
       }
     > = {};
@@ -1094,6 +1102,8 @@ class ClubService {
       userStatsMap[userId] = {
         total: 0,
         byWorkout: {},
+        byWorkoutValues: {},
+        byWorkoutUnits: {},
         workoutDates: new Set(),
       };
     });
@@ -1103,6 +1113,8 @@ class ClubService {
       const mileage = record.mileage || 0;
       const workoutDate = record.workout_date;
       const category = workoutCategoryMap[record.workout_id];
+      const value = workoutValueMap[record.workout_id] || 0;
+      const unit = workoutUnitMap[record.workout_id] || '';
 
       // 활성화된 카테고리만 처리
       if (!category || !enabledCategories.includes(category)) {
@@ -1119,6 +1131,12 @@ class ClubService {
         userStatsMap[record.user_id].total += mileage;
         userStatsMap[record.user_id].byWorkout[category] =
           (userStatsMap[record.user_id].byWorkout[category] || 0) + mileage;
+        userStatsMap[record.user_id].byWorkoutValues[category] =
+          (userStatsMap[record.user_id].byWorkoutValues[category] || 0) + value;
+        // 단위는 한 번만 저장 (같은 카테고리는 같은 단위)
+        if (!userStatsMap[record.user_id].byWorkoutUnits[category]) {
+          userStatsMap[record.user_id].byWorkoutUnits[category] = unit;
+        }
       }
     });
 
@@ -1139,6 +1157,8 @@ class ClubService {
           total_mileage: userStats.total,
           workout_days: userStats.workoutDates.size,
           by_workout: userStats.byWorkout,
+          by_workout_values: userStats.byWorkoutValues,
+          by_workout_units: userStats.byWorkoutUnits,
         };
       })
       .sort((a, b) => b.total_mileage - a.total_mileage)
