@@ -8,7 +8,7 @@ import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
 import { WorkoutFeed } from '../components/WorkoutFeed';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
-import { Share2, Menu, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -84,6 +84,7 @@ export const Club = () => {
   const [showMileageConfig, setShowMileageConfig] = useState(false);
   const [showDetailedStats, setShowDetailedStats] = useState(false);
   const [showClubMenu, setShowClubMenu] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   // 피드 관련 state
   type TabType = 'ranking' | 'feed';
@@ -413,57 +414,95 @@ export const Club = () => {
     }
   };
 
-  // 초대 코드 복사 (전체 URL)
-  const copyInviteCode = (code: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  // 카카오톡으로 클럽 초대 공유
+  const handleKakaoInviteShare = () => {
+    if (!selectedClub) return;
 
-    const inviteUrl = `${window.location.origin}/join/${code}`;
+    if (!window.Kakao || !window.Kakao.isInitialized()) {
+      alert('카카오톡 공유 기능을 사용할 수 없습니다.');
+      return;
+    }
+
+    const inviteUrl = `${window.location.origin}/join/${selectedClub.invite_code}`;
+
+    try {
+      const shareData: any = {
+        objectType: 'feed',
+        content: {
+          title: `🏃 ${selectedClub.name} 클럽 초대`,
+          description: `${selectedClub.name} 클럽에 초대합니다!\n함께 운동하며 건강한 습관을 만들어봐요 💪`,
+          link: {
+            mobileWebUrl: inviteUrl,
+            webUrl: inviteUrl,
+          },
+        },
+        buttons: [
+          {
+            title: '클럽 가입하기',
+            link: {
+              mobileWebUrl: inviteUrl,
+              webUrl: inviteUrl,
+            },
+          },
+        ],
+      };
+
+      // imageUrl은 존재할 때만 추가
+      if (selectedClub.logo_url) {
+        shareData.content.imageUrl = selectedClub.logo_url;
+      }
+
+      console.log('카카오 클럽 초대 공유 데이터:', shareData);
+      window.Kakao.Share.sendDefault(shareData);
+      setShowInviteModal(false);
+    } catch (error) {
+      console.error('카카오톡 공유 실패:', error);
+      alert('카카오톡 공유에 실패했습니다.');
+    }
+  };
+
+  // 초대 링크 복사
+  const handleCopyInviteLink = () => {
+    if (!selectedClub) return;
+
+    const inviteUrl = `${window.location.origin}/join/${selectedClub.invite_code}`;
+    const copyText = `${selectedClub.name} 클럽으로 초대합니다.\n${inviteUrl}`;
 
     if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(inviteUrl).then(() => {
-        alert('클럽 초대링크가 복사되었습니다! 📋\n카톡이나 메시지에 붙여넣어서 공유해보세요.');
+      navigator.clipboard.writeText(copyText).then(() => {
+        alert('초대 메시지가 복사되었습니다! 📋');
+        setShowInviteModal(false);
       });
     } else {
       const textArea = document.createElement('textarea');
-      textArea.value = inviteUrl;
+      textArea.value = copyText;
       textArea.style.position = 'fixed';
       textArea.style.left = '-999999px';
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      alert('클럽 초대링크가 복사되었습니다! 📋\n카톡이나 메시지에 붙여넣어서 공유해보세요.');
+      alert('초대 메시지가 복사되었습니다! 📋');
+      setShowInviteModal(false);
     }
   };
 
   return (
     <div className="container">
-      {/* 헤더 */}
-      <div className="header">
-        <h1>클럽</h1>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="add-button" onClick={() => navigate('/join')}>
-            코드로 가입
-          </button>
-          <button className="add-button" onClick={() => setShowCreateModal(true)}>
-            클럽 만들기
-          </button>
-        </div>
-      </div>
-
       {/* 클럽이 없을 때 안내 */}
       {!loading && myClubs.length === 0 && (
         <div className="empty-state" style={{ marginTop: '60px', marginBottom: '60px' }}>
           <p style={{ fontSize: '16px', marginBottom: '12px' }}>아직 가입한 클럽이 없습니다</p>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-            상단의 "코드로 가입" 또는 "클럽 만들기"를 눌러 시작해보세요!
+            상단 우측의 + 버튼을 눌러 시작해보세요!
           </p>
         </div>
       )}
 
-      {/* 클럽 드롭다운 */}
+      {/* 클럽 드롭다운과 액션 버튼 */}
       {myClubs.length > 0 && (
-        <div className="club-dropdown-container">
+        <div className="club-header-container">
+          <div className="club-dropdown-container compact">
           <button
             className="club-dropdown-trigger"
             onClick={() => setShowDropdown(!showDropdown)}
@@ -524,26 +563,27 @@ export const Club = () => {
               </div>
             </div>
           )}
-        </div>
-      )}
+          </div>
 
-      {/* 클럽 액션 버튼 (드롭다운 바로 아래) */}
-      {selectedClub && (
-        <div className="club-main-actions">
-          <button
-            className="club-main-action-button"
-            onClick={(e) => copyInviteCode(selectedClub.invite_code, e)}
-          >
-            <Share2 size={18} />
-            <span>클럽 초대</span>
-          </button>
-          <button
-            className="club-main-action-button secondary"
-            onClick={() => setShowClubMenu(true)}
-          >
-            <Menu size={18} />
-            <span>클럽 메뉴</span>
-          </button>
+          {/* 클럽 액션 아이콘 버튼 */}
+          {selectedClub && (
+            <div className="club-action-icons">
+              <button
+                className="club-icon-button"
+                onClick={() => setShowInviteModal(true)}
+                title="클럽 초대"
+              >
+                <UserRoundPlus size={20} />
+              </button>
+              <button
+                className="club-icon-button"
+                onClick={() => setShowClubMenu(true)}
+                title="클럽 설정"
+              >
+                <Settings size={20} />
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -786,17 +826,15 @@ export const Club = () => {
                           <div className="ranking-info">
                             <div className="ranking-name">
                               {member.display_name}
+                              {isMyRank && <span className="my-rank-badge">나</span>}
                               {member.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
                             </div>
-                            <div className="ranking-count">{member.workout_count}회 운동</div>
                           </div>
                         </div>
                         <div className="ranking-right">
                           <div className="ranking-mileage">
                             {member.total_mileage.toFixed(1)}
-                            {isMyRank && <span className="my-rank-badge">나</span>}
                           </div>
-                          <div className="ranking-unit">마일리지</div>
                         </div>
                       </>
                     )}
@@ -872,6 +910,48 @@ export const Club = () => {
           }}
           onClose={() => setShowDetailedStats(false)}
         />
+      )}
+
+      {/* 클럽 초대 모달 */}
+      {showInviteModal && selectedClub && (
+        <div className="modal-overlay" onClick={() => setShowInviteModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>클럽 초대하기</h2>
+              <button className="modal-close" onClick={() => setShowInviteModal(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="invite-info">
+                <div className="invite-club-name">{selectedClub.name}</div>
+                <div className="invite-code">초대 코드: {selectedClub.invite_code}</div>
+              </div>
+              <div className="invite-actions">
+                <button
+                  className="invite-action-button kakao"
+                  onClick={handleKakaoInviteShare}
+                >
+                  <span className="action-icon">💬</span>
+                  <div className="action-text">
+                    <div className="action-title">카카오톡으로 공유</div>
+                    <div className="action-desc">친구에게 초대 메시지 보내기</div>
+                  </div>
+                </button>
+                <button
+                  className="invite-action-button"
+                  onClick={handleCopyInviteLink}
+                >
+                  <span className="action-icon">📋</span>
+                  <div className="action-text">
+                    <div className="action-title">초대 링크 복사</div>
+                    <div className="action-desc">메시지나 이메일로 공유하기</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 클럽 메뉴 모달 */}

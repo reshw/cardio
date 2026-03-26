@@ -1581,7 +1581,7 @@ html {
   background: var(--card-bg);
   border: 2px solid var(--border-color);
   border-radius: 12px;
-  padding: 10px 14px;
+  padding: 8px 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2625,8 +2625,8 @@ html {
 
 .dropdown-trigger-logo,
 .dropdown-trigger-logo-placeholder {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 8px;
   flex-shrink: 0;
 }
@@ -2645,7 +2645,7 @@ html {
   justify-content: center;
   color: white;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .sortable-club-item {
@@ -5056,6 +5056,9 @@ html {
 /* 알림 버튼 */
 .header-notification {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .notification-button {
@@ -6688,4 +6691,247 @@ html {
     height: 32px;
     padding: 6px;
   }
+}
+
+/* ============================================
+   클럽 페이지 개편 스타일
+   ============================================ */
+
+/* 헤더 액션 버튼 (circle-plus) */
+.header-action-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
+  transition: all 0.2s;
+  border-radius: 50%;
+}
+
+.header-action-button:hover {
+  background: rgba(var(--primary-color-rgb, 33, 150, 243), 0.1);
+}
+
+/* 클럽 헤더 컨테이너 (드롭다운 + 아이콘 버튼) */
+.club-header-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* 짧은 드롭다운 */
+.club-dropdown-container.compact {
+  flex: 1;
+  max-width: 300px;
+  margin-bottom: 0;
+}
+
+/* 클럽 액션 아이콘들 */
+.club-action-icons {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.club-icon-button {
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-primary);
+}
+
+.club-icon-button:hover {
+  border-color: var(--primary-color);
+  background: var(--card-hover-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 클럽 액션 모달 버튼 */
+.club-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.club-action-modal-button {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--input-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  width: 100%;
+}
+
+.club-action-modal-button:hover {
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.club-action-modal-button .action-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.club-action-modal-button .action-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.club-action-modal-button .action-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.club-action-modal-button .action-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* 랭킹 아이템 높이 줄이기 */
+.ranking-item {
+  padding: 10px 12px;
+  gap: 8px;
+}
+
+.ranking-left {
+  gap: 10px;
+}
+
+.rank-badge {
+  min-width: 36px;
+  font-size: 16px;
+}
+
+.rank-badge.rank-1,
+.rank-badge.rank-2,
+.rank-badge.rank-3 {
+  font-size: 20px;
+}
+
+.ranking-profile,
+.ranking-profile-placeholder {
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
+  line-height: 36px;
+}
+
+.ranking-info {
+  gap: 2px;
+}
+
+.ranking-name {
+  font-size: 15px;
+}
+
+.ranking-mileage {
+  font-size: 20px;
+}
+
+/* 나 라벨 위치 조정 (이름 뒤) */
+.ranking-name .my-rank-badge {
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+/* 클럽 초대 모달 */
+.invite-info {
+  background: var(--input-bg);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.invite-club-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.invite-code {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+}
+
+.invite-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.invite-action-button {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--input-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  width: 100%;
+}
+
+.invite-action-button:hover {
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.invite-action-button.kakao {
+  background: linear-gradient(135deg, #FEE500 0%, #FFEB3B 100%);
+  border-color: #FEE500;
+}
+
+.invite-action-button.kakao:hover {
+  background: linear-gradient(135deg, #FFD600 0%, #FDD835 100%);
+  border-color: #FDD835;
+}
+
+.invite-action-button .action-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.invite-action-button .action-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.invite-action-button .action-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.invite-action-button .action-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
 }
