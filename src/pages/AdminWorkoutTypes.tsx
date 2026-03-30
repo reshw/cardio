@@ -67,7 +67,11 @@ function SortableWorkoutItem({
         </div>
         {workoutType.sub_types && workoutType.sub_types.length > 0 && (
           <div className="workout-type-subtypes">
-            {workoutType.sub_types.join(', ')}
+            {workoutType.sub_types.map((st, idx) => (
+              <span key={idx}>
+                {st.name} ({st.unit}){idx < workoutType.sub_types.length - 1 ? ', ' : ''}
+              </span>
+            ))}
           </div>
         )}
       </div>
@@ -142,6 +146,7 @@ export const AdminWorkoutTypes = () => {
     is_core: false,
   });
   const [subTypeInput, setSubTypeInput] = useState('');
+  const [subTypeUnit, setSubTypeUnit] = useState<'km' | 'm' | '층' | '분' | '회' | '세트'>('km');
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -220,6 +225,7 @@ export const AdminWorkoutTypes = () => {
     setShowModal(false);
     setEditingType(null);
     setSubTypeInput('');
+    setSubTypeUnit('km');
   };
 
   const handleAddSubType = () => {
@@ -233,9 +239,10 @@ export const AdminWorkoutTypes = () => {
 
     setFormData({
       ...formData,
-      sub_types: [...(formData.sub_types || []), subTypeInput.trim()],
+      sub_types: [...(formData.sub_types || []), { name: subTypeInput.trim(), unit: subTypeUnit }],
     });
     setSubTypeInput('');
+    setSubTypeUnit(formData.unit); // 다음 서브타입은 기본 단위로 초기화
   };
 
   const handleRemoveSubType = (index: number) => {
@@ -493,7 +500,11 @@ export const AdminWorkoutTypes = () => {
                         </div>
                         {workoutType.sub_types && workoutType.sub_types.length > 0 && (
                           <div className="workout-type-subtypes">
-                            {workoutType.sub_types.join(', ')}
+                            {workoutType.sub_types.map((st, idx) => (
+                              <span key={idx}>
+                                {st.name} ({st.unit}){idx < workoutType.sub_types.length - 1 ? ', ' : ''}
+                              </span>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -844,6 +855,26 @@ export const AdminWorkoutTypes = () => {
                         e.currentTarget.style.borderColor = 'var(--border-color)';
                       }}
                     />
+                    <select
+                      value={subTypeUnit}
+                      onChange={(e) => setSubTypeUnit(e.target.value as any)}
+                      style={{
+                        padding: '12px 16px',
+                        fontSize: '15px',
+                        border: '2px solid var(--border-color)',
+                        borderRadius: '8px',
+                        background: 'var(--secondary-bg)',
+                        cursor: 'pointer',
+                        minWidth: '100px',
+                      }}
+                    >
+                      <option value="km">km</option>
+                      <option value="m">m</option>
+                      <option value="층">층</option>
+                      <option value="분">분</option>
+                      <option value="회">회</option>
+                      <option value="세트">세트</option>
+                    </select>
                     <button
                       type="button"
                       onClick={handleAddSubType}
@@ -895,7 +926,7 @@ export const AdminWorkoutTypes = () => {
                             e.currentTarget.style.background = 'var(--primary-color)';
                           }}
                         >
-                          {subType}
+                          {subType.name} ({subType.unit})
                           <span style={{ fontSize: '16px' }}>✕</span>
                         </span>
                       ))}

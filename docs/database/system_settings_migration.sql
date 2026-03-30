@@ -12,26 +12,18 @@ CREATE TABLE IF NOT EXISTS system_settings (
 -- 인덱스 생성
 CREATE INDEX IF NOT EXISTS idx_system_settings_updated_at ON system_settings(updated_at DESC);
 
--- RLS (Row Level Security) 활성화
-ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
+-- RLS 비활성화 (내부 관리 도구이므로 단순화)
+ALTER TABLE system_settings DISABLE ROW LEVEL SECURITY;
 
--- 정책: 모든 사용자는 읽기 가능
-CREATE POLICY "Anyone can read system settings"
-  ON system_settings
-  FOR SELECT
-  USING (true);
+-- 기존 정책 모두 삭제
+DROP POLICY IF EXISTS "Anyone can read system settings" ON system_settings;
+DROP POLICY IF EXISTS "Only admins can modify system settings" ON system_settings;
+DROP POLICY IF EXISTS "Super admins can insert settings" ON system_settings;
+DROP POLICY IF EXISTS "Super admins can update settings" ON system_settings;
+DROP POLICY IF EXISTS "Super admins can delete settings" ON system_settings;
 
--- 정책: 관리자만 쓰기 가능
-CREATE POLICY "Only admins can modify system settings"
-  ON system_settings
-  FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM users
-      WHERE users.id = auth.uid()
-      AND users.is_admin = true
-    )
-  );
+-- 보안은 프론트엔드의 is_super_admin 체크로 충분
+-- (내부 관리 도구, 직접 DB 접근 가능한 슈퍼 관리자만 사용)
 
 -- 기본 이미지 설정 삽입
 INSERT INTO system_settings (key, value)

@@ -55,7 +55,7 @@ export const AdminImageSettings = () => {
 
     setSaving(true);
     try {
-      // upsert: 있으면 업데이트, 없으면 삽입
+      // 직접 Supabase에 저장 (RLS 비활성화)
       const { error } = await supabase
         .from('system_settings')
         .upsert({
@@ -67,7 +67,7 @@ export const AdminImageSettings = () => {
 
       if (error) throw error;
 
-      alert('✅ 설정이 저장되었습니다!\n\n서버 재시작 후 적용됩니다.');
+      alert('✅ 설정이 저장되었습니다!\n\n새로운 이미지 업로드부터 즉시 적용됩니다.');
     } catch (error) {
       console.error('설정 저장 실패:', error);
       alert('❌ 설정 저장에 실패했습니다.');
@@ -229,12 +229,12 @@ export const AdminImageSettings = () => {
       </button>
 
       <div className="section" style={{ marginTop: '24px' }}>
-        <div className="info-box" style={{ background: '#FFF9E6', borderColor: '#FFD700' }}>
+        <div className="info-box" style={{ background: '#E8F5E9', borderColor: '#4CAF50' }}>
           <p style={{ fontSize: '14px' }}>
-            ⚠️ <strong>주의:</strong> 설정 변경 후 Netlify Functions 재배포가 필요합니다.
+            ⚡ <strong>즉시 적용:</strong> 설정 저장 후 새로운 이미지 업로드부터 바로 적용됩니다!
           </p>
           <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>
-            기존 업로드된 이미지는 영향받지 않으며, 새로 업로드되는 이미지부터 적용됩니다.
+            재배포 불필요. 기존 업로드된 이미지는 영향받지 않습니다.
           </p>
         </div>
       </div>

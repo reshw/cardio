@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import workoutService from '../services/workoutService';
+import workoutTypeService from '../services/workoutTypeService';
+import type { WorkoutType } from '../services/workoutTypeService';
 import { uploadToR2 } from '../utils/r2Storage';
 import type { WorkoutCategory, WorkoutSubType, WorkoutUnit } from '../services/workoutService';
 
@@ -8,24 +10,6 @@ interface Props {
   onClose: () => void;
   onSuccess: () => void;
 }
-
-const CATEGORIES = [
-  { id: '달리기' as WorkoutCategory, label: '🏃 달리기', unit: 'km' as WorkoutUnit },
-  { id: '사이클' as WorkoutCategory, label: '🚴 사이클', unit: 'km' as WorkoutUnit },
-  { id: '수영' as WorkoutCategory, label: '🏊 수영', unit: 'm' as WorkoutUnit },
-  { id: '계단' as WorkoutCategory, label: '🪜 계단', unit: '층' as WorkoutUnit },
-  { id: '복싱' as WorkoutCategory, label: '🥊 복싱', unit: '분' as WorkoutUnit },
-  { id: '요가' as WorkoutCategory, label: '🧘 요가', unit: '분' as WorkoutUnit },
-];
-
-const SUB_TYPES = {
-  달리기: ['트레드밀', '러닝'],
-  사이클: ['실외', '실내'],
-  수영: [],
-  계단: [],
-  복싱: ['샌드백/미트', '스파링'],
-  요가: ['일반', '빈야사/아쉬탕가'],
-};
 
 export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
   const { user } = useAuth();
@@ -38,7 +22,52 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
   const [uploading, setUploading] = useState(false);
   const [intensity, setIntensity] = useState(4); // 기본값 4
 
+  // 동적 운동 종목 로딩
+  const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
+  const [loadingTypes, setLoadingTypes] = useState(true);
+
+  useEffect(() => {
+    const loadWorkoutTypes = async () => {
+      try {
+        const types = await workoutTypeService.getActiveWorkoutTypes();
+        setWorkoutTypes(types);
+      } catch (error) {
+        console.error('운동 종목 로드 실패:', error);
+      } finally {
+        setLoadingTypes(false);
+      }
+    };
+    loadWorkoutTypes();
+  }, []);
+
+  // 동적 카테고리 및 서브타입 매핑
+  const CATEGORIES = workoutTypes.map((type) => ({
+    id: type.name as WorkoutCategory,
+    label: `${type.emoji} ${type.name}`,
+    unit: type.unit as WorkoutUnit,
+  }));
+
+  const SUB_TYPES = workoutTypes.reduce((acc, type) => {
+    acc[type.name] = type.sub_types || [];
+    return acc;
+  }, {} as Record<string, Array<{ name: string; unit: string }>>);
+
   const selectedCategory = CATEGORIES.find((c) => c.id === category);
+  const selectedWorkoutType = workoutTypes.find((t) => t.name === category);
+
+  // 서브타입별 단위 동적 조회
+  const getUnitForSubType = (): string => {
+    if (subType && category) {
+      const subTypes = SUB_TYPES[category];
+      const selectedSubType = subTypes.find((st) => st.name === subType);
+      if (selectedSubType) {
+        return selectedSubType.unit;
+      }
+    }
+    return selectedWorkoutType?.unit || selectedCategory?.unit || '값';
+  };
+
+  const displayUnit = getUnitForSubType();
 
   // 카테고리 선택
   const handleCategorySelect = (cat: WorkoutCategory) => {
@@ -57,6 +86,26 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
     setSubType(sub as WorkoutSubType);
     setStep(3);
   };
+
+  // 운동 종목 로딩 중
+  if (loadingTypes) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>운동 기록 추가</h2>
+            <button className="modal-close" onClick={onClose}>✕</button>
+          </div>
+          <div className="modal-body">
+            <div className="loading-screen">
+              <div className="spinner"></div>
+              <p>운동 종목 불러오는 중...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // 이미지 선택
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -171,11 +220,11 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
               <div className="subtype-buttons">
                 {SUB_TYPES[category].map((sub) => (
                   <button
-                    key={sub}
+                    key={sub.name}
                     className="subtype-button"
-                    onClick={() => handleSubTypeSelect(sub)}
+                    onClick={() => handleSubTypeSelect(sub.name)}
                   >
-                    {sub}
+                    {sub.name}
                   </button>
                 ))}
               </div>
@@ -195,7 +244,7 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
                 </h3>
 
                 <div className="form-group">
-                  <label htmlFor="value">거리/시간/층수</label>
+                  <label htmlFor="value">{displayUnit}</label>
                   <div className="input-with-unit">
                     <input
                       id="value"
@@ -208,7 +257,7 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
                       className="value-input"
                       required
                     />
-                    <span className="unit-label">{selectedCategory?.unit}</span>
+                    <span className="unit-label">{displayUnit}</span>
                   </div>
                 </div>
 

@@ -1,6 +1,56 @@
 import { Handler } from '@netlify/functions';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
+import { createClient } from '@supabase/supabase-js';
+
+// Supabase 클라이언트
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL!,
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY!
+);
+
+// 기본 설정값
+const DEFAULT_SETTINGS = {
+  max_width: 1280,
+  quality: 75,
+  thumbnail_size: 300,
+};
+
+// 이미지 설정 가져오기 (캐싱)
+let cachedSettings: typeof DEFAULT_SETTINGS | null = null;
+let lastFetch = 0;
+const CACHE_TTL = 60000; // 1분 캐시
+
+async function getImageSettings() {
+  const now = Date.now();
+
+  // 캐시 유효하면 바로 반환
+  if (cachedSettings && now - lastFetch < CACHE_TTL) {
+    return cachedSettings;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'image_upload')
+      .single();
+
+    if (error || !data?.value) {
+      console.log('⚙️ 기본 설정 사용');
+      cachedSettings = DEFAULT_SETTINGS;
+    } else {
+      cachedSettings = data.value as typeof DEFAULT_SETTINGS;
+      console.log('⚙️ DB 설정 로드:', cachedSettings);
+    }
+
+    lastFetch = now;
+    return cachedSettings;
+  } catch (error) {
+    console.error('설정 로드 실패, 기본값 사용:', error);
+    return DEFAULT_SETTINGS;
+  }
+}
 
 // 파일 확장자 추출
 const getFileExtension = (filename: string): string => {
@@ -48,6 +98,10 @@ export const handler: Handler = async (event) => {
       }),
     };
   }
+
+  // 이미지 설정 로드
+  const imageSettings = await getImageSettings();
+  console.log('🎨 적용된 설정:', imageSettings);
 
   // R2 클라이언트 생성
   const s3Client = new S3Client({
@@ -153,13 +207,13 @@ export const handler: Handler = async (event) => {
     const originalKey = `${baseFilename}.${ext}`;
     const thumbnailKey = `${baseFilename}_thumb.${ext}`;
 
-    // 원본 최적화 (최대 1280px, WebP 75% 품질)
+    // 원본 최적화 (설정값 사용)
     const optimizedBuffer = await sharp(fileBuffer)
-      .resize(1280, 1280, {
+      .resize(imageSettings.max_width, imageSettings.max_width, {
         fit: 'inside', // 비율 유지하며 내부에 맞춤
         withoutEnlargement: true, // 작은 이미지는 확대하지 않음
       })
-      .webp({ quality: 75 }) // WebP 압축
+      .webp({ quality: imageSettings.quality }) // WebP 압축
       .toBuffer();
 
     console.log(`📦 압축 완료: ${fileBuffer.length} → ${optimizedBuffer.length} bytes (${Math.round((1 - optimizedBuffer.length / fileBuffer.length) * 100)}% 절감)`);
@@ -176,13 +230,13 @@ export const handler: Handler = async (event) => {
 
     console.log('✅ 원본 업로드 완료:', originalKey);
 
-    // 썸네일 생성 (300x300, 비율 유지하며 크롭)
+    // 썸네일 생성 (설정값 사용)
     const thumbnailBuffer = await sharp(fileBuffer)
-      .resize(300, 300, {
+      .resize(imageSettings.thumbnail_size, imageSettings.thumbnail_size, {
         fit: 'cover',
         position: 'center',
       })
-      .webp({ quality: 75 })
+      .webp({ quality: imageSettings.quality })
       .toBuffer();
 
     // 썸네일 업로드

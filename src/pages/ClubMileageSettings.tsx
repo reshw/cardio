@@ -23,10 +23,10 @@ const getWorkoutCategories = (workoutTypes: WorkoutType[]): WorkoutCategory[] =>
       // 세부타입이 있는 경우
       for (const subType of type.sub_types) {
         categories.push({
-          key: `${type.name}-${subType}`,
-          label: `${type.name} - ${subType}`,
+          key: `${type.name}-${subType.name}`,
+          label: `${type.name} - ${subType.name}`,
           emoji: type.emoji,
-          unit: type.unit,
+          unit: subType.unit, // 서브타입의 unit 사용
           is_core: type.is_core || false,
         });
       }

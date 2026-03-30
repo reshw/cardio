@@ -425,6 +425,9 @@ export const Club = () => {
 
     const inviteUrl = `${window.location.origin}/join/${selectedClub.invite_code}`;
 
+    console.log('🔗 생성된 초대 URL:', inviteUrl);
+    console.log('📋 초대 코드:', selectedClub.invite_code);
+
     try {
       const shareData: any = {
         objectType: 'feed',

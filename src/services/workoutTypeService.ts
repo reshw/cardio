@@ -1,11 +1,16 @@
 import { supabase } from '../lib/supabase';
 
+export interface WorkoutSubType {
+  name: string;
+  unit: string;
+}
+
 export interface WorkoutType {
   id: string;
   name: string;
   emoji: string;
   unit: 'km' | 'm' | '층' | '분' | '회' | '세트';
-  sub_types: string[];
+  sub_types: WorkoutSubType[];
   sub_type_mode: 'single' | 'mixed';
   is_core: boolean; // 기본운동 여부
   display_order: number;
@@ -18,7 +23,7 @@ export interface CreateWorkoutTypeInput {
   name: string;
   emoji: string;
   unit: 'km' | 'm' | '층' | '분' | '회' | '세트';
-  sub_types?: string[];
+  sub_types?: WorkoutSubType[];
   sub_type_mode?: 'single' | 'mixed';
   is_core?: boolean;
   display_order?: number;
@@ -28,7 +33,7 @@ export interface UpdateWorkoutTypeInput {
   name?: string;
   emoji?: string;
   unit?: 'km' | 'm' | '층' | '분' | '회' | '세트';
-  sub_types?: string[];
+  sub_types?: WorkoutSubType[];
   sub_type_mode?: 'single' | 'mixed';
   is_core?: boolean;
   display_order?: number;

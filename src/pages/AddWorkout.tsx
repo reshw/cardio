@@ -58,11 +58,26 @@ export const AddWorkout = () => {
   const SUB_TYPES = workoutTypes.reduce((acc, type) => {
     acc[type.name] = type.sub_types || [];
     return acc;
-  }, {} as Record<string, string[]>);
+  }, {} as Record<string, Array<{ name: string; unit: string }>>);
 
   const selectedCategory = CATEGORIES.find((c) => c.id === category);
   const selectedWorkoutType = workoutTypes.find((t) => t.name === category);
   const isMixedMode = selectedWorkoutType?.sub_type_mode === 'mixed';
+
+  // 서브타입별 단위 동적 조회
+  const getUnitForSubType = (): string => {
+    if (subType && category) {
+      const subTypes = SUB_TYPES[category];
+      const selectedSubType = subTypes.find((st) => st.name === subType);
+      if (selectedSubType) {
+        return selectedSubType.unit;
+      }
+    }
+    // 기본값: 메인 운동의 unit
+    return selectedWorkoutType?.unit || '값';
+  };
+
+  const displayUnit = getUnitForSubType();
 
   // 카테고리 선택
   const handleCategorySelect = (cat: WorkoutCategory) => {
@@ -127,8 +142,8 @@ export const AddWorkout = () => {
       if (isMixedMode && subTypeRatio > 0 && subTypeRatio < 100) {
         const subTypes = SUB_TYPES[category];
         subTypeRatios = {
-          [subTypes[0]]: (100 - subTypeRatio) / 100,
-          [subTypes[1]]: subTypeRatio / 100,
+          [subTypes[0].name]: (100 - subTypeRatio) / 100,
+          [subTypes[1].name]: subTypeRatio / 100,
         };
       }
 
@@ -277,8 +292,8 @@ export const AddWorkout = () => {
                 </p>
 
                 <div className="ratio-labels">
-                  <span className="ratio-label-left">{SUB_TYPES[category][0]}</span>
-                  <span className="ratio-label-right">{SUB_TYPES[category][1]}</span>
+                  <span className="ratio-label-left">{SUB_TYPES[category][0].name}</span>
+                  <span className="ratio-label-right">{SUB_TYPES[category][1].name}</span>
                 </div>
 
                 <div className="ratio-slider-container">
@@ -328,12 +343,12 @@ export const AddWorkout = () => {
                   onClick={() => {
                     // 비율이 0% 또는 100%면 단일 서브타입
                     if (subTypeRatio === 0) {
-                      setSubType(SUB_TYPES[category][0] as WorkoutSubType);
+                      setSubType(SUB_TYPES[category][0].name as WorkoutSubType);
                     } else if (subTypeRatio === 100) {
-                      setSubType(SUB_TYPES[category][1] as WorkoutSubType);
+                      setSubType(SUB_TYPES[category][1].name as WorkoutSubType);
                     } else {
                       // 혼합: 대표 서브타입을 첫 번째로 설정 (표시용)
-                      setSubType(SUB_TYPES[category][0] as WorkoutSubType);
+                      setSubType(SUB_TYPES[category][0].name as WorkoutSubType);
                     }
                     setStep(3);
                   }}
@@ -346,11 +361,11 @@ export const AddWorkout = () => {
               <div className="subtype-buttons">
                 {SUB_TYPES[category].map((sub) => (
                   <button
-                    key={sub}
+                    key={sub.name}
                     className="subtype-button"
-                    onClick={() => handleSubTypeSelect(sub)}
+                    onClick={() => handleSubTypeSelect(sub.name)}
                   >
-                    {sub}
+                    {sub.name}
                   </button>
                 ))}
               </div>
@@ -368,7 +383,7 @@ export const AddWorkout = () => {
                 {isMixedMode && subTypeRatio > 0 && subTypeRatio < 100 ? (
                   <span style={{ fontSize: '14px', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
                     <br />
-                    {SUB_TYPES[category][0]} {100 - subTypeRatio}% / {SUB_TYPES[category][1]} {subTypeRatio}%
+                    {SUB_TYPES[category][0].name} {100 - subTypeRatio}% / {SUB_TYPES[category][1].name} {subTypeRatio}%
                   </span>
                 ) : (
                   subType && ` - ${subType}`
@@ -376,7 +391,7 @@ export const AddWorkout = () => {
               </h3>
 
               <div className="form-group">
-                <label htmlFor="value">거리/시간/층수</label>
+                <label htmlFor="value">{displayUnit}</label>
                 <div className="input-with-unit">
                   <input
                     id="value"
@@ -389,7 +404,7 @@ export const AddWorkout = () => {
                     className="value-input"
                     required
                   />
-                  <span className="unit-label">{selectedCategory?.unit}</span>
+                  <span className="unit-label">{displayUnit}</span>
                 </div>
               </div>
 
