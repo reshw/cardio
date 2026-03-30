@@ -15,3 +15,9 @@ dist/
 # Temporary files
 tmpclaude-*
 nul
+
+# Supabase
+.branches
+.temp
+supabase/.branches
+supabase/.temp
