@@ -59,12 +59,12 @@ export const ClubMemberDetail = () => {
       const allWorkouts = await workoutService.getWorkoutsByUserId(userId);
 
       const monthWorkouts = allWorkouts.filter((workout) => {
-        const workoutDate = new Date(workout.created_at);
+        const workoutDate = new Date(workout.workout_time);
         return workoutDate >= startDate && workoutDate <= endDate;
       });
 
       monthWorkouts.sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        (a, b) => new Date(b.workout_time).getTime() - new Date(a.workout_time).getTime()
       );
 
       setWorkouts(monthWorkouts);
@@ -166,7 +166,7 @@ export const ClubMemberDetail = () => {
             <div key={workout.id} className="member-workout-card">
               <div className="workout-card-header">
                 <div className="workout-type-badge">{getWorkoutLabel(workout)}</div>
-                <div className="workout-date-small">{formatDate(workout.created_at)}</div>
+                <div className="workout-date-small">{formatDate(workout.workout_time)}</div>
               </div>
               <div className="workout-card-stats">
                 <div className="stat-item">
