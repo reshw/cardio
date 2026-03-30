@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import workoutService from '../services/workoutService';
-import { getCloudinaryThumbnail } from '../utils/cloudinary';
+import { getThumbnail } from '../utils/r2Storage';
 import type { Workout } from '../services/workoutService';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
@@ -210,7 +210,7 @@ export const History = () => {
                       </div>
                       {workout.proof_image && (
                         <div className="workout-proof-thumbnail">
-                          <img src={getCloudinaryThumbnail(workout.proof_image, 600, 120)} alt="증빙" />
+                          <img src={getThumbnail(workout.proof_image, 600, 120)} alt="증빙" />
                         </div>
                       )}
                     </div>
@@ -261,7 +261,7 @@ export const History = () => {
                   </div>
                   {workout.proof_image && (
                     <div className="workout-proof-thumbnail">
-                      <img src={getCloudinaryThumbnail(workout.proof_image, 600, 120)} alt="증빙" />
+                      <img src={getThumbnail(workout.proof_image, 600, 120)} alt="증빙" />
                     </div>
                   )}
                 </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
-import { uploadToCloudinary } from '../utils/cloudinary';
+import { uploadToR2 } from '../utils/r2Storage';
 import type { MyClubWithOrder, MileageConfig } from '../services/clubService';
 
 interface Props {
@@ -52,7 +52,7 @@ export const EditClubModal = ({ club, onClose, onSuccess }: Props) => {
       // 새 로고 파일이 있으면 업로드
       if (logoFile) {
         try {
-          logoUrl = await uploadToCloudinary(logoFile);
+          logoUrl = await uploadToR2(logoFile);
         } catch (uploadError) {
           console.error('로고 업로드 실패:', uploadError);
           alert('로고 업로드에 실패했습니다. 로고 없이 저장하시겠습니까?');

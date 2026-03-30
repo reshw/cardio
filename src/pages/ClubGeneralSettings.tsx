@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Copy } from 'lucide-react';
 import clubService from '../services/clubService';
-import { uploadToCloudinary } from '../utils/cloudinary';
+import { uploadToR2 } from '../utils/r2Storage';
 
 export const ClubGeneralSettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
@@ -90,7 +90,7 @@ export const ClubGeneralSettings = () => {
 
       if (logoFile) {
         try {
-          logoUrl = await uploadToCloudinary(logoFile);
+          logoUrl = await uploadToR2(logoFile);
         } catch (uploadError) {
           console.error('로고 업로드 실패:', uploadError);
           alert('로고 업로드에 실패했습니다. 로고 없이 저장하시겠습니까?');

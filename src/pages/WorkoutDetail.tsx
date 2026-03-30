@@ -4,7 +4,7 @@ import { ChevronLeft, Edit2, Trash2, X } from 'lucide-react';
 import workoutService from '../services/workoutService';
 import feedService from '../services/feedService';
 import type { Workout } from '../services/workoutService';
-import { uploadToCloudinary } from '../utils/cloudinary';
+import { uploadToR2 } from '../utils/r2Storage';
 import { IntegratedCommentSection } from '../components/IntegratedCommentSection';
 import { LikeStatsModal } from '../components/LikeStatsModal';
 
@@ -193,7 +193,7 @@ export const WorkoutDetail = () => {
       let imageUrl = workout.proof_image;
 
       if (proofImage) {
-        imageUrl = await uploadToCloudinary(proofImage);
+        imageUrl = await uploadToR2(proofImage);
       }
 
       await workoutService.updateWorkout(workout.id, {

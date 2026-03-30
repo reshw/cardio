@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 import type { Club } from '../services/clubService';
 import { ClubMemberProfileForm } from '../components/ClubMemberProfileForm';
-import { uploadToCloudinary } from '../utils/cloudinary';
+import { uploadToR2 } from '../utils/r2Storage';
 
 export const JoinClub = () => {
   const { code } = useParams<{ code?: string }>();
@@ -104,7 +104,7 @@ export const JoinClub = () => {
       if (profileImage) {
         if (profileImage instanceof File) {
           // 파일 업로드
-          profileImageUrl = await uploadToCloudinary(profileImage);
+          profileImageUrl = await uploadToR2(profileImage);
         } else {
           // 문자열 (default:color 또는 카카오 프로필 URL)
           profileImageUrl = profileImage;

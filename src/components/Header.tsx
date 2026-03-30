@@ -108,19 +108,21 @@ export const Header = () => {
                     <div className="action-desc">초대코드로 클럽 참여하기</div>
                   </div>
                 </button>
-                <button
-                  className="club-action-modal-button"
-                  onClick={() => {
-                    setShowClubActionModal(false);
-                    setShowCreateModal(true);
-                  }}
-                >
-                  <span className="action-icon">➕</span>
-                  <div className="action-text">
-                    <div className="action-title">클럽 만들기</div>
-                    <div className="action-desc">새로운 클럽 생성하기</div>
-                  </div>
-                </button>
+                {user?.is_admin && (
+                  <button
+                    className="club-action-modal-button"
+                    onClick={() => {
+                      setShowClubActionModal(false);
+                      setShowCreateModal(true);
+                    }}
+                  >
+                    <span className="action-icon">➕</span>
+                    <div className="action-text">
+                      <div className="action-title">클럽 만들기 <span style={{ fontSize: '11px', color: '#FF6B6B', fontWeight: '600' }}>🔒 시스템 관리자 전용</span></div>
+                      <div className="action-desc">새로운 클럽 생성하기</div>
+                    </div>
+                  </button>
+                )}
               </div>
             </div>
           </div>

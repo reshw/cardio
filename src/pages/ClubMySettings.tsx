@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 import { ClubMemberProfileForm } from '../components/ClubMemberProfileForm';
-import { uploadToCloudinary } from '../utils/cloudinary';
+import { uploadToR2 } from '../utils/r2Storage';
 
 export const ClubMySettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
@@ -69,7 +69,7 @@ export const ClubMySettings = () => {
       if (profileImage) {
         if (profileImage instanceof File) {
           // 새 파일 업로드
-          profileImageUrl = await uploadToCloudinary(profileImage);
+          profileImageUrl = await uploadToR2(profileImage);
         } else {
           // 기존 문자열 (default:color 또는 URL)
           profileImageUrl = profileImage;

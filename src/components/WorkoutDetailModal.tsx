@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import workoutService from '../services/workoutService';
-import { uploadToCloudinary } from '../utils/cloudinary';
+import { uploadToR2 } from '../utils/r2Storage';
 import type { Workout } from '../services/workoutService';
 import { Edit2, Trash2 } from 'lucide-react';
 
@@ -83,7 +83,7 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
 
       // 새 이미지가 있으면 업로드
       if (newProofImage) {
-        proofImageUrl = await uploadToCloudinary(newProofImage);
+        proofImageUrl = await uploadToR2(newProofImage);
       }
 
       await workoutService.updateWorkout(workout.id, {

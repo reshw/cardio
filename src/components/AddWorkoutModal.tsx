@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import workoutService from '../services/workoutService';
-import { uploadToCloudinary } from '../utils/cloudinary';
+import { uploadToR2 } from '../utils/r2Storage';
 import type { WorkoutCategory, WorkoutSubType, WorkoutUnit } from '../services/workoutService';
 
 interface Props {
@@ -85,14 +85,14 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
     try {
       let imageUrl: string | undefined;
 
-      // 이미지가 있으면 Cloudinary에 업로드
+      // 이미지가 있으면 R2에 업로드
       if (proofImage) {
-        console.log('🖼️ Cloudinary 업로드 시작...');
+        console.log('🖼️ R2 업로드 시작...');
         try {
-          imageUrl = await uploadToCloudinary(proofImage);
-          console.log('✅ Cloudinary 업로드 성공:', imageUrl);
+          imageUrl = await uploadToR2(proofImage);
+          console.log('✅ R2 업로드 성공:', imageUrl);
         } catch (uploadError) {
-          console.error('❌ Cloudinary 업로드 실패:', uploadError);
+          console.error('❌ R2 업로드 실패:', uploadError);
           alert('이미지 업로드에 실패했습니다. 이미지 없이 저장하시겠습니까?');
           // 이미지 업로드 실패해도 계속 진행
         }

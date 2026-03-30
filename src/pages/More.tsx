@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Shield, BookOpen, Smartphone, UserX } from 'lucide-react';
+import { Shield, BookOpen, Smartphone, UserX, Image } from 'lucide-react';
 import { InstallGuideModal } from '../components/InstallGuideModal';
 
 export const More = () => {
@@ -25,6 +25,16 @@ export const More = () => {
             <Shield size={20} />
             <span>어드민 관리</span>
           </button>
+          {user?.is_super_admin && (
+            <button
+              className="admin-menu-button"
+              onClick={() => navigate('/admin/image-settings')}
+              style={{ marginTop: '12px' }}
+            >
+              <Image size={20} />
+              <span>이미지 업로드 설정</span>
+            </button>
+          )}
         </div>
       )}
 
