@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { WorkoutFeedCard } from './WorkoutFeedCard';
+import { useAuth } from '../contexts/AuthContext';
 import type { WorkoutFeedItem } from '../services/feedService';
 
 interface Props {
@@ -27,6 +28,7 @@ export const WorkoutFeed = ({
   onOptimisticCommentDelete,
   onBlock,
 }: Props) => {
+  const { user } = useAuth();
   const formatDate = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -67,18 +69,50 @@ export const WorkoutFeed = ({
         </div>
       ) : (
         <div className="feed-items">
-          {feedItems.map((item) => (
-            <WorkoutFeedCard
-              key={item.workout.id}
-              item={item}
-              clubId={clubId}
-              clubName={clubName}
-              onOptimisticLike={onOptimisticLike}
-              onOptimisticCommentAdd={onOptimisticCommentAdd}
-              onOptimisticCommentDelete={onOptimisticCommentDelete}
-              onBlock={onBlock}
-            />
-          ))}
+          {(() => {
+            // 내 운동과 다른 사람 운동 분리
+            const myWorkouts = feedItems.filter(item => item.workout.user_id === user?.id);
+            const othersWorkouts = feedItems.filter(item => item.workout.user_id !== user?.id);
+
+            return (
+              <>
+                {/* 내 운동 그룹 */}
+                {myWorkouts.map((item) => (
+                  <WorkoutFeedCard
+                    key={item.workout.id}
+                    item={item}
+                    clubId={clubId}
+                    clubName={clubName}
+                    onOptimisticLike={onOptimisticLike}
+                    onOptimisticCommentAdd={onOptimisticCommentAdd}
+                    onOptimisticCommentDelete={onOptimisticCommentDelete}
+                    onBlock={onBlock}
+                  />
+                ))}
+
+                {/* 구분선 (내 운동이 있고, 다른 사람 운동도 있을 때만) */}
+                {myWorkouts.length > 0 && othersWorkouts.length > 0 && (
+                  <div className="feed-divider">
+                    <span className="feed-divider-text">다른 멤버</span>
+                  </div>
+                )}
+
+                {/* 다른 사람 운동 그룹 */}
+                {othersWorkouts.map((item) => (
+                  <WorkoutFeedCard
+                    key={item.workout.id}
+                    item={item}
+                    clubId={clubId}
+                    clubName={clubName}
+                    onOptimisticLike={onOptimisticLike}
+                    onOptimisticCommentAdd={onOptimisticCommentAdd}
+                    onOptimisticCommentDelete={onOptimisticCommentDelete}
+                    onBlock={onBlock}
+                  />
+                ))}
+              </>
+            );
+          })()}
         </div>
       )}
     </div>

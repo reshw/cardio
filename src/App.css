@@ -4191,10 +4191,33 @@ html {
   position: relative;
 }
 
-/* 내 운동 카드 - 은근하게 표시 */
+/* 내 운동 카드 - 왼쪽 강조 */
 .feed-card-my-post {
   background: rgba(59, 130, 246, 0.03);
-  border-left: 2px solid rgba(59, 130, 246, 0.3);
+  border-left: 3px solid rgba(59, 130, 246, 0.5);
+}
+
+/* 피드 구분선 (내 운동 vs 다른 멤버) */
+.feed-divider {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+  padding: 0 12px;
+}
+
+.feed-divider::before,
+.feed-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.1), transparent);
+}
+
+.feed-divider-text {
+  padding: 0 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 /* 더보기 버튼 (...) */
