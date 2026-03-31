@@ -706,30 +706,40 @@ export const Club = () => {
             let showEllipsis1 = false;
             let showEllipsis2 = false;
 
-            if (filteredByHOF.length <= 10) {
-              // 10명 이하면 전체 표시
+            // 본인이 20위 안에 있거나 순위가 없으면
+            if (myRank < 20 && myRank !== -1) {
+              // 1~20위까지만 표시
+              displayMembers = filteredByHOF.slice(0, 20);
+
+              // 20위 아래에 더 있으면 생략 표시
+              if (filteredByHOF.length > 20) {
+                showEllipsis2 = true;
+              }
+            } else if (myRank === -1 && filteredByHOF.length <= 20) {
+              // 본인 순위 없고 총 20명 이하면 전체 표시
               displayMembers = filteredByHOF;
             } else {
-              // 상위 10명
-              displayMembers = filteredByHOF.slice(0, 10);
+              // 본인이 21위 이상 또는 순위 없고 21명 이상
+              // 상위 5명
+              displayMembers = filteredByHOF.slice(0, 5);
 
-              // 본인이 11위 이하인 경우
-              if (myRank >= 10) {
+              // 본인이 있으면 본인 구간 추가
+              if (myRank >= 5) {
                 showEllipsis1 = true;
 
-                // 본인 ±1 추가
-                const start = Math.max(10, myRank - 1);
-                const end = Math.min(filteredByHOF.length, myRank + 2);
+                // 본인 위3개, 아래3개 추가 (총 7명: 위3 + 본인 + 아래3)
+                const start = Math.max(5, myRank - 3);
+                const end = Math.min(filteredByHOF.length, myRank + 4);
                 const mySection = filteredByHOF.slice(start, end);
 
                 displayMembers = [...displayMembers, ...mySection];
 
                 // 본인 아래에 더 있으면 생략 표시
-                if (myRank + 2 < filteredByHOF.length) {
+                if (myRank + 4 < filteredByHOF.length) {
                   showEllipsis2 = true;
                 }
               } else {
-                // 본인이 10위 안이지만 10위 뒤에 더 있으면 생략 표시
+                // 본인이 5위 안이지만 5위 뒤에 더 있으면 생략 표시
                 showEllipsis2 = true;
               }
             }
@@ -739,8 +749,8 @@ export const Club = () => {
                 {displayMembers.map((member, idx) => {
                 const isMyRank = member.user_id === user?.id;
 
-                // 생략 표시 (10위와 본인 구간 사이)
-                const showEllipsisBefore = showEllipsis1 && idx === 10;
+                // 생략 표시 (5위와 본인 구간 사이)
+                const showEllipsisBefore = showEllipsis1 && idx === 5;
 
                 // 프로필 이미지 렌더링 (default:color 형식 처리)
                 const renderProfileImage = () => {
@@ -779,7 +789,7 @@ export const Club = () => {
                     {showEllipsisBefore && (
                       <div className="ranking-ellipsis">
                         <div className="ellipsis-line"></div>
-                        <span className="ellipsis-text">생략 ({member.rank - 11}명)</span>
+                        <span className="ellipsis-text">생략 ({member.rank - 6}명)</span>
                         <div className="ellipsis-line"></div>
                       </div>
                     )}
