@@ -314,10 +314,14 @@ export const WorkoutFeedCard = ({
         </div>
       )}
 
-      {/* 더보기 버튼 */}
+      {/* 더보기/공유 버튼 */}
       <div className="feed-more-wrapper" ref={menuRef}>
-        <button className="feed-more-btn" onClick={() => setShowMenu(v => !v)}>
-          <MoreVertical size={16} />
+        <button
+          className="feed-more-btn"
+          onClick={() => setShowMenu(v => !v)}
+          title={isMyPost ? '공유하기' : '더보기'}
+        >
+          {isMyPost ? <Share2 size={16} /> : <MoreVertical size={16} />}
         </button>
         {showMenu && (
           <div className="feed-more-menu">
