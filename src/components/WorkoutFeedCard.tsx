@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Heart, MessageCircle, MoreVertical, Share2, Copy } from 'lucide-react';
+import { Heart, MessageCircle, MoreVertical, Share, Copy } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import feedService from '../services/feedService';
 import { CommentSection } from './CommentSection';
@@ -321,7 +321,7 @@ export const WorkoutFeedCard = ({
           onClick={() => setShowMenu(v => !v)}
           title={isMyPost ? '공유하기' : '더보기'}
         >
-          {isMyPost ? <Share2 size={16} /> : <MoreVertical size={16} />}
+          {isMyPost ? <Share size={16} /> : <MoreVertical size={16} />}
         </button>
         {showMenu && (
           <div className="feed-more-menu">
@@ -329,7 +329,7 @@ export const WorkoutFeedCard = ({
             {isMyPost && (
               <>
                 <button onClick={handleKakaoShare}>
-                  <Share2 size={14} style={{ marginRight: 8 }} />
+                  <Share size={14} style={{ marginRight: 8 }} />
                   카톡으로 공유
                 </button>
                 <button onClick={handleCopyText}>
