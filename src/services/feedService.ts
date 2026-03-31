@@ -47,6 +47,7 @@ export interface WorkoutFeedItem {
   comment_count: number;
   is_liked_by_me: boolean;
   is_disabled?: boolean; // 클럽에서 비활성화된 카테고리 여부
+  workout_number?: number; // 오늘의 n번째 운동
 }
 
 class FeedService {

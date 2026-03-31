@@ -1524,7 +1524,7 @@ class ClubService {
     workoutIds.forEach((id) => commentsMap.set(id, 0));
     comments?.forEach((c) => commentsMap.set(c.workout_id, (commentsMap.get(c.workout_id) || 0) + 1));
 
-    return workouts.map((workout) => {
+    return workouts.map((workout, index) => {
       const user = userMap.get(workout.user_id);
       const likeInfo = likesMap.get(workout.id) || { count: 0, isLiked: false };
 
@@ -1539,6 +1539,7 @@ class ClubService {
         like_count: likeInfo.count,
         comment_count: commentsMap.get(workout.id) || 0,
         is_liked_by_me: likeInfo.isLiked,
+        workout_number: index + 1, // 오늘의 n번째 운동 (workout_time 순서)
       };
     });
   }

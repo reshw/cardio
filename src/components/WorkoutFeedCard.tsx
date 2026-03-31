@@ -42,7 +42,6 @@ export const WorkoutFeedCard = ({
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [selectedReason, setSelectedReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [workoutNumber, setWorkoutNumber] = useState<number | null>(null);
 
   // 메뉴 외부 클릭 감지
   const menuRef = useRef<HTMLDivElement>(null);
@@ -94,24 +93,6 @@ export const WorkoutFeedCard = ({
     }
   };
 
-  // 삼점 메뉴 토글 (열 때 운동 번호 미리 가져오기)
-  const handleOpenMenu = async () => {
-    const newShowMenu = !showMenu;
-    setShowMenu(newShowMenu);
-
-    // 메뉴를 여는 경우에만 백그라운드에서 운동 번호 가져오기
-    if (newShowMenu && isMyPost && !workoutNumber) {
-      try {
-        console.log('🔢 Fetching workout number for clubId:', clubId, 'workoutId:', workout.id);
-        const number = await feedService.getTodayWorkoutNumber(clubId, workout.id);
-        console.log('🔢 Workout number result:', number);
-        setWorkoutNumber(number);
-      } catch (error) {
-        console.error('운동 번호 가져오기 실패:', error);
-      }
-    }
-  };
-
   // 카카오톡으로 공유하기
   const handleKakaoShare = () => {
     if (!window.Kakao || !window.Kakao.isInitialized()) {
@@ -128,8 +109,8 @@ export const WorkoutFeedCard = ({
 
     const shareTitle = `[${clubName}] ${item.user_display_name}님 (${dateStr})`;
 
-    // 미리 가져온 운동 번호 사용
-    const numberText = workoutNumber ? `\n오늘 클럽 ${workoutNumber}번째` : '';
+    // 피드 로드 시 계산된 운동 번호 사용 (비동기 호출 없음)
+    const numberText = item.workout_number ? `\n오늘 클럽 ${item.workout_number}번째` : '';
     const shareDescription = `${workoutLabel}: ${workout.value}${workout.unit}${numberText}`;
 
     try {
@@ -177,11 +158,11 @@ export const WorkoutFeedCard = ({
     const workoutDate = new Date(workout.workout_time);
     const dateStr = `${workoutDate.getFullYear()}.${String(workoutDate.getMonth() + 1).padStart(2, '0')}.${String(workoutDate.getDate()).padStart(2, '0')}`;
 
-    // 미리 가져온 운동 번호 사용
+    // 피드 로드 시 계산된 운동 번호 사용
     let shareText = `[${clubName}] ${item.user_display_name}님 (${dateStr})\n`;
     shareText += `${workoutLabel}: ${workout.value}${workout.unit}\n`;
-    if (workoutNumber) {
-      shareText += `오늘 클럽 ${workoutNumber}번째\n`;
+    if (item.workout_number) {
+      shareText += `오늘 클럽 ${item.workout_number}번째\n`;
     }
 
     if (workout.proof_image) {
@@ -325,7 +306,7 @@ export const WorkoutFeedCard = ({
   };
 
   return (
-    <div className={`feed-card ${item.is_disabled ? 'feed-card-disabled' : ''}`}>
+    <div className={`feed-card ${item.is_disabled ? 'feed-card-disabled' : ''} ${isMyPost ? 'feed-card-my-post' : ''}`}>
       {/* 비활성화 배지 */}
       {item.is_disabled && (
         <div className="feed-disabled-badge">
@@ -335,7 +316,7 @@ export const WorkoutFeedCard = ({
 
       {/* 더보기 버튼 */}
       <div className="feed-more-wrapper" ref={menuRef}>
-        <button className="feed-more-btn" onClick={handleOpenMenu}>
+        <button className="feed-more-btn" onClick={() => setShowMenu(v => !v)}>
           <MoreVertical size={16} />
         </button>
         {showMenu && (

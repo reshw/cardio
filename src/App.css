@@ -4191,6 +4191,12 @@ html {
   position: relative;
 }
 
+/* 내 운동 카드 - 은근하게 표시 */
+.feed-card-my-post {
+  background: rgba(59, 130, 246, 0.03);
+  border-left: 2px solid rgba(59, 130, 246, 0.3);
+}
+
 /* 더보기 버튼 (...) */
 .feed-more-wrapper {
   position: absolute;
