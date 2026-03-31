@@ -12,6 +12,11 @@
   [context.production.environment]
     NODE_ENV = "production"
 
+# Staging 브랜치: production 모드로 빌드
+[context.staging]
+  [context.staging.environment]
+    NODE_ENV = "production"
+
 # Dev 브랜치: console.log 유지
 [context.dev]
   [context.dev.environment]
