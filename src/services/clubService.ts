@@ -1544,7 +1544,7 @@ class ClubService {
         like_count: likeInfo.count,
         comment_count: commentsMap.get(workout.id) || 0,
         is_liked_by_me: likeInfo.isLiked,
-        workout_number: workoutNumberMap.get(workout.id) ?? null, // 등록(created_at) 순서 기준
+        workout_number: workoutNumberMap.get(workout.id) ?? undefined, // 등록(created_at) 순서 기준
       };
     });
   }
