@@ -832,9 +832,18 @@ export const Club = () => {
                       // 일반/전체 탭: 기존 렌더링
                       <>
                         <div className="ranking-left">
-                          <div className={`rank-badge rank-${member.rank}`}>
-                            {member.rank === 1 ? '🥇' : member.rank === 2 ? '🥈' : member.rank === 3 ? '🥉' : `${member.rank}위`}
-                          </div>
+                          {(() => {
+                            // 일반 회원 탭은 별도 순위 번호 사용
+                            const displayRank = rankingFilter === 'regular'
+                              ? filteredByHOF.findIndex(m => m.user_id === member.user_id) + 1
+                              : member.rank;
+
+                            return (
+                              <div className={`rank-badge rank-${displayRank}`}>
+                                {displayRank === 1 ? '🥇' : displayRank === 2 ? '🥈' : displayRank === 3 ? '🥉' : `${displayRank}위`}
+                              </div>
+                            );
+                          })()}
                           {renderProfileImage()}
                           <div className="ranking-info">
                             <div className="ranking-name">
@@ -848,6 +857,7 @@ export const Club = () => {
                           <div className="ranking-mileage">
                             {member.total_mileage.toFixed(1)}
                           </div>
+                          {rankingFilter === 'regular' && <div className="ranking-regular-label">(일반)</div>}
                         </div>
                       </>
                     )}
@@ -918,8 +928,8 @@ export const Club = () => {
           clubId={selectedClub.id}
           clubName={selectedClub.name}
           month={{
-            year: new Date().getFullYear(),
-            month: new Date().getMonth() + 1,
+            year: selectedMonth.getFullYear(),
+            month: selectedMonth.getMonth() + 1,
           }}
           onClose={() => setShowDetailedStats(false)}
         />

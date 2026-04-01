@@ -598,14 +598,14 @@ class FeedService {
       const workoutIdsInClub = mileageRecords.map(r => r.workout_id);
       console.log('📋 Found', workoutIdsInClub.length, 'workouts in club');
 
-      // 4. workouts 테이블에서 해당 날짜의 운동들을 workout_time 순서로 가져오기
+      // 4. workouts 테이블에서 해당 날짜의 운동들을 created_at(등록 순서) 기준으로 가져오기
       const { data: todayWorkouts, error: listError } = await supabase
         .from('workouts')
         .select('id, workout_time, created_at')
         .in('id', workoutIdsInClub)
         .gte('workout_time', startOfDay.toISOString())
         .lte('workout_time', endOfDay.toISOString())
-        .order('workout_time', { ascending: true });
+        .order('created_at', { ascending: true });
 
       if (listError || !todayWorkouts) {
         console.error('❌ Failed to get today workouts:', listError);

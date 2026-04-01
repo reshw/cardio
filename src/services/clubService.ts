@@ -1524,7 +1524,12 @@ class ClubService {
     workoutIds.forEach((id) => commentsMap.set(id, 0));
     comments?.forEach((c) => commentsMap.set(c.workout_id, (commentsMap.get(c.workout_id) || 0) + 1));
 
-    return workouts.map((workout, index) => {
+    // n번째 운동은 created_at(등록 순서) 기준으로 별도 계산
+    const createdAtOrder = [...workouts]
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const workoutNumberMap = new Map(createdAtOrder.map((w, i) => [w.id, i + 1]));
+
+    return workouts.map((workout) => {
       const user = userMap.get(workout.user_id);
       const likeInfo = likesMap.get(workout.id) || { count: 0, isLiked: false };
 
@@ -1539,7 +1544,7 @@ class ClubService {
         like_count: likeInfo.count,
         comment_count: commentsMap.get(workout.id) || 0,
         is_liked_by_me: likeInfo.isLiked,
-        workout_number: index + 1, // 오늘의 n번째 운동 (workout_time 순서)
+        workout_number: workoutNumberMap.get(workout.id) ?? null, // 등록(created_at) 순서 기준
       };
     });
   }
@@ -1679,7 +1684,7 @@ class ClubService {
       category: string;
       sub_type: string | null;
       value: number;
-      created_at: string;
+      workout_time: string;
       sub_type_ratios?: Record<string, number>;
     }
   ): Promise<void> {
@@ -1694,9 +1699,11 @@ class ClubService {
       workout.sub_type_ratios
     );
 
-    const workoutDate = new Date(workout.created_at);
-    const year = workoutDate.getFullYear();
-    const month = workoutDate.getMonth() + 1;
+    // workout_time 기준으로 로컬(KST) 날짜 계산
+    const d = new Date(workout.workout_time);
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const workout_date = `${year}-${String(month).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
     const { error } = await supabase
       .from('club_workout_mileage')
@@ -1707,6 +1714,7 @@ class ClubService {
         mileage,
         year,
         month,
+        workout_date,
         mileage_config_snapshot: mileageConfig,
       }, {
         onConflict: 'club_id,workout_id'

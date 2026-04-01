@@ -106,7 +106,7 @@ class WorkoutService {
             category: data.category,
             sub_type: data.sub_type,
             value: data.value,
-            created_at: workout.created_at,
+            workout_time: workout.workout_time,
             sub_type_ratios: data.sub_type_ratios,
           })
         );
@@ -217,7 +217,7 @@ class WorkoutService {
               category: updated.category,
               sub_type: updated.sub_type,
               value: updated.value,
-              created_at: updated.created_at,
+              workout_time: updated.workout_time,
               sub_type_ratios: updated.sub_type_ratios,
             })
           );

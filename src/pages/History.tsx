@@ -94,17 +94,51 @@ export const History = () => {
     });
   };
 
-  // 이번 달 통계
-  const getCurrentMonthStats = () => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+  const now = new Date();
+  const [statsYear, setStatsYear] = useState(now.getFullYear());
+  const [statsMonth, setStatsMonth] = useState(now.getMonth());
+  // null = 월/년 표시, 'month' = 월 선택, 'year' = 연 선택
+  const [pickerMode, setPickerMode] = useState<null | 'month' | 'year'>(null);
+  const [pickerYear, setPickerYear] = useState(now.getFullYear());
 
+  const goToPrevMonth = () => {
+    if (statsMonth === 0) { setStatsYear(y => y - 1); setStatsMonth(11); }
+    else setStatsMonth(m => m - 1);
+  };
+
+  const goToNextMonth = () => {
+    const isCurrentMonth = statsYear === now.getFullYear() && statsMonth === now.getMonth();
+    if (isCurrentMonth) return;
+    if (statsMonth === 11) { setStatsYear(y => y + 1); setStatsMonth(0); }
+    else setStatsMonth(m => m + 1);
+  };
+
+  const openPicker = () => {
+    setPickerYear(statsYear);
+    setPickerMode('month');
+  };
+
+  const selectMonth = (m: number) => {
+    const isFuture = pickerYear > now.getFullYear() ||
+      (pickerYear === now.getFullYear() && m > now.getMonth());
+    if (isFuture) return;
+    setStatsYear(pickerYear);
+    setStatsMonth(m);
+    setPickerMode(null);
+  };
+
+  const selectYear = (y: number) => {
+    setPickerYear(y);
+    setPickerMode('month');
+  };
+
+  // 선택 월 통계
+  const getCurrentMonthStats = () => {
     const monthWorkouts = workouts.filter((workout) => {
       const workoutDate = new Date(workout.workout_time);
       return (
-        workoutDate.getMonth() === currentMonth &&
-        workoutDate.getFullYear() === currentYear
+        workoutDate.getMonth() === statsMonth &&
+        workoutDate.getFullYear() === statsYear
       );
     });
 
@@ -131,6 +165,7 @@ export const History = () => {
   };
 
   const stats = getCurrentMonthStats();
+  const isCurrentMonth = statsYear === now.getFullYear() && statsMonth === now.getMonth();
 
   return (
     <div className="container">
@@ -275,7 +310,68 @@ export const History = () => {
       {activeTab === 'stats' && (
         <div className="tab-content">
           <div className="stats-container">
-            <h3>이번 달 운동 통계</h3>
+            <div className="stats-month-nav">
+              <button className="month-nav-btn" onClick={goToPrevMonth}>‹</button>
+              <button className="month-nav-label" onClick={openPicker}>
+                {statsYear}년 {statsMonth + 1}월
+              </button>
+              <button
+                className="month-nav-btn"
+                onClick={goToNextMonth}
+                disabled={isCurrentMonth}
+              >›</button>
+            </div>
+
+            {pickerMode === 'month' && (
+              <div className="stats-picker">
+                <div className="picker-year-row">
+                  <button className="month-nav-btn" onClick={() => setPickerYear(y => y - 1)}>‹</button>
+                  <button className="month-nav-label" onClick={() => setPickerMode('year')}>{pickerYear}년</button>
+                  <button
+                    className="month-nav-btn"
+                    onClick={() => setPickerYear(y => y + 1)}
+                    disabled={pickerYear >= now.getFullYear()}
+                  >›</button>
+                </div>
+                <div className="picker-month-grid">
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const isFuture = pickerYear > now.getFullYear() ||
+                      (pickerYear === now.getFullYear() && i > now.getMonth());
+                    const isSelected = pickerYear === statsYear && i === statsMonth;
+                    return (
+                      <button
+                        key={i}
+                        className={`picker-month-btn ${isSelected ? 'selected' : ''}`}
+                        onClick={() => selectMonth(i)}
+                        disabled={isFuture}
+                      >
+                        {i + 1}월
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {pickerMode === 'year' && (
+              <div className="stats-picker">
+                <div className="picker-year-grid">
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const y = now.getFullYear() - 4 + i;
+                    return (
+                      <button
+                        key={y}
+                        className={`picker-year-btn ${y === pickerYear ? 'selected' : ''}`}
+                        onClick={() => selectYear(y)}
+                      >
+                        {y}년
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
 
             <div className="stats-grid">
               <div className="stat-card">
@@ -297,7 +393,7 @@ export const History = () => {
             <div className="category-stats">
               <h4>운동 종류별 기록</h4>
               {Object.entries(stats.categoryCount).length === 0 ? (
-                <p className="empty-message">이번 달 운동 기록이 없습니다.</p>
+                <p className="empty-message">{statsMonth + 1}월 운동 기록이 없습니다.</p>
               ) : (
                 <div className="category-list">
                   {Object.entries(stats.categoryCount)

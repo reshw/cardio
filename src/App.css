@@ -1049,11 +1049,139 @@ html {
   box-shadow: var(--shadow-sm);
 }
 
-.stats-container h3 {
-  font-size: 20px;
+.stats-month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.stats-month-nav h3 {
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
+  min-width: 120px;
+  text-align: center;
+}
+
+.month-nav-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.month-nav-btn:hover:not(:disabled) {
+  background: var(--gradient-light);
+}
+
+.month-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.month-nav-label {
+  background: none;
+  border: none;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  cursor: pointer;
+  min-width: 120px;
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.month-nav-label:hover {
+  background: var(--gradient-light);
+}
+
+.stats-picker {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
   margin-bottom: 20px;
+}
+
+.picker-year-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.picker-month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.picker-month-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 4px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.15s;
+}
+
+.picker-month-btn:hover:not(:disabled) {
+  background: var(--gradient-light);
+  border-color: var(--primary-color);
+}
+
+.picker-month-btn.selected {
+  background: var(--gradient-primary);
+  color: white;
+  border-color: transparent;
+}
+
+.picker-month-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.picker-year-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.picker-year-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 4px;
+  font-size: 15px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.15s;
+}
+
+.picker-year-btn:hover {
+  background: var(--gradient-light);
+  border-color: var(--primary-color);
+}
+
+.picker-year-btn.selected {
+  background: var(--gradient-primary);
+  color: white;
+  border-color: transparent;
 }
 
 .stats-container h4 {
@@ -1354,6 +1482,14 @@ html {
   font-size: 24px;
 }
 
+/* 일반 회원 라벨 */
+.rank-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: 2px;
+}
+
 .ranking-profile {
   width: 48px;
   height: 48px;
@@ -1396,6 +1532,12 @@ html {
 
 .ranking-right {
   text-align: right;
+}
+
+.ranking-regular-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
 }
 
 .ranking-mileage {
