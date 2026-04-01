@@ -21,3 +21,18 @@ nul
 .temp
 supabase/.branches
 supabase/.temp
+
+# DB dumps
+staging_data.sql
+staging_data_rows.sql
+*.dump
+
+# Supabase CLI binary
+supabase.exe
+
+# Test / temp files
+test-create-workout.json
+check_rls.sql
+
+# Claude local settings
+.claude/settings.local.json

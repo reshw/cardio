@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:local": "echo 'Using local Supabase (http://localhost:54321)' && vite --mode local",
+    "dev:local": "echo 'Using local Supabase (http://localhost:54321)' && vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "db:start": "supabase start",
