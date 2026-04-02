@@ -1809,26 +1809,26 @@ class ClubService {
       .gte('workout_time', startDate)
       .lt('workout_time', endDate);
 
-    if (!workouts || workouts.length === 0) {
-      console.log('운동 기록 없음');
-      return;
-    }
-
-    // workout_time KST 기준으로 조회된 workout_id로 기존 스냅샷 삭제
-    // (year/month 컬럼은 기준이 아님 - UTC 버그로 잘못 저장된 행도 포함해서 삭제)
-    const workoutIds = workouts.map(w => w.id);
+    // 해당 월 기존 스냅샷 삭제 (year/month 기준)
     const { error: deleteError } = await supabase
       .from('club_workout_mileage')
       .delete()
       .eq('club_id', clubId)
-      .in('workout_id', workoutIds);
+      .eq('year', year)
+      .eq('month', month);
 
     if (deleteError) {
       console.error('기존 마일리지 스냅샷 삭제 실패:', deleteError);
       throw deleteError;
     }
 
-    // 재계산 후 삽입
+    if (!workouts || workouts.length === 0) {
+      console.log('운동 기록 없음 - 스냅샷 초기화 완료');
+      return;
+    }
+
+    // workout_time KST 기준으로 재계산 후 upsert
+    const calculatedAt = new Date().toISOString();
     const updates = workouts.map(workout => {
       const kstDate = new Date(new Date(workout.workout_time).getTime() + KST_OFFSET);
       const kstYear = kstDate.getUTCFullYear();
@@ -1845,7 +1845,7 @@ class ClubService {
 
       return supabase
         .from('club_workout_mileage')
-        .insert({
+        .upsert({
           club_id: clubId,
           workout_id: workout.id,
           user_id: workout.user_id,
@@ -1854,6 +1854,9 @@ class ClubService {
           month: kstMonth,
           workout_date: kstWorkoutDate,
           mileage_config_snapshot: mileageConfig,
+          calculated_at: calculatedAt,
+        }, {
+          onConflict: 'club_id,workout_id'
         });
     });
 
