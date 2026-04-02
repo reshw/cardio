@@ -1699,11 +1699,12 @@ class ClubService {
       workout.sub_type_ratios
     );
 
-    // workout_time 기준으로 로컬(KST) 날짜 계산
-    const d = new Date(workout.workout_time);
-    const year = d.getFullYear();
-    const month = d.getMonth() + 1;
-    const workout_date = `${year}-${String(month).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    // workout_time 기준으로 KST(UTC+9) 날짜 계산
+    const KST_OFFSET = 9 * 60 * 60 * 1000;
+    const d = new Date(new Date(workout.workout_time).getTime() + KST_OFFSET);
+    const year = d.getUTCFullYear();
+    const month = d.getUTCMonth() + 1;
+    const workout_date = `${year}-${String(month).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 
     const { error } = await supabase
       .from('club_workout_mileage')
@@ -1796,9 +1797,10 @@ class ClubService {
 
     const userIds = members.map(m => m.user_id);
 
-    // 해당 월의 모든 운동 기록 조회 (workout_time 기준)
-    const startDate = new Date(year, month - 1, 1).toISOString();
-    const endDate = new Date(year, month, 1).toISOString();
+    // 해당 월의 모든 운동 기록 조회 (workout_time 기준, KST = UTC+9)
+    const KST_OFFSET = 9 * 60 * 60 * 1000;
+    const startDate = new Date(Date.UTC(year, month - 1, 1) - KST_OFFSET).toISOString();
+    const endDate = new Date(Date.UTC(year, month, 1) - KST_OFFSET).toISOString();
 
     const { data: workouts } = await supabase
       .from('workouts')
@@ -1831,7 +1833,7 @@ class ClubService {
           mileage,
           year,
           month,
-          workout_date: new Date(workout.workout_time).toISOString().split('T')[0], // YYYY-MM-DD
+          workout_date: new Date(new Date(workout.workout_time).getTime() + KST_OFFSET).toISOString().split('T')[0], // YYYY-MM-DD (KST)
           mileage_config_snapshot: mileageConfig,
         }, {
           onConflict: 'club_id,workout_id'
