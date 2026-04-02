@@ -1827,9 +1827,9 @@ class ClubService {
       return;
     }
 
-    // workout_time KST 기준으로 재계산 후 upsert
+    // workout_time KST 기준으로 재계산 후 insert (DELETE 후이므로 충돌 없음)
     const calculatedAt = new Date().toISOString();
-    const updates = workouts.map(workout => {
+    const rows = workouts.map(workout => {
       const kstDate = new Date(new Date(workout.workout_time).getTime() + KST_OFFSET);
       const kstYear = kstDate.getUTCFullYear();
       const kstMonth = kstDate.getUTCMonth() + 1;
@@ -1843,29 +1843,26 @@ class ClubService {
         workout.sub_type_ratios || undefined
       );
 
-      return supabase
-        .from('club_workout_mileage')
-        .upsert({
-          club_id: clubId,
-          workout_id: workout.id,
-          user_id: workout.user_id,
-          mileage,
-          year: kstYear,
-          month: kstMonth,
-          workout_date: kstWorkoutDate,
-          mileage_config_snapshot: mileageConfig,
-          calculated_at: calculatedAt,
-        }, {
-          onConflict: 'club_id,workout_id'
-        });
+      return {
+        club_id: clubId,
+        workout_id: workout.id,
+        user_id: workout.user_id,
+        mileage,
+        year: kstYear,
+        month: kstMonth,
+        workout_date: kstWorkoutDate,
+        mileage_config_snapshot: mileageConfig,
+        calculated_at: calculatedAt,
+      };
     });
 
-    const results = await Promise.all(updates);
-    const errors = results.filter(r => r.error);
+    const { error: insertError } = await supabase
+      .from('club_workout_mileage')
+      .insert(rows);
 
-    if (errors.length > 0) {
-      console.error('마일리지 재계산 실패:', errors);
-      throw new Error('일부 마일리지 재계산에 실패했습니다.');
+    if (insertError) {
+      console.error('마일리지 재계산 insert 실패:', insertError);
+      throw insertError;
     }
 
     console.log(`✅ ${workouts.length}개 운동 마일리지 재계산 완료`);
