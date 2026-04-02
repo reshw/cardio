@@ -1809,8 +1809,22 @@ class ClubService {
       .gte('workout_time', startDate)
       .lt('workout_time', endDate);
 
+    // 해당 월 기존 스냅샷 전체 삭제 (삭제된 운동의 잔여 데이터 제거)
+    const { error: deleteError } = await supabase
+      .from('club_workout_mileage')
+      .delete()
+      .eq('club_id', clubId)
+      .eq('year', year)
+      .eq('month', month)
+      .in('user_id', userIds);
+
+    if (deleteError) {
+      console.error('기존 마일리지 스냅샷 삭제 실패:', deleteError);
+      throw deleteError;
+    }
+
     if (!workouts || workouts.length === 0) {
-      console.log('운동 기록 없음');
+      console.log('운동 기록 없음 - 스냅샷 초기화 완료');
       return;
     }
 
