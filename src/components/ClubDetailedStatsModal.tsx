@@ -42,6 +42,10 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
   };
 
   const downloadExcel = async () => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const queryDatetime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet(`${month.year}-${month.month}`);
 
@@ -119,12 +123,21 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
       });
     });
 
+    // 표 하단 조회일시 행
+    sheet.addRow([]);
+    const totalCols = columns.length;
+    const infoRow = sheet.addRow([`조회일시: ${queryDatetime}`]);
+    sheet.mergeCells(infoRow.number, 1, infoRow.number, totalCols);
+    infoRow.getCell(1).font = { italic: true, color: { argb: 'FF888888' } };
+    infoRow.getCell(1).alignment = { horizontal: 'right' };
+
     // 다운로드
+    const queryDatetimeFile = queryDatetime.replace(/[: ]/g, '-');
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `${clubName}_${month.year}-${month.month}_상세통계.xlsx`;
+    link.download = `${clubName}_${month.year}-${month.month}_상세통계_${queryDatetimeFile}.xlsx`;
     link.click();
   };
 
