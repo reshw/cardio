@@ -91,6 +91,8 @@ export interface ClubDetailedStats {
   by_workout: Record<string, number>; // 동적 운동 종목 지원 (마일리지)
   by_workout_values: Record<string, number>; // 실제 운동 기록 값
   by_workout_units: Record<string, string>; // 운동 종목별 단위
+  is_hall_of_fame?: boolean; // 명예의 전당 여부
+  joined_at?: string;        // 클럽 가입일
 }
 
 class ClubService {
@@ -470,7 +472,15 @@ class ClubService {
   }
 
   // 클럽 닉네임 업데이트
-  async updateClubNickname(clubId: string, userId: string, nickname: string): Promise<void> {
+  async updateClubNickname(clubId: string, userId: string, nickname: string, changedBy?: string): Promise<void> {
+    // 변경 전 현재 닉네임 조회
+    const { data: current } = await supabase
+      .from('club_members')
+      .select('club_nickname')
+      .eq('club_id', clubId)
+      .eq('user_id', userId)
+      .single();
+
     const { error } = await supabase
       .from('club_members')
       .update({ club_nickname: nickname })
@@ -480,6 +490,17 @@ class ClubService {
     if (error) {
       console.error('클럽 닉네임 업데이트 실패:', error);
       throw error;
+    }
+
+    // 닉네임이 실제로 변경된 경우만 이력 기록
+    if (current?.club_nickname !== nickname) {
+      await supabase.from('club_nickname_history').insert({
+        club_id: clubId,
+        user_id: userId,
+        old_nickname: current?.club_nickname ?? null,
+        new_nickname: nickname,
+        changed_by: changedBy ?? userId,
+      });
     }
   }
 
@@ -510,8 +531,21 @@ class ClubService {
   async updateClubMemberProfile(
     clubId: string,
     userId: string,
-    profile: { club_nickname?: string; club_profile_image?: string | null }
+    profile: { club_nickname?: string; club_profile_image?: string | null },
+    changedBy?: string
   ): Promise<void> {
+    // 닉네임 변경이 포함된 경우 이력용으로 현재값 조회
+    let currentNickname: string | null = null;
+    if (profile.club_nickname !== undefined) {
+      const { data: current } = await supabase
+        .from('club_members')
+        .select('club_nickname')
+        .eq('club_id', clubId)
+        .eq('user_id', userId)
+        .single();
+      currentNickname = current?.club_nickname ?? null;
+    }
+
     const updateData: any = {};
     if (profile.club_nickname !== undefined) updateData.club_nickname = profile.club_nickname;
     if (profile.club_profile_image !== undefined) updateData.club_profile_image = profile.club_profile_image;
@@ -525,6 +559,17 @@ class ClubService {
     if (error) {
       console.error('클럽 멤버 프로필 업데이트 실패:', error);
       throw error;
+    }
+
+    // 닉네임이 실제로 변경된 경우만 이력 기록
+    if (profile.club_nickname !== undefined && currentNickname !== profile.club_nickname) {
+      await supabase.from('club_nickname_history').insert({
+        club_id: clubId,
+        user_id: userId,
+        old_nickname: currentNickname,
+        new_nickname: profile.club_nickname,
+        changed_by: changedBy ?? userId,
+      });
     }
   }
 
@@ -1031,7 +1076,7 @@ class ClubService {
     // 클럽 멤버 조회
     const { data: members } = await supabase
       .from('club_members')
-      .select('user_id, club_nickname')
+      .select('user_id, club_nickname, joined_at')
       .eq('club_id', clubId);
 
     if (!members || members.length === 0) {
@@ -1042,11 +1087,23 @@ class ClubService {
 
     // 닉네임 맵 생성
     const nicknameMap: Record<string, string> = {};
+    const joinedAtMap: Record<string, string> = {};
     members.forEach((m) => {
       if (m.club_nickname) {
         nicknameMap[m.user_id] = m.club_nickname;
       }
+      if (m.joined_at) {
+        joinedAtMap[m.user_id] = m.joined_at;
+      }
     });
+
+    // 명예의 전당 조회
+    const { data: hofMembers } = await supabase
+      .from('hall_of_fame')
+      .select('user_id')
+      .eq('club_id', clubId)
+      .in('user_id', userIds);
+    const hofSet = new Set(hofMembers?.map((h) => h.user_id) || []);
 
     // 월 정보 (기본값: 현재 월)
     const targetMonth = month || {
@@ -1159,6 +1216,8 @@ class ClubService {
           by_workout: userStats.byWorkout,
           by_workout_values: userStats.byWorkoutValues,
           by_workout_units: userStats.byWorkoutUnits,
+          is_hall_of_fame: hofSet.has(user.id),
+          joined_at: joinedAtMap[user.id],
         };
       })
       .sort((a, b) => b.total_mileage - a.total_mileage)
@@ -1706,9 +1765,22 @@ class ClubService {
     const month = d.getUTCMonth() + 1;
     const workout_date = `${year}-${String(month).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 
-    const { error } = await supabase
+    // DELETE + INSERT (upsert는 중복 row를 만들 수 있어 recalculate와 동일한 방식 사용)
+    const { error: deleteError } = await supabase
       .from('club_workout_mileage')
-      .upsert({
+      .delete()
+      .eq('club_id', clubId)
+      .eq('workout_id', workoutId)
+      .eq('user_id', userId);
+
+    if (deleteError) {
+      console.error('클럽 마일리지 삭제 실패:', deleteError);
+      throw deleteError;
+    }
+
+    const { error: insertError } = await supabase
+      .from('club_workout_mileage')
+      .insert({
         club_id: clubId,
         workout_id: workoutId,
         user_id: userId,
@@ -1717,13 +1789,11 @@ class ClubService {
         month,
         workout_date,
         mileage_config_snapshot: mileageConfig,
-      }, {
-        onConflict: 'club_id,workout_id'
       });
 
-    if (error) {
-      console.error('클럽 마일리지 저장 실패:', error);
-      throw error;
+    if (insertError) {
+      console.error('클럽 마일리지 저장 실패:', insertError);
+      throw insertError;
     }
   }
 
