@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Download, FileDown } from 'lucide-react';
+import ExcelJS from 'exceljs';
 import clubService from '../services/clubService';
 import type { ClubDetailedStats } from '../services/clubService';
 import html2canvas from 'html2canvas';
@@ -40,35 +41,91 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
     }
   };
 
-  const downloadCSV = () => {
-    const headers = ['순위', '이름', '운동일수', ...workoutKeys, '총 마일리지'];
+  const downloadExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet(`${month.year}-${month.month}`);
 
     const filteredStats = stats.filter(m => m.total_mileage > 0);
-    const rows = filteredStats.map((member) => [
-      member.rank,
-      member.display_name,
-      member.workout_days,
-      ...workoutKeys.map(key => {
+
+    // 이번 달 신규 여부 판단
+    const isNewThisMonth = (member: ClubDetailedStats) => {
+      if (!member.joined_at) return false;
+      const joined = new Date(member.joined_at);
+      return joined.getFullYear() === month.year && joined.getMonth() + 1 === month.month;
+    };
+
+    // 컬럼 정의
+    const columns: ExcelJS.Column[] = [
+      { header: '순위',       key: 'rank',    width: 6 },
+      { header: '이름',       key: 'name',    width: 14 },
+      { header: '운동일수',   key: 'days',    width: 10 },
+      ...workoutKeys.map(k => ({ header: k, key: k, width: 16 } as ExcelJS.Column)),
+      { header: '총 마일리지', key: 'total',  width: 12 },
+      { header: '비고',        key: 'note',   width: 10 },
+    ];
+    sheet.columns = columns;
+
+    // 헤더 스타일 — 회색 배경 + bold
+    const headerRow = sheet.getRow(1);
+    headerRow.eachCell((cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
+      cell.font = { bold: true };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' },
+      };
+    });
+    headerRow.height = 20;
+
+    // 데이터 행 추가
+    filteredStats.forEach((member) => {
+      const rowData: Record<string, any> = {
+        rank: member.rank,
+        name: member.display_name,
+        days: member.workout_days,
+        total: parseFloat(member.total_mileage.toFixed(1)),
+        note: isNewThisMonth(member) ? '신규' : '',
+      };
+      workoutKeys.forEach(key => {
         const mileage = member.by_workout[key] || 0;
         const value = member.by_workout_values[key] || 0;
         const unit = member.by_workout_units[key] || '';
-        if (mileage === 0) return '-';
-        return `${value.toFixed(value >= 100 ? 0 : 1)}${unit} (${mileage.toFixed(1)})`;
-      }),
-      member.total_mileage.toFixed(1),
-    ]);
+        rowData[key] = mileage === 0 ? '-' : `${value.toFixed(value >= 100 ? 0 : 1)}${unit} (${mileage.toFixed(1)})`;
+      });
 
-    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+      const row = sheet.addRow(rowData);
 
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      // 명예의 전당 — 노란색 강조
+      if (member.is_hall_of_fame) {
+        row.eachCell((cell) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+        });
+      }
+
+      // 신규 비고 셀 강조 (연한 초록)
+      if (isNewThisMonth(member)) {
+        const noteCell = row.getCell('note');
+        noteCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+        noteCell.font = { bold: true, color: { argb: 'FF375623' } };
+      }
+
+      row.eachCell((cell) => {
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = {
+          top: { style: 'thin' }, bottom: { style: 'thin' },
+          left: { style: 'thin' }, right: { style: 'thin' },
+        };
+      });
+    });
+
+    // 다운로드
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${clubName}_${month.year}-${month.month}_상세통계.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
+    link.href = URL.createObjectURL(blob);
+    link.download = `${clubName}_${month.year}-${month.month}_상세통계.xlsx`;
     link.click();
-    document.body.removeChild(link);
   };
 
   const downloadImage = async () => {
@@ -151,9 +208,9 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
           ) : (
             <>
               <div className="stats-actions">
-                <button className="download-button" onClick={downloadCSV}>
+                <button className="download-button" onClick={downloadExcel}>
                   <FileDown size={16} />
-                  CSV 다운로드
+                  엑셀 다운로드
                 </button>
                 <button className="download-button" onClick={downloadImage}>
                   <Download size={16} />
