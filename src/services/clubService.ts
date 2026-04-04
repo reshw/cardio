@@ -1765,7 +1765,6 @@ class ClubService {
     const month = d.getUTCMonth() + 1;
     const workout_date = `${year}-${String(month).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 
-    // DELETE + INSERT (upsert는 중복 row를 만들 수 있어 recalculate와 동일한 방식 사용)
     const { error: deleteError } = await supabase
       .from('club_workout_mileage')
       .delete()
@@ -1780,16 +1779,7 @@ class ClubService {
 
     const { error: insertError } = await supabase
       .from('club_workout_mileage')
-      .insert({
-        club_id: clubId,
-        workout_id: workoutId,
-        user_id: userId,
-        mileage,
-        year,
-        month,
-        workout_date,
-        mileage_config_snapshot: mileageConfig,
-      });
+      .insert({ club_id: clubId, workout_id: workoutId, user_id: userId, mileage, year, month, workout_date, mileage_config_snapshot: mileageConfig });
 
     if (insertError) {
       console.error('클럽 마일리지 저장 실패:', insertError);
