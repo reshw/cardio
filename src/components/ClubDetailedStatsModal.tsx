@@ -55,11 +55,11 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
     };
 
     // 컬럼 정의
-    const columns: ExcelJS.Column[] = [
+    const columns: Partial<ExcelJS.Column>[] = [
       { header: '순위',       key: 'rank',    width: 6 },
       { header: '이름',       key: 'name',    width: 14 },
       { header: '운동일수',   key: 'days',    width: 10 },
-      ...workoutKeys.map(k => ({ header: k, key: k, width: 16 } as ExcelJS.Column)),
+      ...workoutKeys.map(k => ({ header: k, key: k, width: 16 })),
       { header: '총 마일리지', key: 'total',  width: 12 },
       { header: '비고',        key: 'note',   width: 10 },
     ];
