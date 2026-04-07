@@ -4583,15 +4583,18 @@ html {
 .feed-disabled-badge {
   position: absolute;
   top: 8px;
-  right: 8px;
-  background: rgba(100, 100, 100, 0.9);
+  right: 36px;
+  background: rgba(100, 100, 100, 0.85);
   color: white;
-  padding: 3px 8px;
+  padding: 3px 7px;
   border-radius: 8px;
   font-size: 10px;
   font-weight: 600;
   z-index: 10;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* 전체 래퍼: 프사(왼쪽) + 내용(오른쪽) */
