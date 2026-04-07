@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Heart, MessageCircle, MoreVertical, Share, Copy } from 'lucide-react';
+import { Heart, MessageCircle, MoreVertical, Share, Copy, CircleOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import feedService from '../services/feedService';
 import { CommentSection } from './CommentSection';
@@ -310,7 +310,8 @@ export const WorkoutFeedCard = ({
       {/* 비활성화 배지 */}
       {item.is_disabled && (
         <div className="feed-disabled-badge">
-          마일리지 미반영
+          <CircleOff size={11} />
+          미적립
         </div>
       )}
 
