@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, X } from 'lucide-react';
 import workoutService from '../services/workoutService';
 import type { Workout } from '../services/workoutService';
@@ -15,7 +15,9 @@ export const ClubMemberDetail = () => {
     userName: string;
   }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: currentUser } = useAuth();
+  const goBack = () => navigate('/club', { state: { tab: (location.state as { tab?: string } | null)?.tab } });
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -111,7 +113,7 @@ export const ClubMemberDetail = () => {
     return (
       <div className="container">
         <div className="header">
-          <button className="back-button" onClick={() => navigate(-1)}>
+          <button className="back-button" onClick={goBack}>
             <ChevronLeft size={24} />
           </button>
           <h1>{decodeURIComponent(userName || '')}</h1>
@@ -134,7 +136,7 @@ export const ClubMemberDetail = () => {
   return (
     <div className="container">
       <div className="header">
-        <button className="back-button" onClick={() => navigate(-1)}>
+        <button className="back-button" onClick={goBack}>
           <ChevronLeft size={24} />
         </button>
         <h1>{decodeURIComponent(userName || '')}님의 운동 기록</h1>
