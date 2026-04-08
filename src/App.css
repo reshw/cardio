@@ -2468,11 +2468,11 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   background: var(--card-bg);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
@@ -6126,12 +6126,11 @@ html {
 
 .filter-tab {
   flex: 1;
-  min-width: 100px;
-  padding: 10px 16px;
+  padding: 8px 8px;
   background: transparent;
   border: none;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
@@ -6273,22 +6272,24 @@ html {
 }
 
 .month-selector h2 {
-  font-size: 16px;
+  font-size: 15px;
   margin: 0;
+  white-space: nowrap;
 }
 
 .month-nav-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
   color: var(--text-primary);
+  flex-shrink: 0;
 }
 
 .month-nav-button:hover:not(:disabled) {
@@ -6306,11 +6307,6 @@ html {
 .ranking-filter-tabs {
   padding: 3px;
   margin-bottom: 12px;
-}
-
-.filter-tab {
-  padding: 8px 12px;
-  font-size: 13px;
 }
 
 /* 랭킹 카드 압축 */
