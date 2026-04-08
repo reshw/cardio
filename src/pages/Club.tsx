@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
@@ -99,6 +99,7 @@ export const Club = () => {
   // 명예의 전당 필터 state
   type RankingFilter = 'all' | 'hof' | 'regular';
   const [rankingFilter, setRankingFilter] = useState<RankingFilter>('all');
+  const rankingRequestId = useRef(0);
   const [showMemberSearch, setShowMemberSearch] = useState(false);
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [highlightedUserId, setHighlightedUserId] = useState<string | null>(null);
@@ -148,6 +149,7 @@ export const Club = () => {
 
   // 클럽 랭킹 불러오기
   const loadClubRanking = async (clubId: string, month?: Date) => {
+    const requestId = ++rankingRequestId.current;
     setRankingLoading(true);
     try {
       const targetMonth = month || selectedMonth;
@@ -155,11 +157,13 @@ export const Club = () => {
         year: targetMonth.getFullYear(),
         month: targetMonth.getMonth() + 1,
       });
+      if (requestId !== rankingRequestId.current) return; // 구버전 응답 무시
       setRanking(data);
     } catch (error) {
+      if (requestId !== rankingRequestId.current) return;
       console.error('랭킹 불러오기 실패:', error);
     } finally {
-      setRankingLoading(false);
+      if (requestId === rankingRequestId.current) setRankingLoading(false);
     }
   };
 
@@ -364,8 +368,7 @@ export const Club = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && selectedClub) {
-        console.log('📊 페이지 재표시 - 랭킹 새로고침');
-        loadClubRanking(selectedClub.id);
+        loadClubRanking(selectedClub.id, selectedMonth);
       }
     };
 
@@ -373,7 +376,7 @@ export const Club = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [selectedClub]);
+  }, [selectedClub, selectedMonth]);
 
   // 피드 탭 활성화 시 피드 로드
   useEffect(() => {
