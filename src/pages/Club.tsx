@@ -8,7 +8,7 @@ import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
 import { WorkoutFeed } from '../components/WorkoutFeed';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -99,6 +99,10 @@ export const Club = () => {
   // 명예의 전당 필터 state
   type RankingFilter = 'all' | 'hof' | 'regular';
   const [rankingFilter, setRankingFilter] = useState<RankingFilter>('all');
+  const [showMemberSearch, setShowMemberSearch] = useState(false);
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
+  const [highlightedUserId, setHighlightedUserId] = useState<string | null>(null);
+  const [showFullList, setShowFullList] = useState(false);
 
   // 랭킹 월 선택 state
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
@@ -646,6 +650,13 @@ export const Club = () => {
               </button>
               <button
                 className="dashboard-action-button"
+                onClick={() => { setShowMemberSearch(true); setMemberSearchQuery(''); }}
+                title="멤버 검색"
+              >
+                <Search size={16} />
+              </button>
+              <button
+                className="dashboard-action-button"
                 onClick={() => setShowDetailedStats(true)}
                 title="상세 통계"
               >
@@ -706,12 +717,23 @@ export const Club = () => {
             let showEllipsis1 = false;
             let showEllipsis2 = false;
 
-            // 본인이 20위 안에 있거나 순위가 없으면
-            if (myRank < 20 && myRank !== -1) {
-              // 1~20위까지만 표시
-              displayMembers = filteredByHOF.slice(0, 20);
+            // 검색으로 강조된 멤버 기준 표시
+            const highlightIndex = highlightedUserId
+              ? filteredByHOF.findIndex(m => m.user_id === highlightedUserId)
+              : -1;
 
-              // 20위 아래에 더 있으면 생략 표시
+            if (showFullList) {
+              displayMembers = filteredByHOF;
+            } else if (highlightIndex !== -1) {
+              // 강조 멤버 ±5명 표시
+              const start = Math.max(0, highlightIndex - 5);
+              const end = Math.min(filteredByHOF.length, highlightIndex + 6);
+              displayMembers = filteredByHOF.slice(start, end);
+              showEllipsis1 = start > 0;
+              showEllipsis2 = end < filteredByHOF.length;
+            } else if (myRank < 20 && myRank !== -1) {
+              // 본인이 20위 안에 있으면 1~20위까지만 표시
+              displayMembers = filteredByHOF.slice(0, 20);
               if (filteredByHOF.length > 20) {
                 showEllipsis2 = true;
               }
@@ -796,13 +818,15 @@ export const Club = () => {
                     <div
                       className={`ranking-item clickable ${member.is_hall_of_fame ? 'hof-highlight' : ''} ${isMyRank ? 'my-rank' : ''}`}
                       style={{
-                        background: member.is_hall_of_fame
+                        background: member.user_id === highlightedUserId
+                          ? 'linear-gradient(135deg, #FFE4EE 0%, #FFB6C1 100%)'
+                          : member.is_hall_of_fame
                           ? 'linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%)'
                           : isMyRank
                           ? 'linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)'
                           : undefined,
-                        borderColor: member.is_hall_of_fame ? '#FFD700' : isMyRank ? '#2196F3' : undefined,
-                        borderWidth: member.is_hall_of_fame || isMyRank ? '2px' : undefined,
+                        borderColor: member.user_id === highlightedUserId ? '#FF6B9D' : member.is_hall_of_fame ? '#FFD700' : isMyRank ? '#2196F3' : undefined,
+                        borderWidth: member.user_id === highlightedUserId || member.is_hall_of_fame || isMyRank ? '2px' : undefined,
                       }}
                       onClick={() =>
                         navigate(
@@ -872,6 +896,26 @@ export const Club = () => {
                   <div className="ellipsis-line"></div>
                 </div>
               )}
+              <button
+                className="show-full-list-button"
+                onClick={() => {
+                  setShowFullList(v => !v);
+                  setHighlightedUserId(null);
+                }}
+                style={{
+                  width: '100%',
+                  marginTop: '12px',
+                  padding: '10px',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                }}
+              >
+                {showFullList ? '▲ 접기' : `▼ 전체 리스트 보기 (${filteredByHOF.length}명)`}
+              </button>
               </div>
             );
           })()}
@@ -913,6 +957,100 @@ export const Club = () => {
           onClose={() => setShowCreateModal(false)}
           onSuccess={loadMyClubs}
         />
+      )}
+
+      {showMemberSearch && (
+        <div className="modal-overlay" onClick={() => setShowMemberSearch(false)}>
+          <div className="modal-content" style={{ maxWidth: '360px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>멤버 검색</h2>
+              <button className="modal-close" onClick={() => setShowMemberSearch(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="닉네임으로 검색..."
+                  value={memberSearchQuery}
+                  onChange={e => setMemberSearchQuery(e.target.value)}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                {memberSearchQuery && (() => {
+                  const results = ranking.filter(m =>
+                    m.display_name.toLowerCase().includes(memberSearchQuery.toLowerCase())
+                  );
+                  return results.length > 0 ? (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      background: 'var(--card-bg)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      marginTop: '4px',
+                      zIndex: 10,
+                      maxHeight: '240px',
+                      overflowY: 'auto',
+                    }}>
+                      {results.map(m => (
+                        <div
+                          key={m.user_id}
+                          onClick={() => {
+                            setHighlightedUserId(m.user_id);
+                            setShowFullList(false);
+                            setShowMemberSearch(false);
+                            setMemberSearchQuery('');
+                          }}
+                          style={{
+                            padding: '10px 14px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid var(--border-color)',
+                            fontSize: '14px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                          }}
+                          onMouseOver={e => (e.currentTarget.style.background = 'var(--input-bg)')}
+                          onMouseOut={e => (e.currentTarget.style.background = '')}
+                        >
+                          <span>{m.display_name}</span>
+                          <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{m.rank}위 · {m.total_mileage.toFixed(1)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      background: 'var(--card-bg)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      marginTop: '4px',
+                      padding: '12px',
+                      fontSize: '13px',
+                      color: 'var(--text-secondary)',
+                      textAlign: 'center',
+                    }}>
+                      검색 결과 없음
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {showMileageConfig && selectedClub && (
