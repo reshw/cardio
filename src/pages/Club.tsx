@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 import { CreateClubModal } from '../components/CreateClubModal';
@@ -74,6 +74,7 @@ function SortableClubItem({ club, isSelected, onSelect }: {
 export const Club = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [myClubs, setMyClubs] = useState<MyClubWithOrder[]>([]);
   const [selectedClub, setSelectedClub] = useState<MyClubWithOrder | null>(null);
   const [ranking, setRanking] = useState<ClubRanking[]>([]);
@@ -88,7 +89,7 @@ export const Club = () => {
 
   // 피드 관련 state
   type TabType = 'ranking' | 'feed';
-  const [activeTab, setActiveTab] = useState<TabType>('feed');
+  const [activeTab, setActiveTab] = useState<TabType>((location.state as { tab?: TabType } | null)?.tab ?? 'feed');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [feedItems, setFeedItems] = useState<WorkoutFeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
@@ -846,7 +847,8 @@ export const Club = () => {
                       }}
                       onClick={() =>
                         navigate(
-                          `/club/member/${selectedClub?.id}/${member.user_id}/${encodeURIComponent(member.display_name)}`
+                          `/club/member/${selectedClub?.id}/${member.user_id}/${encodeURIComponent(member.display_name)}`,
+                          { state: { tab: activeTab } }
                         )
                       }
                     >
