@@ -8,7 +8,7 @@ import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
 import { WorkoutFeed } from '../components/WorkoutFeed';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -652,9 +652,20 @@ export const Club = () => {
                 className="dashboard-action-button"
                 onClick={() => { setShowMemberSearch(true); setMemberSearchQuery(''); }}
                 title="멤버 검색"
+                style={highlightedUserId ? { color: '#FF6B9D', borderColor: '#FF6B9D' } : undefined}
               >
                 <Search size={16} />
               </button>
+              {highlightedUserId && (
+                <button
+                  className="dashboard-action-button"
+                  onClick={() => setHighlightedUserId(null)}
+                  title="검색 초기화"
+                  style={{ color: '#FF6B9D' }}
+                >
+                  <X size={16} />
+                </button>
+              )}
               <button
                 className="dashboard-action-button"
                 onClick={() => setShowDetailedStats(true)}
