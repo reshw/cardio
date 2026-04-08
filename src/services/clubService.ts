@@ -881,20 +881,25 @@ class ClubService {
       // 새로 생성된 데이터로 교체
       const workoutIds = (newMileageData || []).map(m => m.workout_id);
 
-      // 운동 기록 조회 (카테고리 필터링용)
-      const { data: workouts, error: workoutsError } = await supabase
-        .from('workouts')
-        .select('id, category, sub_type')
-        .in('id', workoutIds);
-
-      if (workoutsError) {
-        console.error('❌ 운동 기록 조회 실패:', workoutsError);
-        throw workoutsError;
+      // 운동 기록 조회 (카테고리 필터링용) - URL 길이 제한 회피를 위해 청크 단위 조회
+      const CHUNK_SIZE = 100;
+      let allWorkouts: { id: string; category: string; sub_type: string | null }[] = [];
+      for (let i = 0; i < workoutIds.length; i += CHUNK_SIZE) {
+        const chunk = workoutIds.slice(i, i + CHUNK_SIZE);
+        const { data: chunkData, error: chunkError } = await supabase
+          .from('workouts')
+          .select('id, category, sub_type')
+          .in('id', chunk);
+        if (chunkError) {
+          console.error('❌ 운동 기록 조회 실패:', chunkError);
+          throw chunkError;
+        }
+        if (chunkData) allWorkouts = [...allWorkouts, ...chunkData];
       }
 
       // workout_id별 카테고리 맵
       const workoutCategoryMap: Record<string, string> = {};
-      (workouts || []).forEach(w => {
+      allWorkouts.forEach(w => {
         const key = w.sub_type ? `${w.category}-${w.sub_type}` : w.category;
         workoutCategoryMap[w.id] = key;
       });
@@ -973,20 +978,25 @@ class ClubService {
     // workout_id 목록 추출
     const workoutIds = (mileageData || []).map(m => m.workout_id);
 
-    // 운동 기록 조회 (카테고리 필터링용)
-    const { data: workouts, error: workoutsError } = await supabase
-      .from('workouts')
-      .select('id, category, sub_type')
-      .in('id', workoutIds);
-
-    if (workoutsError) {
-      console.error('❌ 운동 기록 조회 실패:', workoutsError);
-      throw workoutsError;
+    // 운동 기록 조회 (카테고리 필터링용) - URL 길이 제한 회피를 위해 청크 단위 조회
+    const CHUNK_SIZE = 100;
+    let allWorkouts: { id: string; category: string; sub_type: string | null }[] = [];
+    for (let i = 0; i < workoutIds.length; i += CHUNK_SIZE) {
+      const chunk = workoutIds.slice(i, i + CHUNK_SIZE);
+      const { data: chunkData, error: chunkError } = await supabase
+        .from('workouts')
+        .select('id, category, sub_type')
+        .in('id', chunk);
+      if (chunkError) {
+        console.error('❌ 운동 기록 조회 실패:', chunkError);
+        throw chunkError;
+      }
+      if (chunkData) allWorkouts = [...allWorkouts, ...chunkData];
     }
 
     // workout_id별 카테고리 맵
     const workoutCategoryMap: Record<string, string> = {};
-    (workouts || []).forEach(w => {
+    allWorkouts.forEach(w => {
       const key = w.sub_type ? `${w.category}-${w.sub_type}` : w.category;
       workoutCategoryMap[w.id] = key;
     });
@@ -1124,18 +1134,24 @@ class ClubService {
       return [];
     }
 
-    // workout_id로 운동 종목 조회 (value, unit 포함)
+    // workout_id로 운동 종목 조회 (value, unit 포함) - URL 길이 제한 회피를 위해 청크 단위 조회
     const workoutIds = Array.from(new Set(mileageData.map(m => m.workout_id)));
-    const { data: workouts } = await supabase
-      .from('workouts')
-      .select('id, category, sub_type, value, unit')
-      .in('id', workoutIds);
+    const CHUNK_SIZE_2 = 100;
+    let allWorkouts2: { id: string; category: string; sub_type: string | null; value: number; unit: string }[] = [];
+    for (let i = 0; i < workoutIds.length; i += CHUNK_SIZE_2) {
+      const chunk = workoutIds.slice(i, i + CHUNK_SIZE_2);
+      const { data: chunkData } = await supabase
+        .from('workouts')
+        .select('id, category, sub_type, value, unit')
+        .in('id', chunk);
+      if (chunkData) allWorkouts2 = [...allWorkouts2, ...chunkData];
+    }
 
     // workout_id별 카테고리, 값, 단위 맵
     const workoutCategoryMap: Record<string, string> = {};
     const workoutValueMap: Record<string, number> = {};
     const workoutUnitMap: Record<string, string> = {};
-    (workouts || []).forEach(w => {
+    allWorkouts2.forEach(w => {
       const key = w.sub_type ? `${w.category}-${w.sub_type}` : w.category;
       workoutCategoryMap[w.id] = key;
       workoutValueMap[w.id] = w.value || 0;
