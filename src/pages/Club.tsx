@@ -972,15 +972,52 @@ export const Club = () => {
         />
       )}
 
-      {showMemberSearch && (
-        <div className="modal-overlay" onClick={() => setShowMemberSearch(false)}>
-          <div className="modal-content" style={{ maxWidth: '360px' }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>멤버 검색</h2>
-              <button className="modal-close" onClick={() => setShowMemberSearch(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div style={{ position: 'relative' }}>
+      {showMemberSearch && (() => {
+        const searchResults = memberSearchQuery
+          ? ranking.filter(m => m.display_name.toLowerCase().includes(memberSearchQuery.toLowerCase()))
+          : ranking;
+
+        const renderAvatar = (m: ClubRanking) => {
+          if (m.profile_image?.startsWith('default:')) {
+            const color = m.profile_image.replace('default:', '');
+            return (
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: color, color: 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '16px', fontWeight: 600, flexShrink: 0,
+              }}>
+                {m.display_name[0].toUpperCase()}
+              </div>
+            );
+          } else if (m.profile_image) {
+            return (
+              <img src={m.profile_image} alt={m.display_name} style={{
+                width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0,
+              }} />
+            );
+          } else {
+            return (
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)',
+                color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '16px', fontWeight: 600, flexShrink: 0,
+              }}>
+                {m.display_name[0]}
+              </div>
+            );
+          }
+        };
+
+        return (
+          <div className="modal-overlay" onClick={() => setShowMemberSearch(false)}>
+            <div className="modal-content" style={{ maxWidth: '480px', width: '92vw', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+              <div className="modal-header" style={{ flexShrink: 0 }}>
+                <h2>멤버 검색</h2>
+                <button className="modal-close" onClick={() => setShowMemberSearch(false)}>✕</button>
+              </div>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', padding: '16px' }}>
                 <input
                   type="text"
                   placeholder="닉네임으로 검색..."
@@ -989,82 +1026,66 @@ export const Club = () => {
                   autoFocus
                   style={{
                     width: '100%',
-                    padding: '10px 12px',
+                    padding: '12px 14px',
                     border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    fontSize: '14px',
+                    borderRadius: '10px',
+                    fontSize: '15px',
                     background: 'var(--input-bg)',
                     color: 'var(--text-primary)',
                     boxSizing: 'border-box',
+                    flexShrink: 0,
+                    outline: 'none',
                   }}
                 />
-                {memberSearchQuery && (() => {
-                  const results = ranking.filter(m =>
-                    m.display_name.toLowerCase().includes(memberSearchQuery.toLowerCase())
-                  );
-                  return results.length > 0 ? (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      background: 'var(--card-bg)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '8px',
-                      marginTop: '4px',
-                      zIndex: 10,
-                      maxHeight: '240px',
-                      overflowY: 'auto',
-                    }}>
-                      {results.map(m => (
-                        <div
-                          key={m.user_id}
-                          onClick={() => {
-                            setHighlightedUserId(m.user_id);
-                            setShowFullList(false);
-                            setShowMemberSearch(false);
-                            setMemberSearchQuery('');
-                          }}
-                          style={{
-                            padding: '10px 14px',
-                            cursor: 'pointer',
-                            borderBottom: '1px solid var(--border-color)',
-                            fontSize: '14px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                          }}
-                          onMouseOver={e => (e.currentTarget.style.background = 'var(--input-bg)')}
-                          onMouseOut={e => (e.currentTarget.style.background = '')}
-                        >
-                          <span>{m.display_name}</span>
-                          <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{m.rank}위 · {m.total_mileage.toFixed(1)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      background: 'var(--card-bg)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '8px',
-                      marginTop: '4px',
-                      padding: '12px',
-                      fontSize: '13px',
-                      color: 'var(--text-secondary)',
-                      textAlign: 'center',
-                    }}>
+                <div style={{ marginTop: '12px', flex: 1, overflowY: 'auto' }}>
+                  {searchResults.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '14px', padding: '32px 0' }}>
                       검색 결과 없음
                     </div>
-                  );
-                })()}
+                  ) : (
+                    searchResults.map(m => (
+                      <div
+                        key={m.user_id}
+                        onClick={() => {
+                          setHighlightedUserId(m.user_id);
+                          setShowFullList(false);
+                          setShowMemberSearch(false);
+                          setMemberSearchQuery('');
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '10px 8px',
+                          borderRadius: '10px',
+                          cursor: 'pointer',
+                          transition: 'background 0.15s',
+                        }}
+                        onMouseOver={e => (e.currentTarget.style.background = 'var(--input-bg)')}
+                        onMouseOut={e => (e.currentTarget.style.background = '')}
+                      >
+                        {renderAvatar(m)}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '15px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {m.display_name}
+                            {m.is_hall_of_fame && <span style={{ fontSize: '13px' }}>🏆</span>}
+                          </div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                            {m.rank}위 · {m.total_mileage.toFixed(1)} 마일리지
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          운동 {m.workout_count}회
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {showMileageConfig && selectedClub && (
         <MileageConfigModal
