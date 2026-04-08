@@ -659,7 +659,7 @@ export const Club = () => {
               {highlightedUserId && (
                 <button
                   className="dashboard-action-button"
-                  onClick={() => setHighlightedUserId(null)}
+                  onClick={() => { setHighlightedUserId(null); setShowFullList(false); }}
                   title="검색 초기화"
                   style={{ color: '#FF6B9D' }}
                 >
