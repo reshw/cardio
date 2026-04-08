@@ -716,6 +716,7 @@ export const Club = () => {
             let displayMembers: typeof filteredByHOF = [];
             let showEllipsis1 = false;
             let showEllipsis2 = false;
+            let ellipsis1AtIdx = 5; // showEllipsis1이 표시될 displayMembers 인덱스
 
             // 검색으로 강조된 멤버 기준 표시
             const highlightIndex = highlightedUserId
@@ -730,6 +731,7 @@ export const Club = () => {
               const end = Math.min(filteredByHOF.length, highlightIndex + 6);
               displayMembers = filteredByHOF.slice(start, end);
               showEllipsis1 = start > 0;
+              ellipsis1AtIdx = 0; // 검색 결과는 첫 번째 항목 앞에 중략 표시
               showEllipsis2 = end < filteredByHOF.length;
             } else if (myRank < 20 && myRank !== -1) {
               // 본인이 20위 안에 있으면 1~20위까지만 표시
@@ -772,7 +774,7 @@ export const Club = () => {
                 const isMyRank = member.user_id === user?.id;
 
                 // 생략 표시 (5위와 본인 구간 사이)
-                const showEllipsisBefore = showEllipsis1 && idx === 5;
+                const showEllipsisBefore = showEllipsis1 && idx === ellipsis1AtIdx;
 
                 // 프로필 이미지 렌더링 (default:color 형식 처리)
                 const renderProfileImage = () => {
@@ -811,7 +813,7 @@ export const Club = () => {
                     {showEllipsisBefore && (
                       <div className="ranking-ellipsis">
                         <div className="ellipsis-line"></div>
-                        <span className="ellipsis-text">생략 ({member.rank - 6}명)</span>
+                        <span className="ellipsis-text">생략 ({highlightIndex !== -1 ? member.rank - 1 : member.rank - 6}명)</span>
                         <div className="ellipsis-line"></div>
                       </div>
                     )}
