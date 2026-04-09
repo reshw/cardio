@@ -6,6 +6,7 @@ import { CreateClubModal } from '../components/CreateClubModal';
 import { MileageConfigModal } from '../components/MileageConfigModal';
 import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
 import { WorkoutFeed } from '../components/WorkoutFeed';
+import { ClubMemberDetailModal } from '../components/ClubMemberDetailModal';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X } from 'lucide-react';
@@ -86,6 +87,9 @@ export const Club = () => {
   const [showDetailedStats, setShowDetailedStats] = useState(false);
   const [showClubMenu, setShowClubMenu] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+
+  // 멤버 상세 모달
+  const [selectedMember, setSelectedMember] = useState<{ userId: string; userName: string } | null>(null);
 
   // 피드 관련 state
   type TabType = 'ranking' | 'feed';
@@ -846,10 +850,7 @@ export const Club = () => {
                         borderWidth: member.user_id === highlightedUserId || member.is_hall_of_fame || isMyRank ? '2px' : undefined,
                       }}
                       onClick={() =>
-                        navigate(
-                          `/club/member/${selectedClub?.id}/${member.user_id}/${encodeURIComponent(member.display_name)}`,
-                          { state: { tab: activeTab } }
-                        )
+                        setSelectedMember({ userId: member.user_id, userName: member.display_name })
                       }
                     >
                     {rankingFilter === 'hof' ? (
@@ -966,6 +967,17 @@ export const Club = () => {
           onOptimisticCommentAdd={handleOptimisticCommentAdd}
           onOptimisticCommentDelete={handleOptimisticCommentDelete}
           onBlock={handleBlock}
+          onMemberClick={(userId, userName) => setSelectedMember({ userId, userName })}
+        />
+      )}
+
+      {/* 멤버 상세 모달 */}
+      {selectedMember && selectedClub && (
+        <ClubMemberDetailModal
+          clubId={selectedClub.id}
+          userId={selectedMember.userId}
+          userName={selectedMember.userName}
+          onClose={() => setSelectedMember(null)}
         />
       )}
 

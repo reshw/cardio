@@ -1984,6 +1984,23 @@ html {
   background: var(--input-bg);
 }
 
+.member-detail-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: var(--bg-primary);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.member-detail-panel .header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-primary);
+}
+
 .member-detail-summary {
   display: flex;
   gap: 12px;

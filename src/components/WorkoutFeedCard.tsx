@@ -22,6 +22,7 @@ interface Props {
   onOptimisticCommentAdd: (workoutId: string) => void;
   onOptimisticCommentDelete: (workoutId: string) => void;
   onBlock: (userId: string) => void;
+  onMemberClick: (userId: string, userName: string) => void;
 }
 
 export const WorkoutFeedCard = ({
@@ -32,6 +33,7 @@ export const WorkoutFeedCard = ({
   onOptimisticCommentAdd,
   onOptimisticCommentDelete,
   onBlock,
+  onMemberClick,
 }: Props) => {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
@@ -366,7 +368,15 @@ export const WorkoutFeedCard = ({
         <div className="feed-content-wrapper">
           {/* 첫째 줄: 이름 + 시간 + 운동종목 */}
           <div className="feed-header-line" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>
-            <span className="feed-user-name-v2">{item.user_display_name}</span>
+            <span
+              className="feed-user-name-v2"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMemberClick(item.workout.user_id, item.user_display_name);
+              }}
+            >
+              {item.user_display_name}
+            </span>
             <span className="feed-time-v2">{formatTime(workout.workout_time)}</span>
             <span className="feed-workout-type-v2">{getWorkoutLabel()}</span>
           </div>

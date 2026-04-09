@@ -14,6 +14,7 @@ interface Props {
   onOptimisticCommentAdd: (workoutId: string) => void;
   onOptimisticCommentDelete: (workoutId: string) => void;
   onBlock: (userId: string) => void;
+  onMemberClick: (userId: string, userName: string) => void;
 }
 
 export const WorkoutFeed = ({
@@ -27,6 +28,7 @@ export const WorkoutFeed = ({
   onOptimisticCommentAdd,
   onOptimisticCommentDelete,
   onBlock,
+  onMemberClick,
 }: Props) => {
   const { user } = useAuth();
   const formatDate = (date: Date) => {
@@ -87,6 +89,7 @@ export const WorkoutFeed = ({
                     onOptimisticCommentAdd={onOptimisticCommentAdd}
                     onOptimisticCommentDelete={onOptimisticCommentDelete}
                     onBlock={onBlock}
+                    onMemberClick={onMemberClick}
                   />
                 ))}
 
@@ -108,6 +111,7 @@ export const WorkoutFeed = ({
                     onOptimisticCommentAdd={onOptimisticCommentAdd}
                     onOptimisticCommentDelete={onOptimisticCommentDelete}
                     onBlock={onBlock}
+                    onMemberClick={onMemberClick}
                   />
                 ))}
               </>
