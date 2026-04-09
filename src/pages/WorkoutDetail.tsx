@@ -20,8 +20,13 @@ export const WorkoutDetail = () => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(workout?.value.toString() || '');
+  const toKSTInputValue = (utcString: string) => {
+    const kstDate = new Date(new Date(utcString).getTime() + 9 * 60 * 60 * 1000);
+    return kstDate.toISOString().slice(0, 16);
+  };
+
   const [workoutTime, setWorkoutTime] = useState(
-    workout ? new Date(workout.workout_time).toISOString().slice(0, 16) : ''
+    workout ? toKSTInputValue(workout.workout_time) : ''
   );
   const [intensity, setIntensity] = useState(workout?.intensity || 4);
   const [proofImage, setProofImage] = useState<File | null>(null);
@@ -66,7 +71,7 @@ export const WorkoutDetail = () => {
       }
       setWorkout(data);
       setValue(data.value.toString());
-      setWorkoutTime(new Date(data.workout_time).toISOString().slice(0, 16));
+      setWorkoutTime(toKSTInputValue(data.workout_time));
       setIntensity(data.intensity);
     } catch (error) {
       console.error('운동 조회 실패:', error);
@@ -198,7 +203,7 @@ export const WorkoutDetail = () => {
 
       await workoutService.updateWorkout(workout.id, {
         value: parseFloat(value),
-        workout_time: new Date(workoutTime).toISOString(),
+        workout_time: new Date(workoutTime + ':00+09:00').toISOString(),
         intensity,
         proof_image: imageUrl,
       });
@@ -474,7 +479,7 @@ export const WorkoutDetail = () => {
               onClick={() => {
                 setIsEditing(false);
                 setValue(workout.value.toString());
-                setWorkoutTime(new Date(workout.workout_time).toISOString().slice(0, 16));
+                setWorkoutTime(toKSTInputValue(workout.workout_time));
                 setIntensity(workout.intensity);
                 setProofImage(null);
                 setImagePreview(null);
