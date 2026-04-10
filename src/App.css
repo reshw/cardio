@@ -1987,18 +1987,70 @@ html {
 .member-detail-panel {
   position: fixed;
   inset: 0;
-  z-index: 400;
-  background: var(--bg-primary);
-  overflow-y: auto;
+  z-index: 1001;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
-  flex-direction: column;
+  align-items: flex-end;
 }
 
-.member-detail-panel .header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
+.member-detail-sheet {
+  width: 100%;
+  height: 92vh;
+  background: var(--bg-primary, #ffffff);
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: 10px;
+}
+
+.member-detail-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  margin: 0 auto 6px;
+  flex-shrink: 0;
+}
+
+.member-detail-sheet-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 12px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
   background: var(--bg-primary);
+}
+
+.member-detail-sheet-header h2 {
+  flex: 1;
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+  padding-right: 36px; /* back-button 너비만큼 보정해서 타이틀 진짜 가운데 정렬 */
+}
+
+.member-month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.member-month-label {
+  font-size: 15px;
+  font-weight: 600;
+  min-width: 100px;
+  text-align: center;
+}
+
+.member-detail-sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
 }
 
 .member-detail-summary {
