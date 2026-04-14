@@ -558,6 +558,17 @@ html {
   box-shadow: var(--shadow-lg);
 }
 
+/* 검색 등 키보드 올라오는 모달 — 상단 고정 */
+.modal-overlay--top {
+  align-items: flex-start;
+  padding-top: max(16px, env(safe-area-inset-top));
+}
+
+/* 검색 모달 열릴 때 BottomNav 숨김 */
+body.search-modal-open .bottom-nav {
+  display: none;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -2101,6 +2112,80 @@ html {
 
 .member-workout-card:hover {
   box-shadow: var(--shadow-md);
+}
+
+.member-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.member-card-comments {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.feed-action-btn-v2.active {
+  color: var(--primary-color);
+}
+
+/* ============================================
+   피드백 모달
+   ============================================ */
+.feedback-modal {
+  max-width: 560px;
+  width: 94vw;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.feedback-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.feedback-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.feedback-editor-wrapper {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.feedback-editor-wrapper .jodit-container {
+  border: none !important;
+  border-radius: 10px;
+}
+
+.feedback-editor-wrapper .jodit-toolbar__box {
+  border-bottom: 1px solid var(--border-color) !important;
+  background: var(--input-bg) !important;
+  border-radius: 0 !important;
+}
+
+.feedback-editor-wrapper .jodit-workplace {
+  background: var(--input-bg) !important;
+}
+
+.feedback-editor-wrapper .jodit-wysiwyg {
+  color: var(--text-primary) !important;
+  font-size: 15px !important;
+  line-height: 1.6 !important;
+  padding: 12px 14px !important;
+  min-height: 200px;
+}
+
+.feedback-editor-wrapper .jodit-status-bar {
+  display: none;
 }
 
 .workout-card-header {
@@ -3937,10 +4022,30 @@ html {
   justify-content: center;
   gap: 12px;
   margin-bottom: 12px;
-  padding: 8px;
+  padding: 8px 12px;
   background: var(--card-bg);
   border-radius: 12px;
+  position: relative;
   box-shadow: var(--shadow-sm);
+}
+
+.date-nav-today-btn {
+  position: absolute;
+  right: 12px;
+  background: var(--gradient-light);
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.date-nav-today-btn:hover {
+  background: var(--primary-color);
+  color: white;
 }
 
 .date-nav-button {

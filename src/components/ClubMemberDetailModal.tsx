@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, X, CircleOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, CircleOff, Heart, MessageCircle } from 'lucide-react';
 import workoutService from '../services/workoutService';
 import type { Workout } from '../services/workoutService';
 import clubService from '../services/clubService';
 import type { MileageConfig } from '../services/clubService';
 import feedService from '../services/feedService';
+import { CommentSection } from './CommentSection';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Props {
@@ -30,6 +31,12 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
   const [isBlocked, setIsBlocked] = useState(false);
   const [mileageConfig, setMileageConfig] = useState<MileageConfig>({});
   const [enabledCategories, setEnabledCategories] = useState<string[]>([]);
+
+  // 좋아요 / 댓글 상태
+  const [likesInfo, setLikesInfo] = useState<Map<string, { count: number; isLikedByMe: boolean }>>(new Map());
+  const [commentCounts, setCommentCounts] = useState<Map<string, number>>(new Map());
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [liking, setLiking] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadClubConfig();
@@ -97,11 +104,79 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
         .sort((a, b) => new Date(b.workout_time).getTime() - new Date(a.workout_time).getTime());
 
       setWorkouts(monthWorkouts);
+
+      // 좋아요 / 댓글 수 배치 로드
+      if (monthWorkouts.length > 0) {
+        const ids = monthWorkouts.map((w) => w.id);
+        const [likes, counts] = await Promise.all([
+          feedService.getLikesInfoForWorkouts(ids, currentUser?.id),
+          feedService.getCommentCountsForWorkouts(ids, clubId),
+        ]);
+        setLikesInfo(likes);
+        setCommentCounts(counts);
+      } else {
+        setLikesInfo(new Map());
+        setCommentCounts(new Map());
+      }
     } catch (error) {
       console.error('운동 기록 불러오기 실패:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLikeToggle = async (workoutId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentUser || liking.has(workoutId)) return;
+
+    const current = likesInfo.get(workoutId) || { count: 0, isLikedByMe: false };
+    const newIsLiked = !current.isLikedByMe;
+
+    // 낙관적 업데이트
+    setLikesInfo((prev) => {
+      const next = new Map(prev);
+      next.set(workoutId, {
+        count: current.count + (newIsLiked ? 1 : -1),
+        isLikedByMe: newIsLiked,
+      });
+      return next;
+    });
+    setLiking((prev) => new Set(prev).add(workoutId));
+
+    try {
+      await feedService.toggleLike(workoutId, clubId, currentUser.id, current.isLikedByMe);
+    } catch {
+      // 실패 시 롤백
+      setLikesInfo((prev) => {
+        const next = new Map(prev);
+        next.set(workoutId, current);
+        return next;
+      });
+    } finally {
+      setLiking((prev) => {
+        const next = new Set(prev);
+        next.delete(workoutId);
+        return next;
+      });
+    }
+  };
+
+  const toggleComments = (workoutId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedComments((prev) => {
+      const next = new Set(prev);
+      if (next.has(workoutId)) next.delete(workoutId);
+      else next.add(workoutId);
+      return next;
+    });
+  };
+
+  const handleCommentCountChange = (workoutId: string, delta: number) => {
+    setCommentCounts((prev) => {
+      const next = new Map(prev);
+      next.set(workoutId, Math.max(0, (next.get(workoutId) || 0) + delta));
+      return next;
+    });
   };
 
   const formatDate = (dateString: string) => {
@@ -154,9 +229,16 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
     return '#dc2626';
   };
 
-  const totalMileage = workouts
-    .filter((w) => !isWorkoutDisabled(w))
-    .reduce((sum, w) => sum + calculateMileage(w), 0);
+  const enabledWorkouts = workouts.filter((w) => !isWorkoutDisabled(w));
+
+  const totalMileage = enabledWorkouts.reduce((sum, w) => sum + calculateMileage(w), 0);
+
+  const workoutDays = new Set(
+    enabledWorkouts.map((w) => {
+      const d = new Date(w.workout_time);
+      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    })
+  ).size;
 
   return (
     <div className="member-detail-panel" onClick={onClose}>
@@ -207,8 +289,8 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
 
               <div className="member-detail-summary">
                 <div className="summary-item">
-                  <div className="summary-label">총 운동</div>
-                  <div className="summary-value">{workouts.length}회</div>
+                  <div className="summary-label">운동일수</div>
+                  <div className="summary-value">{workoutDays}일</div>
                 </div>
                 <div className="summary-item">
                   <div className="summary-label">총 마일리지</div>
@@ -233,34 +315,69 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
                       <div
                         key={workout.id}
                         className={`member-workout-card${disabled ? ' feed-card-disabled' : ''}`}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => setSelectedWorkout(workout)}
                       >
-                        {disabled && (
-                          <div className="feed-disabled-badge">
-                            <CircleOff size={11} />
-                            미적립
+                        {/* 카드 본문 (클릭 → 상세) */}
+                        <div style={{ cursor: 'pointer' }} onClick={() => setSelectedWorkout(workout)}>
+                          {disabled && (
+                            <div className="feed-disabled-badge">
+                              <CircleOff size={11} />
+                              미적립
+                            </div>
+                          )}
+                          <div className="workout-card-header">
+                            <div className="workout-type-badge">{getWorkoutLabel(workout)}</div>
+                            <div className="workout-date-small">{formatDate(workout.workout_time)}</div>
                           </div>
-                        )}
-                        <div className="workout-card-header">
-                          <div className="workout-type-badge">{getWorkoutLabel(workout)}</div>
-                          <div className="workout-date-small">{formatDate(workout.workout_time)}</div>
+                          <div className="workout-card-stats">
+                            <div className="stat-item">
+                              <span className="stat-label">거리/횟수</span>
+                              <span className="stat-value">{workout.value}{workout.unit}</span>
+                            </div>
+                            <div className="stat-item">
+                              <span className="stat-label">마일리지</span>
+                              <span className="stat-value highlight">
+                                {disabled ? '-' : calculateMileage(workout).toFixed(1)}
+                              </span>
+                            </div>
+                          </div>
+                          {workout.proof_image && (
+                            <div className="workout-proof-thumbnail">
+                              <img src={workout.proof_image} alt="증빙" />
+                            </div>
+                          )}
                         </div>
-                        <div className="workout-card-stats">
-                          <div className="stat-item">
-                            <span className="stat-label">거리/횟수</span>
-                            <span className="stat-value">{workout.value}{workout.unit}</span>
-                          </div>
-                          <div className="stat-item">
-                            <span className="stat-label">마일리지</span>
-                            <span className="stat-value highlight">
-                              {disabled ? '-' : calculateMileage(workout).toFixed(1)}
-                            </span>
-                          </div>
+
+                        {/* 좋아요 / 댓글 버튼 */}
+                        <div className="member-card-actions">
+                          <button
+                            className={`feed-action-btn-v2${likesInfo.get(workout.id)?.isLikedByMe ? ' liked' : ''}`}
+                            onClick={(e) => handleLikeToggle(workout.id, e)}
+                            disabled={liking.has(workout.id)}
+                          >
+                            <Heart
+                              size={15}
+                              fill={likesInfo.get(workout.id)?.isLikedByMe ? 'currentColor' : 'none'}
+                            />
+                            <span>{likesInfo.get(workout.id)?.count || 0}</span>
+                          </button>
+                          <button
+                            className={`feed-action-btn-v2${expandedComments.has(workout.id) ? ' active' : ''}`}
+                            onClick={(e) => toggleComments(workout.id, e)}
+                          >
+                            <MessageCircle size={15} />
+                            <span>{commentCounts.get(workout.id) || 0}</span>
+                          </button>
                         </div>
-                        {workout.proof_image && (
-                          <div className="workout-proof-thumbnail">
-                            <img src={workout.proof_image} alt="증빙" />
+
+                        {/* 댓글 섹션 (토글) */}
+                        {expandedComments.has(workout.id) && (
+                          <div className="member-card-comments" onClick={(e) => e.stopPropagation()}>
+                            <CommentSection
+                              workoutId={workout.id}
+                              clubId={clubId}
+                              onCommentAdded={() => handleCommentCountChange(workout.id, 1)}
+                              onCommentDeleted={() => handleCommentCountChange(workout.id, -1)}
+                            />
                           </div>
                         )}
                       </div>

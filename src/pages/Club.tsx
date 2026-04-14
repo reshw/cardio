@@ -255,6 +255,10 @@ export const Club = () => {
     setSelectedDate(newDate);
   };
 
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+  };
+
   // Optimistic 좋아요 업데이트
   const handleOptimisticLike = (workoutId: string, isLiked: boolean) => {
     setFeedItems(prev => prev.map(item =>
@@ -368,6 +372,15 @@ export const Club = () => {
   useEffect(() => {
     loadMyClubs();
   }, [user]);
+
+  useEffect(() => {
+    if (showMemberSearch) {
+      document.body.classList.add('search-modal-open');
+    } else {
+      document.body.classList.remove('search-modal-open');
+    }
+    return () => document.body.classList.remove('search-modal-open');
+  }, [showMemberSearch]);
 
   // 페이지가 다시 보일 때 랭킹 새로고침 (뒤로가기 대응)
   useEffect(() => {
@@ -745,8 +758,8 @@ export const Club = () => {
             if (showFullList) {
               displayMembers = filteredByHOF;
             } else if (highlightIndex !== -1) {
-              // 강조 멤버 ±5명 표시
-              const start = Math.max(0, highlightIndex - 5);
+              // 강조 멤버 위 3명 + 본인 + 아래 5명
+              const start = Math.max(0, highlightIndex - 3);
               const end = Math.min(filteredByHOF.length, highlightIndex + 6);
               displayMembers = filteredByHOF.slice(start, end);
               showEllipsis1 = start > 0;
@@ -963,6 +976,7 @@ export const Club = () => {
           feedItems={feedItems}
           loading={feedLoading}
           onDateChange={handleDateChange}
+          onDateSelect={handleDateSelect}
           onOptimisticLike={handleOptimisticLike}
           onOptimisticCommentAdd={handleOptimisticCommentAdd}
           onOptimisticCommentDelete={handleOptimisticCommentDelete}
@@ -992,7 +1006,7 @@ export const Club = () => {
       {showMemberSearch && (() => {
         const searchResults = memberSearchQuery
           ? ranking.filter(m => m.display_name.toLowerCase().includes(memberSearchQuery.toLowerCase()))
-          : ranking;
+          : [];
 
         const renderAvatar = (m: ClubRanking) => {
           if (m.profile_image?.startsWith('default:')) {
@@ -1028,7 +1042,7 @@ export const Club = () => {
         };
 
         return (
-          <div className="modal-overlay" onClick={() => setShowMemberSearch(false)}>
+          <div className="modal-overlay modal-overlay--top" onClick={() => setShowMemberSearch(false)}>
             <div className="modal-content" style={{ maxWidth: '480px', width: '92vw', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
               <div className="modal-header" style={{ flexShrink: 0 }}>
                 <h2>멤버 검색</h2>
@@ -1040,6 +1054,7 @@ export const Club = () => {
                   placeholder="닉네임으로 검색..."
                   value={memberSearchQuery}
                   onChange={e => setMemberSearchQuery(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                   autoFocus
                   style={{
                     width: '100%',

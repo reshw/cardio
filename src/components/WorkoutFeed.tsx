@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { WorkoutFeedCard } from './WorkoutFeedCard';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +11,7 @@ interface Props {
   feedItems: WorkoutFeedItem[];
   loading: boolean;
   onDateChange: (days: number) => void;
+  onDateSelect: (date: Date) => void;
   onOptimisticLike: (workoutId: string, isLiked: boolean) => void;
   onOptimisticCommentAdd: (workoutId: string) => void;
   onOptimisticCommentDelete: (workoutId: string) => void;
@@ -24,6 +26,7 @@ export const WorkoutFeed = ({
   feedItems,
   loading,
   onDateChange,
+  onDateSelect,
   onOptimisticLike,
   onOptimisticCommentAdd,
   onOptimisticCommentDelete,
@@ -31,17 +34,29 @@ export const WorkoutFeed = ({
   onMemberClick,
 }: Props) => {
   const { user } = useAuth();
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isToday = new Date(selectedDate).setHours(0, 0, 0, 0) === today.getTime();
+
   const formatDate = (date: Date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const targetDate = new Date(date);
-    targetDate.setHours(0, 0, 0, 0);
-
-    if (targetDate.getTime() === today.getTime()) {
-      return '오늘';
-    }
-
+    if (isToday) return '오늘';
     return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+  };
+
+  const toInputValue = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.value) return;
+    const [y, m, d] = e.target.value.split('-').map(Number);
+    const picked = new Date(y, m - 1, d);
+    onDateSelect(picked);
   };
 
   return (
@@ -52,11 +67,31 @@ export const WorkoutFeed = ({
           <ChevronLeft size={20} />
         </button>
 
-        <div className="feed-date-display">{formatDate(selectedDate)}</div>
+        <div
+          className="feed-date-display"
+          onClick={() => dateInputRef.current?.showPicker?.()}
+          style={{ cursor: 'pointer', position: 'relative' }}
+        >
+          {formatDate(selectedDate)}
+          <input
+            ref={dateInputRef}
+            type="date"
+            value={toInputValue(selectedDate)}
+            max={toInputValue(today)}
+            onChange={handleDateInputChange}
+            style={{ position: 'absolute', opacity: 0, width: '1px', height: '1px', top: 0, left: 0, pointerEvents: 'none' }}
+          />
+        </div>
 
-        <button className="date-nav-button" onClick={() => onDateChange(1)}>
+        <button className="date-nav-button" onClick={() => onDateChange(1)} disabled={isToday}>
           <ChevronRight size={20} />
         </button>
+
+        {!isToday && (
+          <button className="date-nav-today-btn" onClick={() => onDateSelect(new Date())}>
+            오늘
+          </button>
+        )}
       </div>
 
       {/* 피드 리스트 */}

@@ -13,7 +13,7 @@ export type YogaSubType = '일반' | '빈야사/아쉬탕가';
 export type WorkoutSubType = RunningSubType | CycleSubType | BoxingSubType | YogaSubType | null;
 
 // 단위
-export type WorkoutUnit = 'km' | 'm' | '층' | '분';
+export type WorkoutUnit = 'km' | 'm' | '층' | '분' | '회' | '세트';
 
 export interface Workout {
   id: string;

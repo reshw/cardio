@@ -237,18 +237,24 @@ export const AdminWorkoutTypes = () => {
       return;
     }
 
+    const newSubTypes = [...(formData.sub_types || []), { name: subTypeInput.trim(), unit: subTypeUnit }];
     setFormData({
       ...formData,
-      sub_types: [...(formData.sub_types || []), { name: subTypeInput.trim(), unit: subTypeUnit }],
+      sub_types: newSubTypes,
+      // 카테고리 단위를 첫 번째 서브타입 단위로 자동 동기화
+      unit: newSubTypes[0].unit as any,
     });
     setSubTypeInput('');
-    setSubTypeUnit(formData.unit); // 다음 서브타입은 기본 단위로 초기화
+    setSubTypeUnit(subTypeUnit);
   };
 
   const handleRemoveSubType = (index: number) => {
+    const newSubTypes = formData.sub_types?.filter((_, i) => i !== index) || [];
     setFormData({
       ...formData,
-      sub_types: formData.sub_types?.filter((_, i) => i !== index) || [],
+      sub_types: newSubTypes,
+      // 서브타입 제거 후 남은 첫 번째 서브타입 단위로 동기화 (없으면 현재 값 유지)
+      unit: newSubTypes.length > 0 ? newSubTypes[0].unit as any : formData.unit,
     });
   };
 
@@ -678,34 +684,52 @@ export const AdminWorkoutTypes = () => {
                   <label style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', display: 'block', color: 'var(--text-primary)' }}>
                     단위 <span style={{ color: '#ef4444' }}>*</span>
                   </label>
-                  <select
-                    value={formData.unit}
-                    onChange={(e) => setFormData({ ...formData, unit: e.target.value as any })}
-                    required
-                    style={{
+                  {(formData.sub_types?.length || 0) > 0 ? (
+                    <div style={{
                       width: '100%',
                       padding: '12px 16px',
                       fontSize: '15px',
                       border: '2px solid var(--border-color)',
                       borderRadius: '8px',
-                      transition: 'border-color 0.2s',
                       background: 'var(--secondary-bg)',
-                      cursor: 'pointer',
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--primary-color)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-color)';
-                    }}
-                  >
-                    <option value="km">km (킬로미터)</option>
-                    <option value="m">m (미터)</option>
-                    <option value="층">층</option>
-                    <option value="분">분</option>
-                    <option value="회">회</option>
-                    <option value="세트">세트</option>
-                  </select>
+                      color: 'var(--text-secondary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}>
+                      <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>{formData.unit}</span>
+                      <span style={{ fontSize: '12px' }}>(자동 — 첫 번째 세부타입 기준)</span>
+                    </div>
+                  ) : (
+                    <select
+                      value={formData.unit}
+                      onChange={(e) => setFormData({ ...formData, unit: e.target.value as any })}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        fontSize: '15px',
+                        border: '2px solid var(--border-color)',
+                        borderRadius: '8px',
+                        transition: 'border-color 0.2s',
+                        background: 'var(--secondary-bg)',
+                        cursor: 'pointer',
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--primary-color)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                      }}
+                    >
+                      <option value="km">km (킬로미터)</option>
+                      <option value="m">m (미터)</option>
+                      <option value="층">층</option>
+                      <option value="분">분</option>
+                      <option value="회">회</option>
+                      <option value="세트">세트</option>
+                    </select>
+                  )}
                 </div>
 
                 <div

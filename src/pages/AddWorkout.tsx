@@ -155,7 +155,7 @@ export const AddWorkout = () => {
         sub_type: subType,
         sub_type_ratios: subTypeRatios,
         value: parseFloat(value),
-        unit: selectedCategory!.unit,
+        unit: displayUnit as WorkoutUnit,
         intensity,
         proof_image: imageUrl,
         workout_time: new Date(workoutDate).toISOString(), // 사용자가 입력한 운동 시간
