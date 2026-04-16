@@ -46,12 +46,40 @@ export const WorkoutDetail = () => {
   // 댓글 관련 state
   const [totalComments, setTotalComments] = useState(0);
 
-  // workout이 없으면 ID로 조회
+  // 초기 로드: clubIdParam이 있으면 멤버십 체크 후 워크아웃 로드, 없으면 바로 로드
   useEffect(() => {
-    if (!workout && id) {
-      loadWorkout();
+    if (!id) return;
+
+    if (clubIdParam) {
+      // user 로딩 완료 대기
+      if (!user) return;
+
+      const init = async () => {
+        try {
+          const isMember = await clubService.isClubMember(clubIdParam, user.id);
+          if (!isMember) {
+            const club = await clubService.getClubById(clubIdParam);
+            const returnUrl = `/workout/${id}?clubId=${clubIdParam}`;
+            sessionStorage.setItem('join_return_url', returnUrl);
+            navigate(`/join/${club.invite_code}`, { replace: true });
+            return;
+          }
+          // 멤버 확인 후 워크아웃 로드
+          if (!workout) {
+            loadWorkout();
+          }
+        } catch (error) {
+          console.error('클럽 소속 확인 실패:', error);
+        }
+      };
+
+      init();
+    } else {
+      if (!workout) {
+        loadWorkout();
+      }
     }
-  }, [id, workout]);
+  }, [id, clubIdParam, user]);
 
   // 좋아요 개수 로드
   useEffect(() => {
@@ -59,27 +87,6 @@ export const WorkoutDetail = () => {
       loadTotalLikes();
     }
   }, [workout]);
-
-  // 카카오 공유 링크 진입 시 클럽 소속 여부 확인
-  useEffect(() => {
-    if (!clubIdParam || !user || !workout) return;
-
-    const checkClubMembership = async () => {
-      try {
-        const isMember = await clubService.isClubMember(clubIdParam, user.id);
-        if (!isMember) {
-          const club = await clubService.getClubById(clubIdParam);
-          const returnUrl = `/workout/${workout.id}?clubId=${clubIdParam}`;
-          sessionStorage.setItem('join_return_url', returnUrl);
-          navigate(`/join/${club.invite_code}`, { replace: true });
-        }
-      } catch (error) {
-        console.error('클럽 소속 확인 실패:', error);
-      }
-    };
-
-    checkClubMembership();
-  }, [clubIdParam, user, workout]);
 
   const loadWorkout = async () => {
     if (!id) {
