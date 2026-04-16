@@ -17,7 +17,7 @@ export const WorkoutDetail = () => {
   const [searchParams] = useSearchParams();
   const highlightCommentId = searchParams.get('commentId');
   const clubIdParam = searchParams.get('clubId');
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [workout, setWorkout] = useState<Workout | null>(location.state?.workout || null);
   const [loading, setLoading] = useState(!workout);
@@ -51,8 +51,8 @@ export const WorkoutDetail = () => {
     if (!id) return;
 
     if (clubIdParam) {
-      // user 로딩 완료 대기
-      if (!user) return;
+      // auth 로딩 완료 대기 (로딩 중이거나 user 없으면 건너뜀)
+      if (authLoading || !user) return;
 
       const init = async () => {
         try {
@@ -79,7 +79,7 @@ export const WorkoutDetail = () => {
         loadWorkout();
       }
     }
-  }, [id, clubIdParam, user]);
+  }, [id, clubIdParam, user, authLoading]);
 
   // 좋아요 개수 로드
   useEffect(() => {

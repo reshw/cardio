@@ -53,8 +53,14 @@ export const JoinClub = () => {
       if (user) {
         const isMember = await clubService.isClubMember(preview.club.id, user.id);
         if (isMember) {
-          // 이미 가입한 클럽이면 바로 클럽 메인으로 리디렉트
-          navigate('/club');
+          // 카카오 공유 링크 복귀 URL이 있으면 해당 페이지로, 없으면 클럽 메인으로
+          const returnUrl = sessionStorage.getItem('join_return_url');
+          if (returnUrl) {
+            sessionStorage.removeItem('join_return_url');
+            navigate(returnUrl);
+          } else {
+            navigate('/club');
+          }
           return;
         }
       }
