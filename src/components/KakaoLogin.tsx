@@ -12,8 +12,8 @@ export const KakaoLogin = () => {
     const currentOrigin = window.location.origin;
     const REDIRECT_URI = `${currentOrigin}/auth/kakao/callback`;
 
-    // 현재 경로를 state로 전달
-    const currentPath = window.location.pathname;
+    // 현재 경로를 state로 전달 (쿼리 파라미터 포함)
+    const currentPath = window.location.pathname + window.location.search;
     const state = encodeURIComponent(JSON.stringify({ from: currentPath }));
 
     console.log('🔑 카카오 로그인 리다이렉트 URI:', REDIRECT_URI);

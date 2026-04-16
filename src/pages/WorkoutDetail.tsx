@@ -3,10 +3,12 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { ChevronLeft, Edit2, Trash2, X } from 'lucide-react';
 import workoutService from '../services/workoutService';
 import feedService from '../services/feedService';
+import clubService from '../services/clubService';
 import type { Workout } from '../services/workoutService';
 import { uploadToR2 } from '../utils/r2Storage';
 import { IntegratedCommentSection } from '../components/IntegratedCommentSection';
 import { LikeStatsModal } from '../components/LikeStatsModal';
+import { useAuth } from '../contexts/AuthContext';
 
 export const WorkoutDetail = () => {
   const location = useLocation();
@@ -14,6 +16,8 @@ export const WorkoutDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const highlightCommentId = searchParams.get('commentId');
+  const clubIdParam = searchParams.get('clubId');
+  const { user } = useAuth();
 
   const [workout, setWorkout] = useState<Workout | null>(location.state?.workout || null);
   const [loading, setLoading] = useState(!workout);
@@ -55,6 +59,27 @@ export const WorkoutDetail = () => {
       loadTotalLikes();
     }
   }, [workout]);
+
+  // 카카오 공유 링크 진입 시 클럽 소속 여부 확인
+  useEffect(() => {
+    if (!clubIdParam || !user || !workout) return;
+
+    const checkClubMembership = async () => {
+      try {
+        const isMember = await clubService.isClubMember(clubIdParam, user.id);
+        if (!isMember) {
+          const club = await clubService.getClubById(clubIdParam);
+          const returnUrl = `/workout/${workout.id}?clubId=${clubIdParam}`;
+          sessionStorage.setItem('join_return_url', returnUrl);
+          navigate(`/join/${club.invite_code}`, { replace: true });
+        }
+      } catch (error) {
+        console.error('클럽 소속 확인 실패:', error);
+      }
+    };
+
+    checkClubMembership();
+  }, [clubIdParam, user, workout]);
 
   const loadWorkout = async () => {
     if (!id) {

@@ -103,7 +103,7 @@ export const WorkoutFeedCard = ({
     }
 
     const workoutLabel = getWorkoutLabel();
-    const appUrl = `${window.location.origin}/club`;
+    const appUrl = `${window.location.origin}/workout/${workout.id}?clubId=${clubId}`;
 
     // 날짜 포맷팅
     const workoutDate = new Date(workout.workout_time);
