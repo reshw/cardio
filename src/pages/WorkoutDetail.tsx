@@ -495,14 +495,18 @@ export const WorkoutDetail = () => {
       <div className="detail-actions-fixed">
         {!isEditing ? (
           <>
-            <button className="action-button-full" onClick={() => setIsEditing(true)}>
-              <Edit2 size={18} />
-              수정
-            </button>
-            <button className="action-button-full danger" onClick={handleDelete} disabled={deleting}>
-              <Trash2 size={18} />
-              {deleting ? '삭제 중...' : '삭제'}
-            </button>
+            {user?.id === workout.user_id && (
+              <>
+                <button className="action-button-full" onClick={() => setIsEditing(true)}>
+                  <Edit2 size={18} />
+                  수정
+                </button>
+                <button className="action-button-full danger" onClick={handleDelete} disabled={deleting}>
+                  <Trash2 size={18} />
+                  {deleting ? '삭제 중...' : '삭제'}
+                </button>
+              </>
+            )}
           </>
         ) : (
           <>
