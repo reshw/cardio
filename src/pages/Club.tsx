@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
+import { getExpressions } from '../utils/mileageExpressions';
 import { CreateClubModal } from '../components/CreateClubModal';
 import { MileageConfigModal } from '../components/MileageConfigModal';
 import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
@@ -94,7 +95,11 @@ export const Club = () => {
   // 피드 관련 state
   type TabType = 'ranking' | 'feed';
   const [activeTab, setActiveTab] = useState<TabType>((location.state as { tab?: TabType } | null)?.tab ?? 'feed');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  // 마일리지 표현 state
+  const [mileageExpressions, setMileageExpressions] = useState(() => getExpressions(0, 1));
+
+const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [feedItems, setFeedItems] = useState<WorkoutFeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
 
@@ -164,6 +169,8 @@ export const Club = () => {
       });
       if (requestId !== rankingRequestId.current) return; // 구버전 응답 무시
       setRanking(data);
+      const total = data.reduce((s: number, m: any) => s + m.total_mileage, 0);
+      if (total >= 10) setMileageExpressions(getExpressions(total, 1));
     } catch (error) {
       if (requestId !== rankingRequestId.current) return;
       console.error('랭킹 불러오기 실패:', error);
@@ -696,6 +703,48 @@ export const Club = () => {
               </button>
             </div>
           </div>
+
+          {/* 클럽 합산 마일리지 게이지 */}
+          {(() => {
+            const totalMileage = ranking.reduce((s, m) => s + m.total_mileage, 0);
+            if (totalMileage < 10) return null;
+            const expr = mileageExpressions[0];
+            if (!expr) return null;
+            const r = expr.ratio;
+            const unit = r < 10 ? 1 : 5;
+            const nextMilestone = r < 1 ? 1 : Math.ceil(r / unit) * unit;
+            const pct = Math.min((r / nextMilestone) * 100, 100);
+            const milestoneKm = Math.round(nextMilestone * expr.km);
+            return (
+              <div className="mileage-gauge-banner">
+                <div className="mileage-gauge-header">
+                  <span className="mileage-gauge-total">이번 달 합산 <strong>{totalMileage.toFixed(0)}점</strong></span>
+                  <button
+                    className="mileage-gauge-shuffle"
+                    onClick={() => setMileageExpressions(getExpressions(totalMileage, 1))}
+                    title="다르게 보기"
+                  >
+                    <RefreshCw size={13} />
+                  </button>
+                </div>
+                <div className="mileage-gauge-row">
+                  <span className="mileage-gauge-label">{expr.label} ({expr.km.toLocaleString()}km)</span>
+                  <div className="mileage-gauge-track-wrap">
+                    <div className="mileage-gauge-track">
+                      <div className="mileage-gauge-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="mileage-gauge-pct" style={{ color: pct > 55 ? 'white' : 'var(--text-secondary)' }}>
+                      {Math.round(pct)}%
+                    </span>
+                  </div>
+                  <div className="mileage-gauge-badge">
+                    <span className="mileage-gauge-x">×{nextMilestone}</span>
+                    <span className="mileage-gauge-km">{milestoneKm.toLocaleString()}km</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* 명예의 전당 필터 */}
           <div className="ranking-filter-tabs">

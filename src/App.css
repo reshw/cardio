@@ -2133,59 +2133,172 @@ body.search-modal-open .bottom-nav {
 }
 
 /* ============================================
-   피드백 모달
+   피드백 바텀 시트
    ============================================ */
-.feedback-modal {
-  max-width: 560px;
-  width: 94vw;
-  max-height: 92vh;
-  overflow-y: auto;
+.feedback-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1100;
+  display: flex;
+  align-items: flex-end;
 }
 
-.feedback-modal-body {
+.feedback-sheet {
+  width: 100%;
+  background: var(--card-bg);
+  border-radius: 24px 24px 0 0;
+  padding: 12px 20px calc(24px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 16px;
+  max-height: 92vh;
+  overflow-y: auto;
+  animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.feedback-field {
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.feedback-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  margin: 0 auto 4px;
+  flex-shrink: 0;
+}
+
+.feedback-sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.feedback-sheet-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.feedback-sheet-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.feedback-close-btn {
+  background: var(--input-bg);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.feedback-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.feedback-chip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-color);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.feedback-chip.active {
+  border-color: var(--secondary-color);
+  background: rgba(255, 107, 157, 0.08);
+  color: var(--secondary-color);
+  font-weight: 600;
+}
+
+.feedback-fields {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
-.feedback-editor-wrapper {
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid var(--border-color);
+.feedback-input-wrap {
+  background: var(--input-bg);
+  border-radius: 14px;
+  border: 1.5px solid var(--border-color);
+  transition: border-color 0.15s;
 }
 
-.feedback-editor-wrapper .jodit-container {
-  border: none !important;
-  border-radius: 10px;
+.feedback-input-wrap:focus-within {
+  border-color: var(--primary-color);
 }
 
-.feedback-editor-wrapper .jodit-toolbar__box {
-  border-bottom: 1px solid var(--border-color) !important;
-  background: var(--input-bg) !important;
-  border-radius: 0 !important;
+.feedback-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text-primary);
 }
 
-.feedback-editor-wrapper .jodit-workplace {
-  background: var(--input-bg) !important;
+.feedback-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
 }
 
-.feedback-editor-wrapper .jodit-wysiwyg {
-  color: var(--text-primary) !important;
-  font-size: 15px !important;
-  line-height: 1.6 !important;
-  padding: 12px 14px !important;
-  min-height: 200px;
+.feedback-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  line-height: 1.6;
+  font-family: inherit;
+  color: var(--text-primary);
+  resize: none;
+  display: block;
 }
 
-.feedback-editor-wrapper .jodit-status-bar {
-  display: none;
+.feedback-textarea::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.feedback-submit-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  letter-spacing: 0.3px;
+}
+
+.feedback-submit-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .workout-card-header {
@@ -2780,6 +2893,764 @@ body.search-modal-open .bottom-nav {
 .detail-header h1 {
   font-size: 20px;
   margin: 0;
+}
+
+/* ============================================
+   통계 탭 차트
+   ============================================ */
+.stats-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 32px;
+}
+
+.stats-chart-section {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.stats-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.stats-chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.chart-metric-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--input-bg);
+  border-radius: 20px;
+  padding: 3px;
+}
+
+.chart-metric-btn {
+  padding: 4px 10px;
+  border-radius: 16px;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.chart-metric-btn.active {
+  background: white;
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.chart-hint {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 6px 0 0;
+  opacity: 0.7;
+}
+
+/* 비교 카드 */
+.compare-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.compare-card {
+  background: var(--card-bg);
+  border-radius: 14px;
+  padding: 14px 10px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  text-align: center;
+}
+
+.compare-card-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.compare-card-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--primary-color);
+  line-height: 1.1;
+}
+
+.compare-unit {
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 1px;
+}
+
+.compare-card-prev {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.diff-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-top: 2px;
+}
+
+.diff-badge.up {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+.diff-badge.down {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.diff-badge.neutral {
+  background: var(--input-bg);
+  color: var(--text-secondary);
+}
+
+/* 종목별 바차트 */
+.category-chart-section {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.category-chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 14px;
+}
+
+.category-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.category-bar-label {
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 80px;
+  color: var(--text-primary);
+}
+
+.category-bar-track {
+  flex: 1;
+  height: 10px;
+  background: var(--input-bg);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.category-bar-fill {
+  height: 100%;
+  background: var(--gradient-primary);
+  border-radius: 5px;
+  transition: width 0.5s ease;
+  min-width: 4px;
+}
+
+.category-bar-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* 차트 카테고리 전환 네비 */
+.chart-category-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 6px 0 0;
+}
+
+.cat-nav-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 16px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.cat-nav-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 60px;
+  text-align: center;
+}
+
+/* 달린거리 카드 카테고리 전환 */
+.distance-card-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.distance-card-nav button {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.distance-cat-badge {
+  display: inline-block;
+  font-size: 11px;
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 1px 7px;
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+/* 종목별 거리 게이지 */
+.cat-gauge-row {
+  margin-bottom: 16px;
+}
+
+.cat-gauge-row:last-child {
+  margin-bottom: 0;
+}
+
+.cat-gauge-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 5px;
+}
+
+.cat-gauge-outer {
+  position: relative;
+}
+
+.cat-gauge-track {
+  height: 8px;
+  background: var(--input-bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cat-gauge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4FC3F7, #FF6B9D);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+  min-width: 3px;
+}
+
+/* 눈금선 (track 위에 absolute 오버레이) */
+.cat-gauge-tick-mark {
+  position: absolute;
+  top: 0;
+  height: 8px;
+  width: 2px;
+  background: rgba(100, 116, 139, 0.55);
+  border-radius: 1px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.cat-gauge-tick-mark.target110 {
+  background: #FF6B9D;
+  opacity: 0.85;
+}
+
+/* 눈금 라벨 */
+.cat-gauge-tick-labels {
+  position: relative;
+  height: 14px;
+  margin-top: 2px;
+}
+
+.cat-gauge-tick-lbl {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.cat-gauge-tick-lbl.target110 {
+  color: #FF6B9D;
+  font-weight: 700;
+}
+
+/* 게이지 하단 */
+.cat-gauge-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 3px;
+}
+
+.cat-gauge-record {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.cat-gauge-achieve {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.cat-gauge-achieve.hit {
+  color: #4FC3F7;
+}
+
+.cat-gauge-achieve.over {
+  color: #22c55e;
+}
+
+/* ============================================
+   마일리지 게이지 배너 (slim)
+   ============================================ */
+.mileage-gauge-banner {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  box-shadow: var(--shadow-sm);
+}
+
+.mileage-gauge-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mileage-gauge-total {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.mileage-gauge-total strong {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--primary-color);
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.mileage-gauge-shuffle {
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+.mileage-gauge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mileage-gauge-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.mileage-gauge-track-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.mileage-gauge-track {
+  width: 100%;
+  height: 20px;
+  background: var(--input-bg);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.mileage-gauge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4FC3F7, #FF6B9D);
+  border-radius: 10px;
+  transition: width 0.6s ease;
+  min-width: 4px;
+}
+
+.mileage-gauge-pct {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.mileage-gauge-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 1px;
+}
+
+.mileage-gauge-x {
+  font-size: 16px;
+  font-weight: 900;
+  font-style: italic;
+  color: var(--primary-color);
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.mileage-gauge-km {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+/* ============================================
+   챌린지 탭 클럽 선택
+   ============================================ */
+.challenge-club-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.challenge-club-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-color);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.challenge-club-btn.active {
+  border-color: var(--primary-color);
+  background: rgba(79, 195, 247, 0.1);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* ============================================
+   개인 챌린지 카드
+   ============================================ */
+.personal-challenge-card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border-color);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.personal-challenge-card.done {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.04);
+}
+
+.pc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pc-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pc-icon {
+  font-size: 16px;
+}
+
+.pc-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pc-preset-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--input-bg);
+  border-radius: 16px;
+  padding: 2px;
+}
+
+.pc-preset-btn {
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pc-preset-btn.active {
+  background: var(--secondary-color);
+  color: white;
+}
+
+.pc-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.pc-desc strong {
+  color: var(--text-primary);
+}
+
+.pc-bar-wrap {
+  height: 8px;
+  background: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pc-bar-fill {
+  height: 100%;
+  background: var(--gradient-primary);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.personal-challenge-card.done .pc-bar-fill {
+  background: #22c55e;
+}
+
+.pc-nums {
+  font-size: 12px;
+  text-align: right;
+}
+
+.pc-current {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--primary-color);
+}
+
+.pc-target {
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   챌린지
+   ============================================ */
+.challenges-tab {
+  padding: 4px 0;
+}
+
+.challenges-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.challenges-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.challenge-add-btn {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.challenges-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.challenge-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.challenge-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.challenge-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.challenge-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.challenge-badge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.challenge-badge.global {
+  background: rgba(79, 195, 247, 0.15);
+  color: var(--primary-color);
+}
+
+.challenge-badge.done {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.challenge-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  margin-left: 8px;
+}
+
+.challenge-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+}
+
+.challenge-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.challenge-period {
+  font-size: 11px;
+}
+
+.days-left {
+  color: #f97316;
+  font-weight: 600;
+}
+
+.challenge-progress-bar-wrap {
+  height: 8px;
+  background: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.challenge-progress-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.challenge-progress-nums {
+  font-size: 13px;
+  text-align: right;
+}
+
+.challenge-goal {
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   운동 상세 소유자 배너
+   ============================================ */
+.workout-owner-banner {
+  display: inline-block;
+  background: var(--gradient-light);
+  border: 1px solid rgba(79, 195, 247, 0.3);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
 }
 
 .detail-content {
@@ -6710,6 +7581,24 @@ body.search-modal-open .bottom-nav {
   color: var(--primary-color);
 }
 
+.stat-diff {
+  display: block;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.stat-diff.up {
+  color: #22c55e;
+}
+
+.stat-diff.down {
+  color: #ef4444;
+}
+
+.stat-diff.neutral {
+  color: var(--text-secondary);
+}
+
 .user-list {
   display: flex;
   flex-direction: column;
@@ -7281,4 +8170,336 @@ body.search-modal-open .bottom-nav {
 .invite-action-button .action-desc {
   font-size: 13px;
   color: var(--text-secondary);
+}
+
+/* ============================================
+   대회 기록실
+   ============================================ */
+.records-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.records-count {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.records-add-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.records-empty {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.race-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.race-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px;
+  position: relative;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s;
+}
+
+.race-card.pb {
+  border-color: #FFD700;
+  background: linear-gradient(135deg, #FFFEF0 0%, var(--card-bg) 100%);
+}
+
+.race-pb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #FFD700;
+  color: #7a5c00;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+
+.race-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.race-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.race-card-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.race-card-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.race-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.race-cat-badge {
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 10px;
+}
+
+.race-link-btn {
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+}
+
+.race-time {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--primary-color);
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.race-image-wrap {
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.race-image-wrap img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+  max-height: 220px;
+}
+
+.race-notes {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.race-delete-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  opacity: 0.4;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.race-delete-btn:hover {
+  opacity: 0.8;
+  color: #ef4444;
+}
+
+/* 추가 모달 */
+.race-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px 16px;
+}
+
+.race-modal-header h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.race-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+}
+
+.race-modal-sheet {
+  padding-bottom: 0 !important;
+  overflow: hidden !important;
+}
+
+.race-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 2px;
+  padding-bottom: 4px;
+}
+
+.race-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.race-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.race-form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.race-label-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.race-input {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.race-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.race-time-input {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--primary-color);
+}
+
+.race-textarea {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+}
+
+.race-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.race-img-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--input-bg);
+  border: 1.5px dashed var(--border-color);
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+}
+
+.race-img-preview {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.race-img-preview img {
+  width: 100%;
+  display: block;
+  max-height: 180px;
+  object-fit: cover;
+}
+
+.race-img-change {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.55);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+
+.race-save-btn {
+  width: 100%;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  padding: 15px;
+  padding-bottom: calc(15px + env(safe-area-inset-bottom));
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin: 12px 0 0;
+  flex-shrink: 0;
+}
+
+.race-save-btn:disabled {
+  opacity: 0.6;
 }
