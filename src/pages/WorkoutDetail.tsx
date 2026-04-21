@@ -34,6 +34,7 @@ export const WorkoutDetail = () => {
     workout ? toKSTInputValue(workout.workout_time) : ''
   );
   const [intensity, setIntensity] = useState(workout?.intensity || 4);
+  const [memo, setMemo] = useState(workout?.memo ?? '');
   const [proofImage, setProofImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -84,18 +85,28 @@ export const WorkoutDetail = () => {
     }
   }, [id, clubIdParam, user, authLoading]);
 
-  // 타인 기록 진입 시 소유자 이름 로드
+  // 타인 기록 진입 시 소유자 닉네임 로드 (클럽 닉네임 우선, fallback: username)
   useEffect(() => {
     if (!workout || !user || user.id === workout.user_id) return;
-    supabase
-      .from('users')
-      .select('display_name')
-      .eq('id', workout.user_id)
-      .single()
-      .then(({ data }) => {
-        if (data?.display_name) setOwnerName(data.display_name);
-      });
-  }, [workout?.user_id, user?.id]);
+    const fetchOwner = async () => {
+      if (clubIdParam) {
+        const { data: member } = await supabase
+          .from('club_members')
+          .select('club_nickname')
+          .eq('club_id', clubIdParam)
+          .eq('user_id', workout.user_id)
+          .single();
+        if (member?.club_nickname) { setOwnerName(member.club_nickname); return; }
+      }
+      const { data: u } = await supabase
+        .from('users')
+        .select('username')
+        .eq('id', workout.user_id)
+        .single();
+      if (u?.username) setOwnerName(u.username);
+    };
+    fetchOwner();
+  }, [workout?.user_id, user?.id, clubIdParam]);
 
   // 좋아요 개수 로드
   useEffect(() => {
@@ -254,6 +265,7 @@ export const WorkoutDetail = () => {
         workout_time: new Date(workoutTime + ':00+09:00').toISOString(),
         intensity,
         proof_image: imageUrl,
+        memo: memo.trim() || undefined,
       });
 
       alert('운동 기록이 수정되었습니다.');
@@ -364,6 +376,13 @@ export const WorkoutDetail = () => {
                 onCommentCountChange={setTotalComments}
               />
             </div>
+
+            {workout.memo && (
+              <div className="detail-section">
+                <div className="detail-label">메모</div>
+                <div className="detail-value" style={{ whiteSpace: 'pre-wrap' }}>{workout.memo}</div>
+              </div>
+            )}
 
             {/* 증빙 이미지 */}
             {workout.proof_image && (
@@ -491,6 +510,18 @@ export const WorkoutDetail = () => {
                   </button>
                 </div>
               )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="edit-memo">메모 (선택)</label>
+              <textarea
+                id="edit-memo"
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+                placeholder="날씨, 컨디션, 느낀점 등..."
+                className="race-textarea"
+                rows={3}
+              />
             </div>
 
             <div className="form-group">

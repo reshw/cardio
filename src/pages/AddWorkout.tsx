@@ -27,6 +27,7 @@ export const AddWorkout = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [intensity, setIntensity] = useState(4); // 기본값 4
+  const [memo, setMemo] = useState('');
 
   // 동적 운동 종목 로딩
   const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
@@ -158,6 +159,7 @@ export const AddWorkout = () => {
         unit: displayUnit as WorkoutUnit,
         intensity,
         proof_image: imageUrl,
+        memo: memo.trim() || undefined,
         workout_time: new Date(workoutDate).toISOString(), // 사용자가 입력한 운동 시간
       });
       console.log('✅ 운동 기록 저장 성공');
@@ -507,6 +509,18 @@ export const AddWorkout = () => {
                     </button>
                   </div>
                 )}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="memo">메모 (선택)</label>
+                <textarea
+                  id="memo"
+                  value={memo}
+                  onChange={(e) => setMemo(e.target.value)}
+                  placeholder="날씨, 컨디션, 느낀점 등..."
+                  className="race-textarea"
+                  rows={3}
+                />
               </div>
 
               <div className="form-group">
