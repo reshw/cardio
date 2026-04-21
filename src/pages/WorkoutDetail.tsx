@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Edit2, Trash2, X } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import workoutService from '../services/workoutService';
 import feedService from '../services/feedService';
 import clubService from '../services/clubService';
@@ -38,6 +39,8 @@ export const WorkoutDetail = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const [ownerName, setOwnerName] = useState<string | null>(null);
 
   // 좋아요 관련 state
   const [totalLikes, setTotalLikes] = useState(0);
@@ -80,6 +83,19 @@ export const WorkoutDetail = () => {
       }
     }
   }, [id, clubIdParam, user, authLoading]);
+
+  // 타인 기록 진입 시 소유자 이름 로드
+  useEffect(() => {
+    if (!workout || !user || user.id === workout.user_id) return;
+    supabase
+      .from('users')
+      .select('display_name')
+      .eq('id', workout.user_id)
+      .single()
+      .then(({ data }) => {
+        if (data?.display_name) setOwnerName(data.display_name);
+      });
+  }, [workout?.user_id, user?.id]);
 
   // 좋아요 개수 로드
   useEffect(() => {
@@ -272,11 +288,16 @@ export const WorkoutDetail = () => {
   return (
     <div className="container workout-detail-page">
       <div className="detail-header">
-        <button className="back-button" onClick={() => navigate(-1)}>
+        <button className="back-button" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/club')}>
           <ChevronLeft size={24} />
         </button>
         <h1>운동 상세</h1>
       </div>
+      {ownerName && (
+        <div className="workout-owner-banner">
+          {ownerName}님의 기록
+        </div>
+      )}
 
       <div className="detail-content">
         {!isEditing ? (
