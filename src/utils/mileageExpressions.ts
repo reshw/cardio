@@ -83,7 +83,7 @@ const EXPRESSIONS: Expression[] = [
   {
     emoji: '⛰️',
     label: '에베레스트 등정',
-    km: 8.849,
+    km: 8849,
     singularUnit: '번 등정',
     percentUnit: '% 달성',
     format: (n) => `${Math.floor(n)}번 등정`,

@@ -538,6 +538,13 @@ export const WorkoutFeedCard = ({
                 </div>
               </div>
 
+              {workout.memo && (
+                <div className="workout-detail-section">
+                  <h3>메모</h3>
+                  <p className="workout-detail-memo">{workout.memo}</p>
+                </div>
+              )}
+
               {workout.proof_image && (
                 <div className="workout-detail-section">
                   <h3>인증 사진</h3>

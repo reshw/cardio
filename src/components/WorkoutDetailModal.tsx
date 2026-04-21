@@ -18,6 +18,7 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
     new Date(workout.created_at).toISOString().slice(0, 16)
   );
   const [intensity, setIntensity] = useState(workout.intensity);
+  const [memo, setMemo] = useState(workout.memo ?? '');
   const [newProofImage, setNewProofImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -91,6 +92,7 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
         created_at: new Date(createdAt).toISOString(),
         intensity,
         proof_image: proofImageUrl,
+        memo: memo.trim() || undefined,
       });
 
       alert('운동 기록이 수정되었습니다.');
@@ -143,6 +145,13 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
                 <div className="detail-label">날짜</div>
                 <div className="detail-value">{formatDate(workout.created_at)}</div>
               </div>
+
+              {workout.memo && (
+                <div className="detail-section">
+                  <div className="detail-label">메모</div>
+                  <div className="detail-value" style={{ whiteSpace: 'pre-wrap' }}>{workout.memo}</div>
+                </div>
+              )}
 
               {workout.proof_image && (
                 <div className="detail-section">
@@ -280,6 +289,18 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
                     </button>
                   </div>
                 )}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="edit-memo">메모 (선택)</label>
+                <textarea
+                  id="edit-memo"
+                  value={memo}
+                  onChange={(e) => setMemo(e.target.value)}
+                  placeholder="날씨, 컨디션, 느낀점 등..."
+                  className="race-textarea"
+                  rows={3}
+                />
               </div>
 
               <div className="form-group">

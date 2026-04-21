@@ -26,6 +26,7 @@ export interface Workout {
   mileage?: number; // deprecated - 클럽별로 다름, club_workout_mileage 사용
   intensity: number; // 1-10 단계, 기본값 4
   proof_image?: string;
+  memo?: string;
   created_at: string; // 기록을 올린 시점 (스냅샷, 순서 결정용, 수정 불가)
   workout_time: string; // 실제 운동한 시간 (사용자 수정 가능)
 }
@@ -39,6 +40,7 @@ export interface CreateWorkoutData {
   unit: WorkoutUnit;
   intensity?: number; // 1-10 단계, 기본값 4
   proof_image?: string;
+  memo?: string;
   workout_time?: string; // 실제 운동한 시간 (사용자 입력/수정 가능)
   created_at?: string; // deprecated - use workout_time instead
 }
@@ -163,6 +165,7 @@ class WorkoutService {
       created_at?: string; // deprecated - use workout_time instead
       intensity?: number;
       proof_image?: string;
+      memo?: string;
     }
   ): Promise<Workout> {
     const updateData: any = {};
@@ -187,6 +190,10 @@ class WorkoutService {
 
     if (data.proof_image !== undefined) {
       updateData.proof_image = data.proof_image;
+    }
+
+    if (data.memo !== undefined) {
+      updateData.memo = data.memo;
     }
 
     const { data: updated, error } = await supabase
