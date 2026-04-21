@@ -89,21 +89,14 @@ export const WorkoutDetail = () => {
   useEffect(() => {
     if (!workout || !user || user.id === workout.user_id) return;
     const fetchOwner = async () => {
-      if (clubIdParam) {
-        const { data: member } = await supabase
-          .from('club_members')
-          .select('club_nickname')
-          .eq('club_id', clubIdParam)
-          .eq('user_id', workout.user_id)
-          .single();
-        if (member?.club_nickname) { setOwnerName(member.club_nickname); return; }
-      }
-      const { data: u } = await supabase
-        .from('users')
-        .select('username')
-        .eq('id', workout.user_id)
+      if (!clubIdParam) return;
+      const { data: member } = await supabase
+        .from('club_members')
+        .select('club_nickname')
+        .eq('club_id', clubIdParam)
+        .eq('user_id', workout.user_id)
         .single();
-      if (u?.username) setOwnerName(u.username);
+      if (member?.club_nickname) setOwnerName(member.club_nickname);
     };
     fetchOwner();
   }, [workout?.user_id, user?.id, clubIdParam]);
