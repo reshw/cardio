@@ -59,6 +59,7 @@ class WorkoutService {
       unit: data.unit,
       intensity: data.intensity ?? 4, // 기본값 4
       proof_image: data.proof_image || null,
+      memo: data.memo || null,
     };
 
     // sub_type_ratios가 있으면 포함
