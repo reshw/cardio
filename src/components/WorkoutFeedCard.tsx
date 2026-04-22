@@ -415,7 +415,7 @@ export const WorkoutFeedCard = ({
 
           {/* 메모 */}
           {workout.memo && (
-            <div className="feed-memo">{workout.memo}</div>
+            <div className="feed-memo" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>{workout.memo}</div>
           )}
         </div>
       </div>
