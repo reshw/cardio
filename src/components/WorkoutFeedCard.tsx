@@ -64,6 +64,16 @@ export const WorkoutFeedCard = ({
     };
   }, [showMenu]);
 
+  // 운동상세 시트 열릴 때 BottomNav 숨김
+  useEffect(() => {
+    if (showDetail) {
+      document.body.classList.add('workout-detail-open');
+    } else {
+      document.body.classList.remove('workout-detail-open');
+    }
+    return () => document.body.classList.remove('workout-detail-open');
+  }, [showDetail]);
+
   const isMyPost = user?.id === item.workout.user_id;
 
   const handleReport = async () => {
@@ -402,6 +412,11 @@ export const WorkoutFeedCard = ({
               </button>
             </div>
           </div>
+
+          {/* 메모 */}
+          {workout.memo && (
+            <div className="feed-memo">{workout.memo}</div>
+          )}
         </div>
       </div>
 
@@ -488,17 +503,19 @@ export const WorkoutFeedCard = ({
         </div>
       )}
 
-      {/* 상세보기 모달 */}
+      {/* 상세보기 바텀시트 */}
       {showDetail && (
-        <div className="modal-overlay" onClick={() => setShowDetail(false)}>
-          <div className="modal-content workout-detail-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+        <div className="workout-sheet-overlay" onClick={() => setShowDetail(false)}>
+          <div className="workout-sheet" onClick={(e) => e.stopPropagation()}>
+            {/* 고정 헤더 */}
+            <div className="workout-sheet-header">
               <h2>운동 상세</h2>
               <button className="modal-close" onClick={() => setShowDetail(false)}>
                 ✕
               </button>
             </div>
-            <div className="modal-body">
+            {/* 스크롤 바디 */}
+            <div className="workout-sheet-body">
               <div className="workout-detail-section">
                 <h3>운동 정보</h3>
                 <div className="workout-detail-info">
@@ -579,6 +596,24 @@ export const WorkoutFeedCard = ({
                   </button>
                 </div>
               )}
+            </div>
+            {/* 고정 액션바 */}
+            <div className="workout-sheet-footer">
+              <button
+                className={`sheet-action-btn ${item.is_liked_by_me ? 'liked' : ''}`}
+                onClick={handleLikeToggle}
+                disabled={liking}
+              >
+                <Heart size={18} fill={item.is_liked_by_me ? 'currentColor' : 'none'} />
+                <span>{item.like_count}</span>
+              </button>
+              <button
+                className="sheet-action-btn"
+                onClick={() => { setShowDetail(false); setShowComments(true); }}
+              >
+                <MessageCircle size={18} />
+                <span>{item.comment_count}</span>
+              </button>
             </div>
           </div>
         </div>
