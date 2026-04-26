@@ -109,9 +109,24 @@ export const ClubMileageSettings = () => {
 
     setLoading(true);
     try {
-      const club = await clubService.getClubById(clubId);
-      setMileageConfig(club.mileage_config || await clubService.getDefaultMileageConfig());
-      setEnabledCategories(club.enabled_categories || clubService.getAllCategories());
+      const rows = await clubService.getClubMileageConfigs(clubId);
+
+      if (rows.length > 0) {
+        const config: MileageConfig = {};
+        const enabled: string[] = [];
+        rows.forEach((r) => {
+          const key = r.sub_type ? `${r.category}-${r.sub_type}` : r.category;
+          config[key] = r.coefficient;
+          if (r.enabled) enabled.push(key);
+        });
+        setMileageConfig(config);
+        setEnabledCategories(enabled);
+      } else {
+        // 마이그레이션 전 클럽 폴백
+        const defaultConfig = await clubService.getDefaultMileageConfig();
+        setMileageConfig(defaultConfig);
+        setEnabledCategories(clubService.getDefaultEnabledCategories());
+      }
     } catch (error) {
       console.error('클럽 정보 불러오기 실패:', error);
       alert('클럽 정보를 불러올 수 없습니다.');
@@ -151,11 +166,19 @@ export const ClubMileageSettings = () => {
     setUpdating(true);
 
     try {
-      // 1. 클럽 설정 업데이트
-      await clubService.updateClub(clubId, {
-        mileage_config: mileageConfig,
-        enabled_categories: enabledCategories,
+      // 1. club_mileage_configs 테이블 업데이트
+      const configs = workoutCategories.map((cat) => {
+        const dashIdx = cat.key.indexOf('-');
+        const category = dashIdx > -1 ? cat.key.substring(0, dashIdx) : cat.key;
+        const sub_type = dashIdx > -1 ? cat.key.substring(dashIdx + 1) : null;
+        return {
+          category,
+          sub_type,
+          coefficient: mileageConfig[cat.key] ?? 1,
+          enabled: enabledCategories.includes(cat.key),
+        };
       });
+      await clubService.updateClubMileageConfigs(clubId, configs);
 
       // 2. 현재 월의 모든 운동 기록 마일리지 재계산
       await clubService.recalculateCurrentMonthMileage(clubId, mileageConfig);

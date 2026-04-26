@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase';
-import clubService from './clubService';
 
 // 주 카테고리
 export type WorkoutCategory = '달리기' | '사이클' | '수영' | '계단' | '복싱' | '요가';
@@ -93,34 +92,7 @@ class WorkoutService {
     }
 
     console.log('✅ 운동 기록 추가 성공:', workout);
-
-    // 사용자가 속한 모든 클럽에 마일리지 스냅샷 생성
-    try {
-      const { data: userClubs } = await supabase
-        .from('club_members')
-        .select('club_id')
-        .eq('user_id', data.user_id);
-
-      if (userClubs && userClubs.length > 0) {
-        console.log(`📊 ${userClubs.length}개 클럽에 마일리지 스냅샷 생성`);
-
-        const savePromises = userClubs.map(({ club_id }) =>
-          clubService.saveWorkoutMileage(club_id, workout.id, data.user_id, {
-            category: data.category,
-            sub_type: data.sub_type,
-            value: data.value,
-            workout_time: workout.workout_time,
-            sub_type_ratios: data.sub_type_ratios,
-          })
-        );
-
-        await Promise.all(savePromises);
-        console.log('✅ 클럽 마일리지 스냅샷 생성 완료');
-      }
-    } catch (error) {
-      console.error('⚠️ 클럽 마일리지 스냅샷 생성 실패:', error);
-      // 스냅샷 생성 실패해도 운동 기록은 유지
-    }
+    // 마일리지 스냅샷은 DB 트리거(sync_club_workout_mileage)가 자동 처리
 
     return workout;
   }
@@ -209,60 +181,14 @@ class WorkoutService {
       throw error;
     }
 
-    // 값이나 날짜가 변경되었으면 모든 클럽의 스냅샷 재생성
-    if (data.value !== undefined || data.workout_time !== undefined || data.created_at !== undefined) {
-      try {
-        const { data: userClubs, error: clubsError } = await supabase
-          .from('club_members')
-          .select('club_id')
-          .eq('user_id', updated.user_id);
-
-        if (clubsError) {
-          console.error('⚠️ 클럽 목록 조회 실패:', clubsError);
-        } else if (userClubs && userClubs.length > 0) {
-          console.log(`📊 ${userClubs.length}개 클럽의 마일리지 스냅샷 재생성`);
-
-          const savePromises = userClubs.map(({ club_id }) =>
-            clubService.saveWorkoutMileage(club_id, workoutId, updated.user_id, {
-              category: updated.category,
-              sub_type: updated.sub_type,
-              value: updated.value,
-              workout_time: updated.workout_time,
-              sub_type_ratios: updated.sub_type_ratios,
-            })
-          );
-
-          await Promise.all(savePromises);
-          console.log('✅ 클럽 마일리지 스냅샷 재생성 완료');
-        }
-      } catch (error) {
-        console.error('⚠️ 클럽 마일리지 스냅샷 재생성 실패:', error);
-        // 스냅샷 재생성 실패해도 운동 기록 수정은 유지
-      }
-    }
+    // 마일리지 스냅샷은 DB 트리거(sync_club_workout_mileage)가 자동 처리
 
     return updated;
   }
 
   // 특정 운동 기록 삭제
   async deleteWorkout(workoutId: string): Promise<void> {
-    // 먼저 모든 클럽의 마일리지 스냅샷 삭제
-    try {
-      const { error: snapshotError } = await supabase
-        .from('club_workout_mileage')
-        .delete()
-        .eq('workout_id', workoutId);
-
-      if (snapshotError) {
-        console.error('⚠️ 마일리지 스냅샷 삭제 실패:', snapshotError);
-      } else {
-        console.log('✅ 마일리지 스냅샷 삭제 완료');
-      }
-    } catch (error) {
-      console.error('⚠️ 마일리지 스냅샷 삭제 실패:', error);
-    }
-
-    // 운동 기록 삭제
+    // 마일리지 스냅샷은 DB 트리거(sync_club_workout_mileage)가 CASCADE로 자동 삭제
     const { error } = await supabase
       .from('workouts')
       .delete()

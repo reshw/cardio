@@ -25,14 +25,16 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
   const loadStats = async () => {
     setLoading(true);
     try {
-      // 클럽 정보 조회 (enabled_categories 확인)
-      const club = await clubService.getClubById(clubId);
-      const enabledCategories = club.enabled_categories || [];
-
-      const data = await clubService.getClubDetailedStats(clubId, month);
+      const [data, configRows] = await Promise.all([
+        clubService.getClubDetailedStats(clubId, month),
+        clubService.getClubMileageConfigs(clubId),
+      ]);
       setStats(data);
 
-      // 클럽에서 활성화한 모든 운동 종목을 칼럼으로 표시 (마일리지 0이어도 표시)
+      // 활성화된 운동 종목을 칼럼으로 표시 (club_mileage_configs.enabled=true)
+      const enabledCategories = configRows
+        .filter((r) => r.enabled)
+        .map((r) => (r.sub_type ? `${r.category}-${r.sub_type}` : r.category));
       setWorkoutKeys([...enabledCategories].sort());
     } catch (error) {
       console.error('상세 통계 불러오기 실패:', error);
@@ -237,11 +239,17 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
                     <tr>
                       <th>순위</th>
                       <th>이름</th>
-                      <th>운동일수</th>
-                      {workoutKeys.map((key) => (
-                        <th key={key}>{key}</th>
-                      ))}
-                      <th>총 마일리지</th>
+                      <th>운동<br/>일수</th>
+                      {workoutKeys.map((key) => {
+                        const parts = key.split('-');
+                        return (
+                          <th key={key}>
+                            {parts[0]}
+                            {parts[1] && <><br/><span style={{fontWeight:400, opacity:0.85}}>{parts[1]}</span></>}
+                          </th>
+                        );
+                      })}
+                      <th>총<br/>마일리지</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -263,7 +271,8 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
 
                           return (
                             <td key={key}>
-                              {value.toFixed(value >= 100 ? 0 : 1)}{unit} ({mileage.toFixed(1)})
+                              <div>{value.toFixed(value >= 100 ? 0 : 1)}{unit}</div>
+                              <div style={{fontSize:'11px', opacity:0.7}}>({mileage.toFixed(1)})</div>
                             </td>
                           );
                         })}

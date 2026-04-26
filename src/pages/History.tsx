@@ -137,6 +137,8 @@ export const History = () => {
   const [statsYear, setStatsYear] = useState(now.getFullYear());
   const [statsMonth, setStatsMonth] = useState(now.getMonth());
   const [chartMetric, setChartMetric] = useState<'workoutDays' | 'totalDistance'>('workoutDays');
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerYear, setPickerYear] = useState(now.getFullYear());
 
   const calcMonthStats = (year: number, month: number) => {
     const monthWorkouts = workouts.filter((w) => {
@@ -358,13 +360,7 @@ export const History = () => {
             </div>
 
             <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={chartData} barSize={28} onClick={(e: any) => {
-                if (e?.activePayload?.[0]?.payload) {
-                  const { year, month } = e.activePayload[0].payload;
-                  setStatsYear(year);
-                  setStatsMonth(month);
-                }
-              }}>
+              <BarChart data={chartData} barSize={28}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
                 <YAxis hide />
@@ -383,6 +379,13 @@ export const History = () => {
                     ? (d: any) => d.distanceByGroup?.[selectedDistanceCat] ?? 0
                     : (chartMetric as string)}
                   radius={[6, 6, 0, 0]}
+                  cursor="pointer"
+                  onClick={(data: any) => {
+                    if (data?.year !== undefined && data?.month !== undefined) {
+                      setStatsYear(data.year);
+                      setStatsMonth(data.month);
+                    }
+                  }}
                 >
                   {chartData.map((entry, idx) => (
                     <Cell
@@ -427,17 +430,54 @@ export const History = () => {
           {/* ── 선택 월 헤더 ── */}
           <div className="stats-month-nav">
             <button className="month-nav-btn" onClick={() => {
+              setShowPicker(false);
               if (statsMonth === 0) { setStatsYear(y => y - 1); setStatsMonth(11); }
               else setStatsMonth(m => m - 1);
             }}>‹</button>
-            <span className="month-nav-label">{statsYear}년 {statsMonth + 1}월</span>
+            <span className="month-nav-label" onClick={() => {
+              setPickerYear(statsYear);
+              setShowPicker(v => !v);
+            }}>{statsYear}년 {statsMonth + 1}월</span>
             <button className="month-nav-btn" onClick={() => {
+              setShowPicker(false);
               const isCur = statsYear === now.getFullYear() && statsMonth === now.getMonth();
               if (isCur) return;
               if (statsMonth === 11) { setStatsYear(y => y + 1); setStatsMonth(0); }
               else setStatsMonth(m => m + 1);
             }} disabled={statsYear === now.getFullYear() && statsMonth === now.getMonth()}>›</button>
           </div>
+
+          {/* ── 년월 피커 ── */}
+          {showPicker && (
+            <div className="stats-picker">
+              <div className="picker-year-row">
+                <button className="month-nav-btn" onClick={() => setPickerYear(y => y - 1)}>‹</button>
+                <span style={{ fontWeight: 700, fontSize: 16, minWidth: 60, textAlign: 'center' }}>{pickerYear}년</span>
+                <button className="month-nav-btn" onClick={() => setPickerYear(y => y + 1)}
+                  disabled={pickerYear >= now.getFullYear()}>›</button>
+              </div>
+              <div className="picker-month-grid">
+                {Array.from({ length: 12 }, (_, i) => {
+                  const isFuture = pickerYear === now.getFullYear() && i > now.getMonth();
+                  const isSelected = pickerYear === statsYear && i === statsMonth;
+                  return (
+                    <button
+                      key={i}
+                      className={`picker-month-btn${isSelected ? ' selected' : ''}`}
+                      disabled={isFuture}
+                      onClick={() => {
+                        setStatsYear(pickerYear);
+                        setStatsMonth(i);
+                        setShowPicker(false);
+                      }}
+                    >
+                      {i + 1}월
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* ── 비교 카드 ── */}
           <div className="compare-cards">
