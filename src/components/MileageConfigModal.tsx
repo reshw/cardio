@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import type { MileageConfig } from '../services/clubService';
+import clubService from '../services/clubService';
+import type { ClubMileageConfigRow } from '../services/clubService';
 import workoutTypeService from '../services/workoutTypeService';
 import type { WorkoutType } from '../services/workoutTypeService';
 
 interface Props {
-  config: MileageConfig;
-  enabledCategories?: string[];
+  clubId: string;
   onClose: () => void;
 }
 
@@ -41,19 +41,14 @@ const buildCategories = (workoutTypes: WorkoutType[]): WorkoutCategory[] => {
   return categories;
 };
 
-// 마일리지 계산 예시 생성 (나눗셈 방식)
 const getExplanation = (coefficient: number | undefined, unit: string = 'km'): string => {
   if (coefficient === undefined || coefficient === null) return '설정 안됨';
   if (coefficient === 0) return '마일리지 없음';
 
   if (unit === 'km') {
-    if (coefficient === 1) {
-      return '1km당 1 마일리지';
-    } else if (coefficient < 1) {
-      return `${coefficient.toFixed(2)}km당 1 마일리지`;
-    } else {
-      return `${coefficient.toFixed(1)}km당 1 마일리지`;
-    }
+    if (coefficient === 1) return '1km당 1 마일리지';
+    if (coefficient < 1) return `${coefficient.toFixed(2)}km당 1 마일리지`;
+    return `${coefficient.toFixed(1)}km당 1 마일리지`;
   } else if (unit === 'm') {
     return `${Math.round(coefficient)}m당 1 마일리지`;
   } else if (unit === '층') {
@@ -65,18 +60,30 @@ const getExplanation = (coefficient: number | undefined, unit: string = 'km'): s
   return '';
 };
 
-export const MileageConfigModal = ({ config, enabledCategories, onClose }: Props) => {
+export const MileageConfigModal = ({ clubId, onClose }: Props) => {
   const [allCategories, setAllCategories] = useState<WorkoutCategory[]>([]);
+  const [configRows, setConfigRows] = useState<ClubMileageConfigRow[]>([]);
 
   useEffect(() => {
     workoutTypeService.getActiveWorkoutTypes().then((types) => {
       setAllCategories(buildCategories(types));
     });
-  }, []);
+    clubService.getClubMileageConfigs(clubId).then(setConfigRows);
+  }, [clubId]);
 
-  const filteredCategories = enabledCategories
-    ? allCategories.filter(c => enabledCategories.includes(c.key))
-    : allCategories;
+  // enabled=true인 종목만 표시
+  const enabledKeys = new Set(
+    configRows.filter((r) => r.enabled).map((r) =>
+      r.sub_type ? `${r.category}-${r.sub_type}` : r.category
+    )
+  );
+  const coefficientMap: Record<string, number> = {};
+  configRows.forEach((r) => {
+    const key = r.sub_type ? `${r.category}-${r.sub_type}` : r.category;
+    coefficientMap[key] = r.coefficient;
+  });
+
+  const filteredCategories = allCategories.filter((c) => enabledKeys.has(c.key));
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -102,10 +109,10 @@ export const MileageConfigModal = ({ config, enabledCategories, onClose }: Props
                 </div>
                 <div className="mileage-config-value">
                   <div className="mileage-config-example">
-                    {getExplanation((config as any)[category.key], category.unit as 'km' | 'm' | '층' | '분')}
+                    {getExplanation(coefficientMap[category.key], category.unit as 'km' | 'm' | '층' | '분')}
                   </div>
                   <div className="mileage-config-coefficient">
-                    계수 {(config as any)[category.key] ?? '-'}
+                    계수 {coefficientMap[category.key] ?? '-'}
                   </div>
                 </div>
               </div>

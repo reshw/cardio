@@ -4,7 +4,6 @@ import { ChevronLeft, X } from 'lucide-react';
 import workoutService from '../services/workoutService';
 import type { Workout } from '../services/workoutService';
 import clubService from '../services/clubService';
-import type { MileageConfig } from '../services/clubService';
 import feedService from '../services/feedService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -31,11 +30,10 @@ export const ClubMemberDetail = () => {
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
-  const [mileageConfig, setMileageConfig] = useState<MileageConfig>({});
+  const [mileageMap, setMileageMap] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (clubId && userId) {
-      loadClubConfig();
       checkBlocked();
       loadWorkouts();
     }
@@ -47,25 +45,16 @@ export const ClubMemberDetail = () => {
     setIsBlocked(blockedIds.includes(userId!));
   };
 
-  const loadClubConfig = async () => {
-    if (!clubId) return;
-
-    try {
-      const club = await clubService.getClubById(clubId);
-      setMileageConfig(club.mileage_config || clubService.getDefaultMileageConfig());
-    } catch (error) {
-      console.error('클럽 정보 불러오기 실패:', error);
-    }
-  };
-
   const loadWorkouts = async () => {
-    if (!userId) return;
+    if (!userId || !clubId) return;
 
     setLoading(true);
     try {
       const now = new Date();
-      const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59);
 
       const allWorkouts = await workoutService.getWorkoutsByUserId(userId);
 
@@ -79,6 +68,12 @@ export const ClubMemberDetail = () => {
       );
 
       setWorkouts(monthWorkouts);
+
+      // club_workout_mileage 스냅샷에서 마일리지 로드
+      const mileageDetails = await clubService.getUserWorkoutMileageDetails(clubId, userId, year, month);
+      const newMap = new Map<string, number>();
+      mileageDetails.forEach((r) => newMap.set(r.workout_id, r.mileage));
+      setMileageMap(newMap);
     } catch (error) {
       console.error('운동 기록 불러오기 실패:', error);
     } finally {
@@ -105,15 +100,7 @@ export const ClubMemberDetail = () => {
     return workout.category;
   };
 
-  const calculateMileage = (workout: Workout) => {
-    return clubService.calculateMileage(
-      workout.category,
-      workout.sub_type,
-      workout.value,
-      mileageConfig,
-      workout.sub_type_ratios || undefined
-    );
-  };
+  const getMileage = (workout: Workout) => mileageMap.get(workout.id) ?? 0;
 
   const getRatioDisplay = (workout: Workout) => {
     if (workout.category !== '요가' && workout.category !== '복싱') return null;
@@ -140,7 +127,7 @@ export const ClubMemberDetail = () => {
     return '#dc2626';
   };
 
-  const totalMileage = workouts.reduce((sum, w) => sum + calculateMileage(w), 0);
+  const totalMileage = workouts.reduce((sum, w) => sum + (mileageMap.get(w.id) ?? 0), 0);
 
   if (isBlocked) {
     return (
@@ -219,7 +206,7 @@ export const ClubMemberDetail = () => {
                 <div className="stat-item">
                   <span className="stat-label">마일리지</span>
                   <span className="stat-value highlight">
-                    {calculateMileage(workout).toFixed(1)}
+                    {getMileage(workout).toFixed(1)}
                   </span>
                 </div>
               </div>

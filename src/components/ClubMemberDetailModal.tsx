@@ -4,7 +4,6 @@ import { ChevronLeft, ChevronRight, X, CircleOff, Heart, MessageCircle } from 'l
 import workoutService from '../services/workoutService';
 import type { Workout } from '../services/workoutService';
 import clubService from '../services/clubService';
-import type { MileageConfig } from '../services/clubService';
 import feedService from '../services/feedService';
 import { CommentSection } from './CommentSection';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,8 +28,8 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
-  const [mileageConfig, setMileageConfig] = useState<MileageConfig>({});
-  const [enabledCategories, setEnabledCategories] = useState<string[]>([]);
+  // workout_id → 클럽 기준 마일리지 (club_workout_mileage 스냅샷)
+  const [mileageMap, setMileageMap] = useState<Map<string, number>>(new Map());
 
   // 좋아요 / 댓글 상태
   const [likesInfo, setLikesInfo] = useState<Map<string, { count: number; isLikedByMe: boolean }>>(new Map());
@@ -39,7 +38,6 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
   const [liking, setLiking] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    loadClubConfig();
     checkBlocked();
   }, [clubId, userId]);
 
@@ -71,22 +69,10 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
     setIsBlocked(blockedIds.includes(userId));
   };
 
-  const loadClubConfig = async () => {
-    try {
-      const club = await clubService.getClubById(clubId);
-      setMileageConfig(club.mileage_config || clubService.getDefaultMileageConfig());
-      setEnabledCategories(club.enabled_categories || []);
-    } catch (error) {
-      console.error('클럽 정보 불러오기 실패:', error);
-    }
-  };
-
   const isWorkoutDisabled = (workout: Workout) => {
-    if (enabledCategories.length === 0) return false;
-    const key = workout.sub_type
-      ? `${workout.category}-${workout.sub_type}`
-      : workout.category;
-    return !enabledCategories.includes(key);
+    // mileageMap에 있지만 mileage=0이면 비활성 카테고리
+    const m = mileageMap.get(workout.id);
+    return m !== undefined && m === 0;
   };
 
   const loadWorkouts = async () => {
@@ -104,6 +90,14 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
         .sort((a, b) => new Date(b.workout_time).getTime() - new Date(a.workout_time).getTime());
 
       setWorkouts(monthWorkouts);
+
+      // club_workout_mileage 스냅샷에서 마일리지 로드 (리더보드와 동일한 소스)
+      const mileageDetails = await clubService.getUserWorkoutMileageDetails(
+        clubId, userId, selectedYear, selectedMonth + 1
+      );
+      const newMap = new Map<string, number>();
+      mileageDetails.forEach((r) => newMap.set(r.workout_id, r.mileage));
+      setMileageMap(newMap);
 
       // 좋아요 / 댓글 수 배치 로드
       if (monthWorkouts.length > 0) {
@@ -195,14 +189,8 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
     return workout.category;
   };
 
-  const calculateMileage = (workout: Workout) =>
-    clubService.calculateMileage(
-      workout.category,
-      workout.sub_type,
-      workout.value,
-      mileageConfig,
-      workout.sub_type_ratios || undefined
-    );
+  // 스냅샷에서 마일리지 조회 (리더보드와 동일 소스)
+  const getMileage = (workout: Workout) => mileageMap.get(workout.id) ?? 0;
 
   const getRatioDisplay = (workout: Workout) => {
     if (workout.category !== '요가' && workout.category !== '복싱') return null;
@@ -229,12 +217,12 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
     return '#dc2626';
   };
 
-  const enabledWorkouts = workouts.filter((w) => !isWorkoutDisabled(w));
+  // 총 마일리지: 스냅샷 합산 (리더보드와 동일)
+  const totalMileage = workouts.reduce((sum, w) => sum + (mileageMap.get(w.id) ?? 0), 0);
 
-  const totalMileage = enabledWorkouts.reduce((sum, w) => sum + calculateMileage(w), 0);
-
+  // 운동일수: 마일리지 여부와 무관하게 운동한 날짜 수
   const workoutDays = new Set(
-    enabledWorkouts.map((w) => {
+    workouts.map((w) => {
       const d = new Date(w.workout_time);
       return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
     })
@@ -336,7 +324,7 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
                             <div className="stat-item">
                               <span className="stat-label">마일리지</span>
                               <span className="stat-value highlight">
-                                {disabled ? '-' : calculateMileage(workout).toFixed(1)}
+                                {disabled ? '-' : getMileage(workout).toFixed(1)}
                               </span>
                             </div>
                           </div>
@@ -419,7 +407,7 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
                   </div>
                   <div className="workout-detail-row">
                     <span className="label">마일리지</span>
-                    <span className="value">{calculateMileage(selectedWorkout).toFixed(1)}</span>
+                    <span className="value">{getMileage(selectedWorkout).toFixed(1)}</span>
                   </div>
                   <div className="workout-detail-row">
                     <span className="label">체감 난이도</span>

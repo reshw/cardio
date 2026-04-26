@@ -102,6 +102,8 @@ export const Club = () => {
 const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [feedItems, setFeedItems] = useState<WorkoutFeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
+  // 활성화된 카테고리 (club_mileage_configs.enabled=true)
+  const [enabledCategorySet, setEnabledCategorySet] = useState<Set<string>>(new Set());
 
   // 피드 캐시: { clubId-dateString: WorkoutFeedItem[] }
   const [feedCache, setFeedCache] = useState<Record<string, WorkoutFeedItem[]>>({});
@@ -227,26 +229,12 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     try {
       const items = await clubService.getClubWorkoutFeed(clubId, date, user.id);
 
-      // 비활성화된 카테고리 체크하여 is_disabled 필드 추가
-      const enabledCategories = selectedClub?.enabled_categories || [];
-      const itemsWithDisabledFlag = items.map(item => {
-        const categoryKey = item.workout.sub_type
-          ? `${item.workout.category}-${item.workout.sub_type}`
-          : item.workout.category;
-        const isDisabled = !enabledCategories.includes(categoryKey);
+      setFeedItems(items);
 
-        return {
-          ...item,
-          is_disabled: isDisabled,
-        };
-      });
-
-      setFeedItems(itemsWithDisabledFlag);
-
-      // 캐시 저장
+      // 캐시에는 is_disabled 없이 원본 저장
       setFeedCache(prev => ({
         ...prev,
-        [cacheKey]: itemsWithDisabledFlag,
+        [cacheKey]: items,
       }));
     } catch (error) {
       console.error('피드 로드 실패:', error);
@@ -402,6 +390,19 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [selectedClub, selectedMonth]);
+
+  // 클럽 변경 시 활성화 카테고리 로드 (피드 비활성 뱃지용)
+  useEffect(() => {
+    if (!selectedClub) return;
+    clubService.getClubMileageConfigs(selectedClub.id).then((rows) => {
+      const keys = new Set(
+        rows.filter((r) => r.enabled).map((r) =>
+          r.sub_type ? `${r.category}-${r.sub_type}` : r.category
+        )
+      );
+      setEnabledCategorySet(keys);
+    });
+  }, [selectedClub?.id]);
 
   // 피드 탭 활성화 시 피드 로드
   useEffect(() => {
@@ -1022,7 +1023,15 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           clubId={selectedClub.id}
           clubName={selectedClub.name}
           selectedDate={selectedDate}
-          feedItems={feedItems}
+          feedItems={feedItems.map(item => {
+            const categoryKey = item.workout.sub_type
+              ? `${item.workout.category}-${item.workout.sub_type}`
+              : item.workout.category;
+            return {
+              ...item,
+              is_disabled: enabledCategorySet.size > 0 && !enabledCategorySet.has(categoryKey),
+            };
+          })}
           loading={feedLoading}
           onDateChange={handleDateChange}
           onDateSelect={handleDateSelect}
@@ -1170,8 +1179,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
       {showMileageConfig && selectedClub && (
         <MileageConfigModal
-          config={selectedClub.mileage_config || clubService.getDefaultMileageConfig()}
-          enabledCategories={selectedClub.enabled_categories}
+          clubId={selectedClub.id}
           onClose={() => setShowMileageConfig(false)}
         />
       )}
