@@ -249,7 +249,7 @@ export const ClubMemberDetail = () => {
                   </div>
                   <div className="workout-detail-row">
                     <span className="label">마일리지</span>
-                    <span className="value">{calculateMileage(selectedWorkout).toFixed(1)}</span>
+                    <span className="value">{(mileageMap.get(selectedWorkout.id) ?? 0).toFixed(1)}</span>
                   </div>
                   <div className="workout-detail-row">
                     <span className="label">체감 난이도</span>
