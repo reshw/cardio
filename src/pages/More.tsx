@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Shield, BookOpen, Smartphone, UserX, Image } from 'lucide-react';
+import { Shield, BookOpen, Smartphone, UserX, Image, MessageSquarePlus } from 'lucide-react';
 import { InstallGuideModal } from '../components/InstallGuideModal';
+import { FeedbackModal } from '../components/FeedbackModal';
 
 export const More = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   return (
     <div className="container">
@@ -74,6 +76,15 @@ export const More = () => {
               <span>앱 설치 안내</span>
             </div>
           </button>
+          <button
+            className="menu-item-btn"
+            onClick={() => setShowFeedback(true)}
+          >
+            <div className="menu-item-left">
+              <MessageSquarePlus size={20} />
+              <span>수정 요청 / 버그 제보</span>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -97,6 +108,7 @@ export const More = () => {
       </button>
 
       {showInstallGuide && <InstallGuideModal onClose={() => setShowInstallGuide(false)} />}
+      {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
     </div>
   );
 };

@@ -1,30 +1,39 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, X } from 'lucide-react';
 import workoutService from '../services/workoutService';
 import type { Workout } from '../services/workoutService';
 import clubService from '../services/clubService';
-import type { MileageConfig } from '../services/clubService';
 import feedService from '../services/feedService';
 import { useAuth } from '../contexts/AuthContext';
 
 export const ClubMemberDetail = () => {
-  const { clubId, userId, userName } = useParams<{
-    clubId: string;
-    userId: string;
-    userName: string;
-  }>();
+  const { clubId } = useParams<{ clubId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: currentUser } = useAuth();
+
+  const state = location.state as { tab?: string; userId?: string; userName?: string } | null;
+  const userId = state?.userId;
+  const userName = state?.userName;
+
+  // state 없이 직접 URL 접근 차단
+  useEffect(() => {
+    if (!userId) {
+      navigate('/club', { replace: true });
+    }
+  }, [userId, navigate]);
+
+  const goBack = () => navigate('/club', { state: { tab: state?.tab } });
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
-  const [mileageConfig, setMileageConfig] = useState<MileageConfig>({});
+  const [mileageMap, setMileageMap] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (clubId && userId) {
-      loadClubConfig();
       checkBlocked();
       loadWorkouts();
     }
@@ -36,25 +45,16 @@ export const ClubMemberDetail = () => {
     setIsBlocked(blockedIds.includes(userId!));
   };
 
-  const loadClubConfig = async () => {
-    if (!clubId) return;
-
-    try {
-      const club = await clubService.getClubById(clubId);
-      setMileageConfig(club.mileage_config || clubService.getDefaultMileageConfig());
-    } catch (error) {
-      console.error('클럽 정보 불러오기 실패:', error);
-    }
-  };
-
   const loadWorkouts = async () => {
-    if (!userId) return;
+    if (!userId || !clubId) return;
 
     setLoading(true);
     try {
       const now = new Date();
-      const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59);
 
       const allWorkouts = await workoutService.getWorkoutsByUserId(userId);
 
@@ -68,6 +68,12 @@ export const ClubMemberDetail = () => {
       );
 
       setWorkouts(monthWorkouts);
+
+      // club_workout_mileage 스냅샷에서 마일리지 로드
+      const mileageDetails = await clubService.getUserWorkoutMileageDetails(clubId, userId, year, month);
+      const newMap = new Map<string, number>();
+      mileageDetails.forEach((r) => newMap.set(r.workout_id, r.mileage));
+      setMileageMap(newMap);
     } catch (error) {
       console.error('운동 기록 불러오기 실패:', error);
     } finally {
@@ -94,24 +100,40 @@ export const ClubMemberDetail = () => {
     return workout.category;
   };
 
-  const calculateMileage = (workout: Workout) => {
-    // 항상 클럽의 마일리지 계수로 재계산
-    return clubService.calculateMileage(
-      workout.category,
-      workout.sub_type,
-      workout.value,
-      mileageConfig,
-      workout.sub_type_ratios || undefined
-    );
+  const getMileage = (workout: Workout) => mileageMap.get(workout.id) ?? 0;
+
+  const getRatioDisplay = (workout: Workout) => {
+    if (workout.category !== '요가' && workout.category !== '복싱') return null;
+    if (!workout.sub_type_ratios) return null;
+    const entries = Object.entries(workout.sub_type_ratios as Record<string, number>);
+    if (entries.length === 0 || (entries.length === 1 && entries[0][1] === 1.0)) return null;
+    return entries.map(([type, ratio]) => `${type} ${Math.round(ratio * 100)}%`).join(' | ');
   };
 
-  const totalMileage = workouts.reduce((sum, w) => sum + calculateMileage(w), 0);
+  const getIntensityLabel = (intensity: number) => {
+    if (intensity <= 2) return '편안';
+    if (intensity <= 4) return '경쾌';
+    if (intensity <= 6) return '자극';
+    if (intensity <= 8) return '고강도';
+    return '한계돌파';
+  };
+
+  const getIntensityColor = (intensity: number) => {
+    if (intensity <= 2) return '#4ade80';
+    if (intensity <= 4) return '#22c55e';
+    if (intensity <= 6) return '#eab308';
+    if (intensity <= 8) return '#f97316';
+    if (intensity === 9) return '#ef4444';
+    return '#dc2626';
+  };
+
+  const totalMileage = workouts.reduce((sum, w) => sum + (mileageMap.get(w.id) ?? 0), 0);
 
   if (isBlocked) {
     return (
       <div className="container">
         <div className="header">
-          <button className="back-button" onClick={() => navigate(-1)}>
+          <button className="back-button" onClick={goBack}>
             <ChevronLeft size={24} />
           </button>
           <h1>{decodeURIComponent(userName || '')}</h1>
@@ -134,7 +156,7 @@ export const ClubMemberDetail = () => {
   return (
     <div className="container">
       <div className="header">
-        <button className="back-button" onClick={() => navigate(-1)}>
+        <button className="back-button" onClick={goBack}>
           <ChevronLeft size={24} />
         </button>
         <h1>{decodeURIComponent(userName || '')}님의 운동 기록</h1>
@@ -163,7 +185,12 @@ export const ClubMemberDetail = () => {
       ) : (
         <div className="member-workout-list">
           {workouts.map((workout) => (
-            <div key={workout.id} className="member-workout-card">
+            <div
+              key={workout.id}
+              className="member-workout-card"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setSelectedWorkout(workout)}
+            >
               <div className="workout-card-header">
                 <div className="workout-type-badge">{getWorkoutLabel(workout)}</div>
                 <div className="workout-date-small">{formatDate(workout.workout_time)}</div>
@@ -179,17 +206,13 @@ export const ClubMemberDetail = () => {
                 <div className="stat-item">
                   <span className="stat-label">마일리지</span>
                   <span className="stat-value highlight">
-                    {calculateMileage(workout).toFixed(1)}
+                    {getMileage(workout).toFixed(1)}
                   </span>
                 </div>
               </div>
               {workout.proof_image && (
-                <div
-                  className="workout-proof-thumbnail"
-                  onClick={() => setSelectedImage(workout.proof_image!)}
-                >
+                <div className="workout-proof-thumbnail">
                   <img src={workout.proof_image} alt="증빙" />
-                  <div className="thumbnail-overlay">확대</div>
                 </div>
               )}
             </div>
@@ -197,7 +220,68 @@ export const ClubMemberDetail = () => {
         </div>
       )}
 
-      {/* 이미지 뷰어 모달 */}
+      {/* 운동 상세 모달 */}
+      {selectedWorkout && (
+        <div className="modal-overlay" onClick={() => setSelectedWorkout(null)}>
+          <div className="modal-content workout-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>운동 상세</h2>
+              <button className="modal-close" onClick={() => setSelectedWorkout(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="workout-detail-section">
+                <h3>운동 정보</h3>
+                <div className="workout-detail-info">
+                  <div className="workout-detail-row">
+                    <span className="label">종류</span>
+                    <span className="value">
+                      {getWorkoutLabel(selectedWorkout)}
+                      {getRatioDisplay(selectedWorkout) && (
+                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                          {getRatioDisplay(selectedWorkout)}
+                        </div>
+                      )}
+                    </span>
+                  </div>
+                  <div className="workout-detail-row">
+                    <span className="label">거리/시간</span>
+                    <span className="value">{selectedWorkout.value} {selectedWorkout.unit}</span>
+                  </div>
+                  <div className="workout-detail-row">
+                    <span className="label">마일리지</span>
+                    <span className="value">{(mileageMap.get(selectedWorkout.id) ?? 0).toFixed(1)}</span>
+                  </div>
+                  <div className="workout-detail-row">
+                    <span className="label">체감 난이도</span>
+                    <span className="value intensity-value" style={{ color: getIntensityColor(selectedWorkout.intensity) }}>
+                      {getIntensityLabel(selectedWorkout.intensity)}
+                    </span>
+                  </div>
+                  <div className="workout-detail-row">
+                    <span className="label">시간</span>
+                    <span className="value">{new Date(selectedWorkout.workout_time).toLocaleString('ko-KR')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedWorkout.proof_image && (
+                <div className="workout-detail-section">
+                  <h3>인증 사진</h3>
+                  <div
+                    className="workout-detail-image"
+                    style={{ cursor: 'zoom-in' }}
+                    onClick={() => setSelectedImage(selectedWorkout.proof_image!)}
+                  >
+                    <img src={selectedWorkout.proof_image} alt="운동 인증" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 이미지 뷰어 */}
       {selectedImage && (
         <div className="image-viewer-overlay" onClick={() => setSelectedImage(null)}>
           <button className="image-viewer-close" onClick={() => setSelectedImage(null)}>

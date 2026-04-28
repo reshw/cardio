@@ -1,5 +1,27 @@
 // Netlify Function을 통한 이메일 발송
 
+export const sendMileageAlertEmail = async (data: {
+  adminEmail: string;
+  clubId: string;
+  clubName: string;
+  year: number;
+  month: number;
+  errorMessage: string;
+}): Promise<void> => {
+  try {
+    const response = await fetch('/.netlify/functions/send-mileage-alert-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      console.error('❌ 마일리지 알림 이메일 발송 실패');
+    }
+  } catch (error) {
+    console.error('❌ 마일리지 알림 이메일 발송 오류:', error);
+  }
+};
+
 export const sendClubRequestEmail = async (data: {
   adminEmail: string;
   clubName: string;

@@ -53,18 +53,17 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
   }, {} as Record<string, Array<{ name: string; unit: string }>>);
 
   const selectedCategory = CATEGORIES.find((c) => c.id === category);
-  const selectedWorkoutType = workoutTypes.find((t) => t.name === category);
 
-  // 서브타입별 단위 동적 조회
+  // 서브타입 단위 조회 (항상 sub_type 기준)
   const getUnitForSubType = (): string => {
-    if (subType && category) {
+    if (category) {
       const subTypes = SUB_TYPES[category];
-      const selectedSubType = subTypes.find((st) => st.name === subType);
-      if (selectedSubType) {
-        return selectedSubType.unit;
-      }
+      const selected = subType
+        ? subTypes.find((st) => st.name === subType)
+        : subTypes.length === 1 ? subTypes[0] : null;
+      if (selected) return selected.unit;
     }
-    return selectedWorkoutType?.unit || selectedCategory?.unit || '값';
+    return '값';
   };
 
   const displayUnit = getUnitForSubType();
@@ -73,10 +72,12 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
   const handleCategorySelect = (cat: WorkoutCategory) => {
     setCategory(cat);
     const subTypes = SUB_TYPES[cat];
-    if (subTypes.length > 0) {
+    if (subTypes.length > 1) {
+      setSubType(null);
       setStep(2);
     } else {
-      setSubType(null);
+      // 0개 또는 1개: 자동 선택 후 바로 입력 단계
+      setSubType(subTypes.length === 1 ? subTypes[0].name as WorkoutSubType : null);
       setStep(3);
     }
   };
@@ -154,7 +155,7 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
         category,
         sub_type: subType,
         value: parseFloat(value),
-        unit: selectedCategory!.unit,
+        unit: displayUnit as WorkoutUnit,
         intensity,
         proof_image: imageUrl,
       });
@@ -174,9 +175,11 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
   const handleBack = () => {
     if (step === 3) {
       const subTypes = category ? SUB_TYPES[category] : [];
-      if (subTypes.length > 0) {
+      if (subTypes.length > 1) {
         setStep(2);
       } else {
+        setCategory(null);
+        setSubType(null);
         setStep(1);
       }
     } else if (step === 2) {

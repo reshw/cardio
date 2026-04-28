@@ -5,7 +5,6 @@ import { History } from './pages/History';
 import { AddWorkout } from './pages/AddWorkout';
 import { WorkoutDetail } from './pages/WorkoutDetail';
 import { Club } from './pages/Club';
-import { ClubMemberDetail } from './pages/ClubMemberDetail';
 import { ClubSettings } from './pages/ClubSettings';
 import { ClubGeneralSettings } from './pages/ClubGeneralSettings';
 import { ClubMileageSettings } from './pages/ClubMileageSettings';
@@ -54,11 +53,6 @@ function ProtectedRoutes() {
           <Route path="/add-workout" element={<AddWorkout />} />
           <Route path="/workout/:id" element={<WorkoutDetail />} />
           <Route path="/club" element={<Club />} />
-          <Route path="/club/member/:clubId/:userId/:userName" element={
-            <ProtectedClubRoute>
-              <ClubMemberDetail />
-            </ProtectedClubRoute>
-          } />
           <Route path="/club/settings/:clubId" element={
             <ProtectedClubRoute>
               <ClubSettings />

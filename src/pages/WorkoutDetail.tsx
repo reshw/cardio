@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Edit2, Trash2, X } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import workoutService from '../services/workoutService';
 import feedService from '../services/feedService';
+import clubService from '../services/clubService';
 import type { Workout } from '../services/workoutService';
 import { uploadToR2 } from '../utils/r2Storage';
 import { IntegratedCommentSection } from '../components/IntegratedCommentSection';
 import { LikeStatsModal } from '../components/LikeStatsModal';
+import { useAuth } from '../contexts/AuthContext';
 
 export const WorkoutDetail = () => {
   const location = useLocation();
@@ -14,21 +17,31 @@ export const WorkoutDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const highlightCommentId = searchParams.get('commentId');
+  const clubIdParam = searchParams.get('clubId');
+  const { user, loading: authLoading } = useAuth();
 
   const [workout, setWorkout] = useState<Workout | null>(location.state?.workout || null);
   const [loading, setLoading] = useState(!workout);
 
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(workout?.value.toString() || '');
+  const toKSTInputValue = (utcString: string) => {
+    const kstDate = new Date(new Date(utcString).getTime() + 9 * 60 * 60 * 1000);
+    return kstDate.toISOString().slice(0, 16);
+  };
+
   const [workoutTime, setWorkoutTime] = useState(
-    workout ? new Date(workout.workout_time).toISOString().slice(0, 16) : ''
+    workout ? toKSTInputValue(workout.workout_time) : ''
   );
   const [intensity, setIntensity] = useState(workout?.intensity || 4);
+  const [memo, setMemo] = useState(workout?.memo ?? '');
   const [proofImage, setProofImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const [ownerName, setOwnerName] = useState<string | null>(null);
 
   // 좋아요 관련 state
   const [totalLikes, setTotalLikes] = useState(0);
@@ -37,12 +50,56 @@ export const WorkoutDetail = () => {
   // 댓글 관련 state
   const [totalComments, setTotalComments] = useState(0);
 
-  // workout이 없으면 ID로 조회
+  // 초기 로드: clubIdParam이 있으면 멤버십 체크 후 워크아웃 로드, 없으면 바로 로드
   useEffect(() => {
-    if (!workout && id) {
-      loadWorkout();
+    if (!id) return;
+
+    if (clubIdParam) {
+      // auth 로딩 완료 대기
+      if (authLoading || !user) return;
+
+      const init = async () => {
+        try {
+          const isMember = await clubService.isClubMember(clubIdParam, user.id);
+          if (!isMember) {
+            const club = await clubService.getClubById(clubIdParam);
+            const returnUrl = `/workout/${id}?clubId=${clubIdParam}`;
+            sessionStorage.setItem('join_return_url', returnUrl);
+            navigate(`/join/${club.invite_code}`, { replace: true });
+            return;
+          }
+          // 멤버 확인 후 워크아웃 로드
+          if (!workout) {
+            loadWorkout();
+          }
+        } catch (error) {
+          console.error('클럽 소속 확인 실패:', error);
+        }
+      };
+
+      init();
+    } else {
+      if (!workout) {
+        loadWorkout();
+      }
     }
-  }, [id, workout]);
+  }, [id, clubIdParam, user, authLoading]);
+
+  // 타인 기록 진입 시 소유자 닉네임 로드 (클럽 닉네임 우선, fallback: username)
+  useEffect(() => {
+    if (!workout || !user || user.id === workout.user_id) return;
+    const fetchOwner = async () => {
+      if (!clubIdParam) return;
+      const { data: member } = await supabase
+        .from('club_members')
+        .select('club_nickname')
+        .eq('club_id', clubIdParam)
+        .eq('user_id', workout.user_id)
+        .single();
+      if (member?.club_nickname) setOwnerName(member.club_nickname);
+    };
+    fetchOwner();
+  }, [workout?.user_id, user?.id, clubIdParam]);
 
   // 좋아요 개수 로드
   useEffect(() => {
@@ -66,7 +123,7 @@ export const WorkoutDetail = () => {
       }
       setWorkout(data);
       setValue(data.value.toString());
-      setWorkoutTime(new Date(data.workout_time).toISOString().slice(0, 16));
+      setWorkoutTime(toKSTInputValue(data.workout_time));
       setIntensity(data.intensity);
     } catch (error) {
       console.error('운동 조회 실패:', error);
@@ -198,9 +255,10 @@ export const WorkoutDetail = () => {
 
       await workoutService.updateWorkout(workout.id, {
         value: parseFloat(value),
-        workout_time: new Date(workoutTime).toISOString(),
+        workout_time: new Date(workoutTime + ':00+09:00').toISOString(),
         intensity,
         proof_image: imageUrl,
+        memo: memo.trim() || undefined,
       });
 
       alert('운동 기록이 수정되었습니다.');
@@ -235,11 +293,16 @@ export const WorkoutDetail = () => {
   return (
     <div className="container workout-detail-page">
       <div className="detail-header">
-        <button className="back-button" onClick={() => navigate(-1)}>
+        <button className="back-button" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/club')}>
           <ChevronLeft size={24} />
         </button>
         <h1>운동 상세</h1>
       </div>
+      {ownerName && (
+        <div className="workout-owner-banner">
+          {ownerName}님의 기록
+        </div>
+      )}
 
       <div className="detail-content">
         {!isEditing ? (
@@ -306,6 +369,13 @@ export const WorkoutDetail = () => {
                 onCommentCountChange={setTotalComments}
               />
             </div>
+
+            {workout.memo && (
+              <div className="detail-section">
+                <div className="detail-label">메모</div>
+                <div className="detail-value" style={{ whiteSpace: 'pre-wrap' }}>{workout.memo}</div>
+              </div>
+            )}
 
             {/* 증빙 이미지 */}
             {workout.proof_image && (
@@ -436,6 +506,18 @@ export const WorkoutDetail = () => {
             </div>
 
             <div className="form-group">
+              <label htmlFor="edit-memo">메모 (선택)</label>
+              <textarea
+                id="edit-memo"
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+                placeholder="날씨, 컨디션, 느낀점 등..."
+                className="race-textarea"
+                rows={3}
+              />
+            </div>
+
+            <div className="form-group">
               <label htmlFor="edit-proof">증빙 이미지 변경</label>
               <input
                 id="edit-proof"
@@ -458,14 +540,18 @@ export const WorkoutDetail = () => {
       <div className="detail-actions-fixed">
         {!isEditing ? (
           <>
-            <button className="action-button-full" onClick={() => setIsEditing(true)}>
-              <Edit2 size={18} />
-              수정
-            </button>
-            <button className="action-button-full danger" onClick={handleDelete} disabled={deleting}>
-              <Trash2 size={18} />
-              {deleting ? '삭제 중...' : '삭제'}
-            </button>
+            {user?.id === workout.user_id && (
+              <>
+                <button className="action-button-full" onClick={() => setIsEditing(true)}>
+                  <Edit2 size={18} />
+                  수정
+                </button>
+                <button className="action-button-full danger" onClick={handleDelete} disabled={deleting}>
+                  <Trash2 size={18} />
+                  {deleting ? '삭제 중...' : '삭제'}
+                </button>
+              </>
+            )}
           </>
         ) : (
           <>
@@ -474,7 +560,7 @@ export const WorkoutDetail = () => {
               onClick={() => {
                 setIsEditing(false);
                 setValue(workout.value.toString());
-                setWorkoutTime(new Date(workout.workout_time).toISOString().slice(0, 16));
+                setWorkoutTime(toKSTInputValue(workout.workout_time));
                 setIntensity(workout.intensity);
                 setProofImage(null);
                 setImagePreview(null);

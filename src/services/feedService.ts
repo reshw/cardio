@@ -556,6 +556,64 @@ class FeedService {
     return comments;
   }
 
+  // 여러 운동의 좋아요 정보 배치 조회
+  async getLikesInfoForWorkouts(
+    workoutIds: string[],
+    userId?: string
+  ): Promise<Map<string, { count: number; isLikedByMe: boolean }>> {
+    if (workoutIds.length === 0) return new Map();
+
+    const { data: likes, error } = await supabase
+      .from('workout_likes')
+      .select('workout_id, user_id')
+      .in('workout_id', workoutIds);
+
+    if (error) {
+      console.error('좋아요 배치 조회 실패:', error);
+      return new Map();
+    }
+
+    const result = new Map<string, { count: number; isLikedByMe: boolean }>();
+    workoutIds.forEach((id) => result.set(id, { count: 0, isLikedByMe: false }));
+
+    (likes || []).forEach((like: any) => {
+      const entry = result.get(like.workout_id);
+      if (entry) {
+        entry.count += 1;
+        if (userId && like.user_id === userId) entry.isLikedByMe = true;
+      }
+    });
+
+    return result;
+  }
+
+  // 여러 운동의 댓글 수 배치 조회 (특정 클럽)
+  async getCommentCountsForWorkouts(
+    workoutIds: string[],
+    clubId: string
+  ): Promise<Map<string, number>> {
+    if (workoutIds.length === 0) return new Map();
+
+    const { data: comments, error } = await supabase
+      .from('workout_comments')
+      .select('workout_id')
+      .in('workout_id', workoutIds)
+      .eq('club_id', clubId);
+
+    if (error) {
+      console.error('댓글 수 배치 조회 실패:', error);
+      return new Map();
+    }
+
+    const result = new Map<string, number>();
+    workoutIds.forEach((id) => result.set(id, 0));
+    (comments || []).forEach((c: any) => {
+      result.set(c.workout_id, (result.get(c.workout_id) || 0) + 1);
+    });
+
+    return result;
+  }
+
   // 오늘의 n번째 운동 계산 (workout_time 기준)
   async getTodayWorkoutNumber(clubId: string, workoutId: string): Promise<number | null> {
     try {

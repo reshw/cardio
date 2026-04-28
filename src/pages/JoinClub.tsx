@@ -53,8 +53,14 @@ export const JoinClub = () => {
       if (user) {
         const isMember = await clubService.isClubMember(preview.club.id, user.id);
         if (isMember) {
-          // 이미 가입한 클럽이면 바로 클럽 메인으로 리디렉트
-          navigate('/club');
+          // 카카오 공유 링크 복귀 URL이 있으면 해당 페이지로, 없으면 클럽 메인으로
+          const returnUrl = sessionStorage.getItem('join_return_url');
+          if (returnUrl) {
+            sessionStorage.removeItem('join_return_url');
+            navigate(returnUrl);
+          } else {
+            navigate('/club');
+          }
           return;
         }
       }
@@ -113,13 +119,25 @@ export const JoinClub = () => {
 
       const club = await clubService.joinClubByInviteCode(finalCode, user.id, nickname.trim(), profileImageUrl);
       alert(`${club.name}에 가입했습니다! 🎉`);
-      navigate('/club');
+      const returnUrl = sessionStorage.getItem('join_return_url');
+      if (returnUrl) {
+        sessionStorage.removeItem('join_return_url');
+        navigate(returnUrl);
+      } else {
+        navigate('/club');
+      }
     } catch (err) {
       console.error('클럽 가입 실패:', err);
 
-      // 이미 가입한 클럽인 경우 조용히 메인으로 리다이렉트
+      // 이미 가입한 클럽인 경우 조용히 returnUrl 또는 메인으로 리다이렉트
       if (err instanceof Error && err.message === '이미 가입한 클럽입니다.') {
-        navigate('/club');
+        const returnUrl = sessionStorage.getItem('join_return_url');
+        if (returnUrl) {
+          sessionStorage.removeItem('join_return_url');
+          navigate(returnUrl);
+        } else {
+          navigate('/club');
+        }
         return;
       }
 

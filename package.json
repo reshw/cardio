@@ -30,11 +30,13 @@
     "busboy": "^1.6.0",
     "exceljs": "^4.4.0",
     "html2canvas": "^1.4.1",
+    "jodit-react": "^5.3.21",
     "lucide-react": "^0.577.0",
     "react": "^19.2.0",
     "react-calendar": "^6.0.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.11.0",
+    "recharts": "^3.8.1",
     "resend": "^6.9.4",
     "sharp": "^0.34.5"
   },

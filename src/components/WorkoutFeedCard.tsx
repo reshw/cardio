@@ -22,6 +22,7 @@ interface Props {
   onOptimisticCommentAdd: (workoutId: string) => void;
   onOptimisticCommentDelete: (workoutId: string) => void;
   onBlock: (userId: string) => void;
+  onMemberClick: (userId: string, userName: string) => void;
 }
 
 export const WorkoutFeedCard = ({
@@ -32,6 +33,7 @@ export const WorkoutFeedCard = ({
   onOptimisticCommentAdd,
   onOptimisticCommentDelete,
   onBlock,
+  onMemberClick,
 }: Props) => {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
@@ -61,6 +63,16 @@ export const WorkoutFeedCard = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showMenu]);
+
+  // 운동상세 시트 열릴 때 BottomNav 숨김
+  useEffect(() => {
+    if (showDetail) {
+      document.body.classList.add('workout-detail-open');
+    } else {
+      document.body.classList.remove('workout-detail-open');
+    }
+    return () => document.body.classList.remove('workout-detail-open');
+  }, [showDetail]);
 
   const isMyPost = user?.id === item.workout.user_id;
 
@@ -101,7 +113,7 @@ export const WorkoutFeedCard = ({
     }
 
     const workoutLabel = getWorkoutLabel();
-    const appUrl = `${window.location.origin}/club`;
+    const appUrl = `${window.location.origin}/workout/${workout.id}?clubId=${clubId}`;
 
     // 날짜 포맷팅
     const workoutDate = new Date(workout.workout_time);
@@ -366,7 +378,15 @@ export const WorkoutFeedCard = ({
         <div className="feed-content-wrapper">
           {/* 첫째 줄: 이름 + 시간 + 운동종목 */}
           <div className="feed-header-line" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>
-            <span className="feed-user-name-v2">{item.user_display_name}</span>
+            <span
+              className="feed-user-name-v2"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMemberClick(item.workout.user_id, item.user_display_name);
+              }}
+            >
+              {item.user_display_name}
+            </span>
             <span className="feed-time-v2">{formatTime(workout.workout_time)}</span>
             <span className="feed-workout-type-v2">{getWorkoutLabel()}</span>
           </div>
@@ -392,6 +412,11 @@ export const WorkoutFeedCard = ({
               </button>
             </div>
           </div>
+
+          {/* 메모 */}
+          {workout.memo && (
+            <div className="feed-memo" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }}>{workout.memo}</div>
+          )}
         </div>
       </div>
 
@@ -478,17 +503,19 @@ export const WorkoutFeedCard = ({
         </div>
       )}
 
-      {/* 상세보기 모달 */}
+      {/* 상세보기 바텀시트 */}
       {showDetail && (
-        <div className="modal-overlay" onClick={() => setShowDetail(false)}>
-          <div className="modal-content workout-detail-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+        <div className="workout-sheet-overlay" onClick={() => setShowDetail(false)}>
+          <div className="workout-sheet" onClick={(e) => e.stopPropagation()}>
+            {/* 고정 헤더 */}
+            <div className="workout-sheet-header">
               <h2>운동 상세</h2>
               <button className="modal-close" onClick={() => setShowDetail(false)}>
                 ✕
               </button>
             </div>
-            <div className="modal-body">
+            {/* 스크롤 바디 */}
+            <div className="workout-sheet-body">
               <div className="workout-detail-section">
                 <h3>운동 정보</h3>
                 <div className="workout-detail-info">
@@ -528,6 +555,13 @@ export const WorkoutFeedCard = ({
                 </div>
               </div>
 
+              {workout.memo && (
+                <div className="workout-detail-section">
+                  <h3>메모</h3>
+                  <p className="workout-detail-memo">{workout.memo}</p>
+                </div>
+              )}
+
               {workout.proof_image && (
                 <div className="workout-detail-section">
                   <h3>인증 사진</h3>
@@ -562,6 +596,24 @@ export const WorkoutFeedCard = ({
                   </button>
                 </div>
               )}
+            </div>
+            {/* 고정 액션바 */}
+            <div className="workout-sheet-footer">
+              <button
+                className={`sheet-action-btn ${item.is_liked_by_me ? 'liked' : ''}`}
+                onClick={handleLikeToggle}
+                disabled={liking}
+              >
+                <Heart size={18} fill={item.is_liked_by_me ? 'currentColor' : 'none'} />
+                <span>{item.like_count}</span>
+              </button>
+              <button
+                className="sheet-action-btn"
+                onClick={() => { setShowDetail(false); setShowComments(true); }}
+              >
+                <MessageCircle size={18} />
+                <span>{item.comment_count}</span>
+              </button>
             </div>
           </div>
         </div>
