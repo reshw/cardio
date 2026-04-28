@@ -1,5 +1,5 @@
 import type { Challenge } from '../services/challengeService';
-import challengeService from '../services/challengeService';
+import challengeService, { METRIC_LABELS, METRIC_UNITS } from '../services/challengeService';
 
 interface Props {
   challenge: Challenge;
@@ -9,10 +9,10 @@ interface Props {
 }
 
 export const ChallengeCard = ({ challenge, progress, isAdmin, onDelete }: Props) => {
-  const pct = Math.min(100, Math.round((progress / challenge.goal_value) * 100));
+  const pct = challenge.goal_value != null ? Math.min(100, Math.round((progress / challenge.goal_value) * 100)) : 0;
   const daysLeft = challengeService.getDaysLeft(challenge.end_date);
-  const unit = challengeService.METRIC_UNITS[challenge.goal_metric];
-  const label = challengeService.METRIC_LABELS[challenge.goal_metric];
+  const unit = challenge.goal_metric ? METRIC_UNITS[challenge.goal_metric] : '';
+  const label = challenge.goal_metric ? METRIC_LABELS[challenge.goal_metric] : '';
   const color = challenge.theme_color || '#8b5cf6';
   const done = pct >= 100;
 

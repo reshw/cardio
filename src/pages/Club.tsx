@@ -10,6 +10,7 @@ import { WorkoutFeed } from '../components/WorkoutFeed';
 import { ClubMemberDetailModal } from '../components/ClubMemberDetailModal';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
+import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X } from 'lucide-react';
 import {
   DndContext,
@@ -621,6 +622,15 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             </div>
           )}
         </div>
+      )}
+
+      {/* 챌린지 섹션 */}
+      {selectedClub && user && (
+        <ClubChallengeSection
+          club={selectedClub}
+          userId={user.id}
+          isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
+        />
       )}
 
       {/* 탭 */}
