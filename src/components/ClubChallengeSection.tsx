@@ -82,6 +82,15 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
                   : cs2
               )
             );
+          }).catch((err) => {
+            console.error('참여자 목록 로드 실패:', err);
+            setChallengeStates((prev2) =>
+              prev2.map((cs2) =>
+                cs2.challenge.id === challengeId
+                  ? { ...cs2, participantsLoaded: true }
+                  : cs2
+              )
+            );
           });
         }
         return { ...cs, expanded: willExpand };
