@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronDown, ChevronUp, Search, X, Plus, Trash2 } from 'lucide-react';
 import challengeService from '../services/challengeService';
-import type { Challenge, ChallengeParticipant, ParticipantProgress } from '../services/challengeService';
+import type { Challenge, ChallengeParticipant, UserProgress } from '../services/challengeService';
 import type { MyClubWithOrder } from '../services/clubService';
 import { ChallengeCreateModal } from './ChallengeCreateModal';
 import { ChallengeJoinModal } from './ChallengeJoinModal';
@@ -15,10 +15,9 @@ interface Props {
 interface ChallengeState {
   challenge: Challenge;
   expanded: boolean;
-  myParticipant: ChallengeParticipant | null;
-  myProgressPct: number;
-  myCurrentValue: number;
-  participantsProgress: ParticipantProgress[];
+  myParticipants: ChallengeParticipant[];
+  myOverallPct: number;
+  usersProgress: UserProgress[];
   participantsLoaded: boolean;
 }
 
@@ -26,7 +25,7 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
   const [challengeStates, setChallengeStates] = useState<ChallengeState[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQueries, setSearchQueries] = useState<Record<string, string>>({});
-  const [expandedParticipants, setExpandedParticipants] = useState<Record<string, boolean>>({});
+  const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [joiningChallenge, setJoiningChallenge] = useState<Challenge | null>(null);
 
@@ -36,28 +35,27 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
       const challenges = await challengeService.getActiveChallengesForClub(club.id).catch(() => []);
       const states: ChallengeState[] = await Promise.all(
         challenges.map(async (c, idx) => {
-          const myParticipant = await challengeService.getMyParticipant(c.id, userId);
-          let myProgressPct = 0;
-          let myCurrentValue = 0;
-          if (myParticipant) {
-            const prog = await challengeService.getMyProgress(c, userId, myParticipant);
-            myProgressPct = prog.pct;
-            myCurrentValue = prog.current_value;
+          const myParticipants = await challengeService.getMyParticipants(c.id, userId).catch(() => []);
+          let myOverallPct = 0;
+          if (myParticipants.length > 0) {
+            const progresses = await Promise.all(
+              myParticipants.map((p) => challengeService.calcParticipantProgress(c, p).catch(() => ({ current_value: 0, pct: 0, achieved: false })))
+            );
+            myOverallPct = Math.round(progresses.reduce((sum, p) => sum + p.pct, 0) / progresses.length);
           }
           return {
             challenge: c,
             expanded: challenges.length === 1 && idx === 0,
-            myParticipant,
-            myProgressPct,
-            myCurrentValue,
-            participantsProgress: [],
+            myParticipants,
+            myOverallPct,
+            usersProgress: [],
             participantsLoaded: false,
           };
         })
       );
       setChallengeStates(states);
-    } catch {
-      // 챌린지 로드 실패 시 섹션만 숨김, 페이지 크래시 방지
+    } catch (e) {
+      console.error('챌린지 로드 실패:', e);
     } finally {
       setLoading(false);
     }
@@ -67,31 +65,36 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
     loadChallenges();
   }, [loadChallenges]);
 
-  const toggleExpand = async (challengeId: string) => {
+  const loadParticipants = (challengeId: string, challenge: Challenge) => {
+    challengeService.getParticipantsWithProgress(challenge, club.id)
+      .then((prog) => {
+        setChallengeStates((prev) =>
+          prev.map((cs) =>
+            cs.challenge.id === challengeId
+              ? { ...cs, usersProgress: prog, participantsLoaded: true }
+              : cs
+          )
+        );
+      })
+      .catch((err) => {
+        console.error('참여자 목록 로드 실패:', err);
+        setChallengeStates((prev) =>
+          prev.map((cs) =>
+            cs.challenge.id === challengeId
+              ? { ...cs, participantsLoaded: true }
+              : cs
+          )
+        );
+      });
+  };
+
+  const toggleExpand = (challengeId: string) => {
     setChallengeStates((prev) =>
       prev.map((cs) => {
         if (cs.challenge.id !== challengeId) return cs;
         const willExpand = !cs.expanded;
         if (willExpand && !cs.participantsLoaded) {
-          // 참여자 목록 로드
-          challengeService.getParticipantsWithProgress(cs.challenge, club.id).then((prog) => {
-            setChallengeStates((prev2) =>
-              prev2.map((cs2) =>
-                cs2.challenge.id === challengeId
-                  ? { ...cs2, participantsProgress: prog, participantsLoaded: true }
-                  : cs2
-              )
-            );
-          }).catch((err) => {
-            console.error('참여자 목록 로드 실패:', err);
-            setChallengeStates((prev2) =>
-              prev2.map((cs2) =>
-                cs2.challenge.id === challengeId
-                  ? { ...cs2, participantsLoaded: true }
-                  : cs2
-              )
-            );
-          });
+          loadParticipants(challengeId, cs.challenge);
         }
         return { ...cs, expanded: willExpand };
       })
@@ -101,16 +104,6 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
   const handleDelete = async (challengeId: string) => {
     if (!confirm('챌린지를 삭제하시겠습니까? 참여자 데이터도 모두 삭제됩니다.')) return;
     await challengeService.deleteChallenge(challengeId);
-    loadChallenges();
-  };
-
-  const handleJoined = () => {
-    setJoiningChallenge(null);
-    loadChallenges();
-  };
-
-  const handleCreated = () => {
-    setShowCreateModal(false);
     loadChallenges();
   };
 
@@ -133,24 +126,20 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
       )}
 
       {challengeStates.map((cs) => {
-        const { challenge, expanded, myParticipant, myProgressPct, myCurrentValue } = cs;
+        const { challenge, expanded, myParticipants, myOverallPct } = cs;
         const ended = challengeService.isEnded(challenge.end_date);
         const daysLeft = challengeService.getDaysLeft(challenge.end_date);
         const searchQuery = searchQueries[challenge.id] || '';
+        const hasJoined = myParticipants.length > 0;
 
-        const filteredParticipants = cs.participantsProgress.filter((pp) => {
-          const name =
-            (pp.participant.user as any)?.club_nickname ||
-            (pp.participant.user as any)?.user?.display_name ||
-            '';
-          return name.includes(searchQuery);
-        });
-
-        const achievedCount = cs.participantsProgress.filter((pp) => pp.achieved).length;
+        const filteredUsers = cs.usersProgress.filter((up) =>
+          up.displayName.includes(searchQuery)
+        );
+        const achievedCount = cs.usersProgress.filter((up) => up.allAchieved).length;
 
         return (
           <div key={challenge.id} className={`challenge-card-v2 ${ended ? 'ended' : ''}`}>
-            {/* 접힌 헤더 */}
+            {/* 헤더 */}
             <div className="challenge-card-header-v2" onClick={() => toggleExpand(challenge.id)}>
               <div className="challenge-card-meta">
                 <span className="challenge-card-title">{challenge.title}</span>
@@ -175,20 +164,21 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
               </div>
             </div>
 
-            {/* 내 달성률 게이지 (항상 표시) */}
-            {myParticipant ? (
+            {/* 내 달성률 or 참여하기 */}
+            {hasJoined ? (
               <div className="challenge-my-progress" onClick={() => toggleExpand(challenge.id)}>
                 <div className="challenge-progress-bar-wrap">
                   <div
                     className="challenge-progress-bar-fill"
                     style={{
-                      width: `${myProgressPct}%`,
-                      background: myProgressPct >= 100 ? '#22c55e' : '#8b5cf6',
+                      width: `${myOverallPct}%`,
+                      background: myOverallPct >= 100 ? '#22c55e' : '#8b5cf6',
                     }}
                   />
                 </div>
                 <span className="challenge-my-pct">
-                  내 달성률 {myProgressPct}%
+                  내 달성률 {myOverallPct}%
+                  {myParticipants.length > 1 && ` (${myParticipants.length}개 종목)`}
                 </span>
               </div>
             ) : !ended ? (
@@ -200,44 +190,55 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
               </button>
             ) : null}
 
-            {/* 펼쳐진 상세 */}
+            {/* 상세 */}
             {expanded && (
               <div className="challenge-detail">
                 {/* 전체 달성도 */}
                 <div className="challenge-total-stat">
                   {cs.participantsLoaded
-                    ? `${cs.participantsProgress.length}명 참여 · ${achievedCount}명 달성`
+                    ? `${cs.usersProgress.length}명 참여 · ${achievedCount}명 달성`
                     : '불러오는 중...'}
                 </div>
 
-                {/* 내 종목별 달성도 */}
-                {myParticipant && (
+                {/* 내 종목별 달성도 (펼쳐진 상태에서) */}
+                {hasJoined && cs.participantsLoaded && (
                   <div className="challenge-my-categories">
                     <div className="challenge-detail-label">내 목표</div>
-                    <div className="challenge-category-row">
-                      <span className="challenge-category-name">
-                        {myParticipant.category}
-                        {myParticipant.sub_type && ` · ${myParticipant.sub_type}`}
-                      </span>
-                      <div className="challenge-progress-bar-wrap small">
-                        <div
-                          className="challenge-progress-bar-fill"
-                          style={{
-                            width: `${myProgressPct}%`,
-                            background: myProgressPct >= 100 ? '#22c55e' : '#8b5cf6',
-                          }}
-                        />
-                      </div>
-                      <span className="challenge-category-stat">
-                        {myCurrentValue.toFixed(1)}/{myParticipant.target_value}{myParticipant.unit} · {myProgressPct}%
-                        {myProgressPct >= 100 && ' ✓'}
-                      </span>
-                    </div>
+                    {cs.usersProgress
+                      .find((up) => up.user_id === userId)
+                      ?.targets.map((t, idx) => (
+                        <div key={idx} className="challenge-category-row">
+                          <span className="challenge-category-name">
+                            {t.participant.category}
+                            {t.participant.sub_type && ` · ${t.participant.sub_type}`}
+                          </span>
+                          <div className="challenge-progress-bar-wrap small">
+                            <div
+                              className="challenge-progress-bar-fill"
+                              style={{
+                                width: `${t.pct}%`,
+                                background: t.achieved ? '#22c55e' : '#8b5cf6',
+                              }}
+                            />
+                          </div>
+                          <span className="challenge-category-stat">
+                            {t.current_value}/{t.participant.target_value}{t.participant.unit} · {t.pct}%{t.achieved && ' ✓'}
+                          </span>
+                        </div>
+                      ))}
+                    {!ended && (
+                      <button
+                        className="challenge-join-add-btn small"
+                        onClick={(e) => { e.stopPropagation(); setJoiningChallenge(challenge); }}
+                      >
+                        <Plus size={13} /> 종목 추가
+                      </button>
+                    )}
                   </div>
                 )}
 
                 {/* 참여자 리스트 */}
-                {cs.participantsLoaded && cs.participantsProgress.length > 0 && (
+                {cs.participantsLoaded && cs.usersProgress.length > 0 && (
                   <div className="challenge-participants-section">
                     <div className="challenge-detail-label">참여자</div>
                     <div className="challenge-search-wrap">
@@ -252,76 +253,69 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
                         onClick={(e) => e.stopPropagation()}
                       />
                       {searchQuery && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setSearchQueries((prev) => ({ ...prev, [challenge.id]: '' })); }}
-                        >
+                        <button onClick={(e) => { e.stopPropagation(); setSearchQueries((prev) => ({ ...prev, [challenge.id]: '' })); }}>
                           <X size={12} />
                         </button>
                       )}
                     </div>
 
-                    {filteredParticipants.map((pp) => {
-                      const participantKey = `${challenge.id}-${pp.participant.user_id}`;
-                      const isExpandedPart = expandedParticipants[participantKey];
-                      const isMe = pp.participant.user_id === userId;
-                      const name =
-                        (pp.participant.user as any)?.club_nickname ||
-                        (pp.participant.user as any)?.user?.display_name ||
-                        '탈퇴한 회원';
+                    {filteredUsers.map((up) => {
+                      const userKey = `${challenge.id}-${up.user_id}`;
+                      const isExpandedUser = expandedUsers[userKey];
+                      const isMe = up.user_id === userId;
 
                       return (
-                        <div key={pp.participant.id} className="challenge-participant-card">
+                        <div key={up.user_id} className="challenge-participant-card">
                           <div
                             className="challenge-participant-row"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setExpandedParticipants((prev) => ({
-                                ...prev,
-                                [participantKey]: !prev[participantKey],
-                              }));
+                              setExpandedUsers((prev) => ({ ...prev, [userKey]: !prev[userKey] }));
                             }}
                           >
                             <span className="challenge-participant-name">
-                              {name}{isMe && ' (나)'}
+                              {up.displayName}{isMe && ' (나)'}
                             </span>
                             <div className="challenge-progress-bar-wrap small">
                               <div
                                 className="challenge-progress-bar-fill"
                                 style={{
-                                  width: `${pp.pct}%`,
-                                  background: pp.achieved ? '#22c55e' : '#8b5cf6',
+                                  width: `${up.overallPct}%`,
+                                  background: up.allAchieved ? '#22c55e' : '#8b5cf6',
                                 }}
                               />
                             </div>
-                            <span className={`challenge-participant-pct ${pp.achieved ? 'achieved' : ''}`}>
-                              {pp.pct}%{pp.achieved ? ' ✓' : ''}
+                            <span className={`challenge-participant-pct ${up.allAchieved ? 'achieved' : ''}`}>
+                              {up.overallPct}%{up.allAchieved ? ' ✓' : ''}
                             </span>
-                            {isExpandedPart ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                            {isExpandedUser ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                           </div>
 
-                          {/* 참여자 종목 상세 */}
-                          {isExpandedPart && (
-                            <div className="challenge-participant-detail">
-                              <span className="challenge-category-name">
-                                {pp.participant.category}
-                                {pp.participant.sub_type && ` · ${pp.participant.sub_type}`}
-                              </span>
-                              <div className="challenge-progress-bar-wrap small">
-                                <div
-                                  className="challenge-progress-bar-fill"
-                                  style={{
-                                    width: `${pp.pct}%`,
-                                    background: pp.achieved ? '#22c55e' : '#8b5cf6',
-                                  }}
-                                />
-                              </div>
-                              <span className="challenge-category-stat">
-                                {/* 타인: 달성률%만, 본인: 실제값도 표시 */}
-                                {isMe
-                                  ? `${pp.current_value.toFixed(1)}/${pp.participant.target_value}${pp.participant.unit} · ${pp.pct}%`
-                                  : `${pp.pct}%`}
-                                {pp.achieved && ' ✓'}
-                              </span>
+                          {isExpandedUser && (
+                            <div className="challenge-participant-targets">
+                              {up.targets.map((t, idx) => (
+                                <div key={idx} className="challenge-participant-detail">
+                                  <span className="challenge-category-name">
+                                    {t.participant.category}
+                                    {t.participant.sub_type && ` · ${t.participant.sub_type}`}
+                                  </span>
+                                  <div className="challenge-progress-bar-wrap small">
+                                    <div
+                                      className="challenge-progress-bar-fill"
+                                      style={{
+                                        width: `${t.pct}%`,
+                                        background: t.achieved ? '#22c55e' : '#8b5cf6',
+                                      }}
+                                    />
+                                  </div>
+                                  <span className="challenge-category-stat">
+                                    {isMe
+                                      ? `${t.current_value}/${t.participant.target_value}${t.participant.unit} · ${t.pct}%`
+                                      : `${t.pct}%`}
+                                    {t.achieved && ' ✓'}
+                                  </span>
+                                </div>
+                              ))}
                             </div>
                           )}
                         </div>
@@ -340,7 +334,7 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
           club={club}
           userId={userId}
           onClose={() => setShowCreateModal(false)}
-          onCreated={handleCreated}
+          onCreated={() => { setShowCreateModal(false); loadChallenges(); }}
         />
       )}
 
@@ -349,7 +343,7 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
           challenge={joiningChallenge}
           userId={userId}
           onClose={() => setJoiningChallenge(null)}
-          onJoined={handleJoined}
+          onJoined={() => { setJoiningChallenge(null); loadChallenges(); }}
         />
       )}
     </div>
