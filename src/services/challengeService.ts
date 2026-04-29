@@ -32,6 +32,7 @@ export interface Challenge {
   end_date: string;
   status: 'active' | 'ended';
   theme_color: string;
+  allowed_categories: string[] | null; // null = 전체 허용
   created_at: string;
 }
 
@@ -41,6 +42,7 @@ export interface CreateChallengeData {
   title: string;
   start_date: string;
   end_date: string;
+  allowed_categories?: string[] | null;
 }
 
 export interface ChallengeParticipant {
@@ -96,6 +98,7 @@ const challengeService = {
         title: data.title,
         start_date: data.start_date,
         end_date: data.end_date,
+        allowed_categories: data.allowed_categories ?? null,
         status: 'active',
         theme_color: '#8b5cf6',
       })

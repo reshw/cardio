@@ -12,6 +12,7 @@ interface Props {
   onJoined: () => void;
 }
 
+
 export const ChallengeJoinModal = ({ challenge, userId, onClose, onJoined }: Props) => {
   const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
   const [selectedType, setSelectedType] = useState<WorkoutType | null>(null);
@@ -21,8 +22,15 @@ export const ChallengeJoinModal = ({ challenge, userId, onClose, onJoined }: Pro
   const [error, setError] = useState('');
 
   useEffect(() => {
-    workoutTypeService.getActiveWorkoutTypes().then(setWorkoutTypes);
-  }, []);
+    workoutTypeService.getActiveWorkoutTypes().then((types) => {
+      // allowed_categories가 있으면 해당 종목만 표시
+      if (challenge.allowed_categories && challenge.allowed_categories.length > 0) {
+        setWorkoutTypes(types.filter((t) => challenge.allowed_categories!.includes(t.name)));
+      } else {
+        setWorkoutTypes(types);
+      }
+    });
+  }, [challenge.allowed_categories]);
 
   const handleTypeSelect = (type: WorkoutType) => {
     setSelectedType(type);
