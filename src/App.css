@@ -8870,6 +8870,86 @@ body.workout-detail-open .bottom-nav {
   border-color: var(--primary-color);
 }
 
+/* ============================================
+   챌린지 생성 모달
+   ============================================ */
+.challenge-create-sheet {
+  gap: 20px;
+}
+
+.challenge-allowed-row {
+  display: flex;
+  gap: 8px;
+}
+
+.challenge-scope-btn {
+  flex: 1;
+  padding: 9px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.challenge-scope-btn.active {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(79, 195, 247, 0.08);
+}
+
+.challenge-category-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.challenge-category-chip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.challenge-category-chip.active {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(79, 195, 247, 0.08);
+  font-weight: 600;
+}
+
+.challenge-create-error {
+  font-size: 13px;
+  color: #ef4444;
+  margin: 0;
+}
+
+.challenge-create-submit {
+  width: 100%;
+  padding: 14px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.challenge-create-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .race-time-input {
   font-size: 20px;
   font-weight: 700;
