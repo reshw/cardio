@@ -189,10 +189,10 @@ const challengeService = {
 
     const userIds = [...new Set(participants.map((p: ChallengeParticipant) => p.user_id))];
 
-    // 유저 정보
+    // 유저 정보 — club_nickname만 (users join FK 없음)
     const { data: members } = await supabase
       .from('club_members')
-      .select('user_id, club_nickname, user:users(display_name, profile_image)')
+      .select('user_id, club_nickname')
       .eq('club_id', clubId)
       .in('user_id', userIds);
 
@@ -219,11 +219,8 @@ const challengeService = {
 
     return Object.entries(userMap).map(([userId, targets]) => {
       const member = memberMap[userId];
-      const displayName =
-        member?.club_nickname ||
-        member?.user?.display_name ||
-        '탈퇴한 회원';
-      const profileImage = member?.user?.profile_image;
+      const displayName = member?.club_nickname || '(닉네임 없음)';
+      const profileImage = undefined;
 
       const targetProgresses = targets.map((p) => {
         const current_value = Math.round(

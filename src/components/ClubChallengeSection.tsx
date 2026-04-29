@@ -43,17 +43,44 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
             );
             myOverallPct = Math.round(progresses.reduce((sum, p) => sum + p.pct, 0) / progresses.length);
           }
+          const autoExpand = challenges.length === 1 && idx === 0;
           return {
             challenge: c,
-            expanded: challenges.length === 1 && idx === 0,
+            expanded: autoExpand,
             myParticipants,
             myOverallPct,
             usersProgress: [],
             participantsLoaded: false,
+            autoExpand,
           };
         })
       );
       setChallengeStates(states);
+
+      // 자동 펼침된 챌린지 참여자 즉시 로드
+      states.forEach((cs) => {
+        if ((cs as any).autoExpand) {
+          challengeService.getParticipantsWithProgress(cs.challenge, club.id)
+            .then((prog) => {
+              setChallengeStates((prev) =>
+                prev.map((s) =>
+                  s.challenge.id === cs.challenge.id
+                    ? { ...s, usersProgress: prog, participantsLoaded: true }
+                    : s
+                )
+              );
+            })
+            .catch(() => {
+              setChallengeStates((prev) =>
+                prev.map((s) =>
+                  s.challenge.id === cs.challenge.id
+                    ? { ...s, participantsLoaded: true }
+                    : s
+                )
+              );
+            });
+        }
+      });
     } catch (e) {
       console.error('챌린지 로드 실패:', e);
     } finally {
