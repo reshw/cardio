@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, ChevronLeft } from 'lucide-react';
 import challengeService from '../services/challengeService';
 import type { Challenge } from '../services/challengeService';
 import workoutTypeService from '../services/workoutTypeService';
@@ -30,6 +30,7 @@ export const ChallengeJoinModal = ({ challenge, userId, onClose, onJoined }: Pro
   const [selectedSubType, setSelectedSubType] = useState('');
   const [targetValue, setTargetValue] = useState('');
   const [formError, setFormError] = useState('');
+  const [showOtherWorkouts, setShowOtherWorkouts] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -61,7 +62,6 @@ export const ChallengeJoinModal = ({ challenge, userId, onClose, onJoined }: Pro
       setFormError('목표값을 올바르게 입력해주세요.'); return;
     }
 
-    // 중복 체크
     const isDuplicate = goals.some(
       (g) => g.type.name === selectedType.name && g.subType === selectedSubType
     );
@@ -75,6 +75,7 @@ export const ChallengeJoinModal = ({ challenge, userId, onClose, onJoined }: Pro
     setSelectedSubType('');
     setTargetValue('');
     setFormError('');
+    setShowOtherWorkouts(false);
   };
 
   const handleRemoveGoal = (idx: number) => {
@@ -103,141 +104,171 @@ export const ChallengeJoinModal = ({ challenge, userId, onClose, onJoined }: Pro
     }
   };
 
+  const coreTypes = workoutTypes.filter((t) => t.is_core);
+  const otherTypes = workoutTypes.filter((t) => !t.is_core);
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <div>
-            <h2>참여 선언</h2>
-            <p className="modal-subtitle">{challenge.title}</p>
-          </div>
-          <button className="modal-close-btn" onClick={onClose}><X size={20} /></button>
+    <div className="feedback-overlay" onClick={onClose}>
+      <div className="feedback-sheet challenge-join-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="feedback-handle" />
+
+        <div className="race-modal-header">
+          {step === 'add' ? (
+            <button
+              className="challenge-join-back-btn"
+              onClick={() => { setStep('list'); setFormError(''); setSelectedType(null); setShowOtherWorkouts(false); }}
+            >
+              <ChevronLeft size={18} />
+            </button>
+          ) : (
+            <div style={{ width: 28 }} />
+          )}
+          <h3>
+            {step === 'list' ? '참여 선언' : '종목 추가'}
+          </h3>
+          <button className="race-modal-close" onClick={onClose}><X size={20} /></button>
         </div>
 
-        <div className="modal-body">
-          {step === 'list' && (
-            <>
-              {/* 목표 목록 */}
-              {goals.length === 0 ? (
-                <p className="challenge-join-empty">아직 선언한 종목이 없습니다.</p>
-              ) : (
-                <div className="challenge-join-goals">
-                  {goals.map((g, idx) => (
-                    <div key={idx} className="challenge-join-goal-row">
-                      <span className="challenge-join-goal-name">
-                        {g.type.emoji} {g.type.name}
-                        {g.subType && ` · ${g.subType}`}
-                      </span>
-                      <span className="challenge-join-goal-value">
-                        {g.targetValue} {g.type.unit}
-                      </span>
-                      <button
-                        className="challenge-join-goal-remove"
-                        onClick={() => handleRemoveGoal(idx)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+        {step === 'list' && (
+          <div className="challenge-join-body">
+            <p className="challenge-join-challenge-name">{challenge.title}</p>
 
-              {/* 추가 버튼 */}
-              <button className="challenge-join-add-btn" onClick={() => setStep('add')}>
-                <Plus size={15} />
-                {goals.length === 0 ? '종목 추가하기' : '더 추가하기'}
-              </button>
-
-              {submitError && <p className="form-error">{submitError}</p>}
-            </>
-          )}
-
-          {step === 'add' && (
-            <>
-              {/* 종목 선택 */}
-              <div className="form-group">
-                <label>종목</label>
-                <div className="workout-type-grid">
-                  {workoutTypes.map((type) => (
+            {goals.length === 0 ? (
+              <p className="challenge-join-empty">아직 선언한 종목이 없습니다.</p>
+            ) : (
+              <div className="challenge-join-goals">
+                {goals.map((g, idx) => (
+                  <div key={idx} className="challenge-join-goal-row">
+                    <span className="challenge-join-goal-name">
+                      {g.type.emoji} {g.type.name}
+                      {g.subType && ` · ${g.subType}`}
+                    </span>
+                    <span className="challenge-join-goal-value">
+                      {g.targetValue} {g.type.unit}
+                    </span>
                     <button
-                      key={type.id}
-                      className={`workout-type-chip ${selectedType?.id === type.id ? 'selected' : ''}`}
-                      onClick={() => handleTypeSelect(type)}
+                      className="challenge-join-goal-remove"
+                      onClick={() => handleRemoveGoal(idx)}
                     >
-                      {type.emoji} {type.name}
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button className="challenge-join-add-btn" onClick={() => setStep('add')}>
+              <Plus size={15} />
+              {goals.length === 0 ? '종목 추가하기' : '더 추가하기'}
+            </button>
+
+            {submitError && <p className="challenge-create-error">{submitError}</p>}
+
+            <button
+              className="challenge-create-submit"
+              onClick={handleSubmit}
+              disabled={submitting || goals.length === 0}
+            >
+              {submitting ? '등록 중...' : `선언하기 (${goals.length}개 종목)`}
+            </button>
+          </div>
+        )}
+
+        {step === 'add' && (
+          <div className="challenge-join-body">
+            {/* 기본운동 */}
+            <div className="challenge-join-section">
+              <div className="challenge-join-section-label">⭐ 기본운동</div>
+              <div className="challenge-category-chips">
+                {coreTypes.map((type) => (
+                  <button
+                    key={type.id}
+                    className={`challenge-category-chip ${selectedType?.id === type.id ? 'active' : ''}`}
+                    onClick={() => handleTypeSelect(type)}
+                  >
+                    {type.emoji} {type.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 기타운동 (접힘/펼침) */}
+            {otherTypes.length > 0 && (
+              <div className="challenge-join-section">
+                <button
+                  className="challenge-join-other-toggle"
+                  onClick={() => setShowOtherWorkouts(!showOtherWorkouts)}
+                >
+                  <span>📦 기타운동</span>
+                  <span>{showOtherWorkouts ? '▼' : '▶'}</span>
+                </button>
+                {showOtherWorkouts && (
+                  <div className="challenge-category-chips">
+                    {otherTypes.map((type) => (
+                      <button
+                        key={type.id}
+                        className={`challenge-category-chip ${selectedType?.id === type.id ? 'active' : ''}`}
+                        onClick={() => handleTypeSelect(type)}
+                      >
+                        {type.emoji} {type.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 세부 종목 */}
+            {selectedType && selectedType.sub_types.length > 0 && (
+              <div className="challenge-join-section">
+                <div className="challenge-join-section-label">세부 종목</div>
+                <div className="challenge-category-chips">
+                  {selectedType.sub_types.map((st) => (
+                    <button
+                      key={st.name}
+                      className={`challenge-category-chip ${selectedSubType === st.name ? 'active' : ''}`}
+                      onClick={() => setSelectedSubType(st.name)}
+                    >
+                      {st.name}
                     </button>
                   ))}
                 </div>
               </div>
+            )}
 
-              {/* 서브타입 */}
-              {selectedType && selectedType.sub_types.length > 0 && (
-                <div className="form-group">
-                  <label>세부 종목</label>
-                  <div className="workout-type-grid">
-                    {selectedType.sub_types.map((st) => (
-                      <button
-                        key={st.name}
-                        className={`workout-type-chip ${selectedSubType === st.name ? 'selected' : ''}`}
-                        onClick={() => setSelectedSubType(st.name)}
-                      >
-                        {st.name}
-                      </button>
-                    ))}
-                  </div>
+            {/* 목표값 */}
+            {selectedType && (
+              <div className="challenge-join-section">
+                <div className="challenge-join-section-label">목표 누적량</div>
+                <div className="challenge-join-value-row">
+                  <input
+                    type="number"
+                    className="race-input challenge-join-value-input"
+                    placeholder={selectedType.unit === 'km' ? '30' : '150'}
+                    value={targetValue}
+                    onChange={(e) => setTargetValue(e.target.value)}
+                    min="0"
+                    step={selectedType.unit === 'km' ? '0.1' : '1'}
+                  />
+                  <span className="challenge-join-unit">{selectedType.unit}</span>
                 </div>
-              )}
+                <p className="challenge-join-hint">
+                  {challenge.start_date} ~ {challenge.end_date} 기간 누적 합산
+                </p>
+              </div>
+            )}
 
-              {/* 목표값 */}
-              {selectedType && (
-                <div className="form-group">
-                  <label>목표 누적량</label>
-                  <div className="input-with-unit">
-                    <input
-                      type="number"
-                      className="form-input"
-                      placeholder={selectedType.unit === 'km' ? '30' : '150'}
-                      value={targetValue}
-                      onChange={(e) => setTargetValue(e.target.value)}
-                      min="0"
-                      step={selectedType.unit === 'km' ? '0.1' : '1'}
-                    />
-                    <span className="input-unit">{selectedType.unit}</span>
-                  </div>
-                  <p className="form-hint">
-                    {challenge.start_date} ~ {challenge.end_date} 기간 누적 합산
-                  </p>
-                </div>
-              )}
+            {formError && <p className="challenge-create-error">{formError}</p>}
 
-              {formError && <p className="form-error">{formError}</p>}
-            </>
-          )}
-        </div>
-
-        <div className="modal-footer">
-          {step === 'list' ? (
-            <>
-              <button className="btn-secondary" onClick={onClose}>취소</button>
-              <button
-                className="btn-primary"
-                onClick={handleSubmit}
-                disabled={submitting || goals.length === 0}
-              >
-                {submitting ? '등록 중...' : `선언하기 (${goals.length}개)`}
-              </button>
-            </>
-          ) : (
-            <>
-              <button className="btn-secondary" onClick={() => { setStep('list'); setFormError(''); }}>
-                뒤로
-              </button>
-              <button className="btn-primary" onClick={handleAddConfirm}>
-                확인
-              </button>
-            </>
-          )}
-        </div>
+            <button
+              className="challenge-create-submit"
+              onClick={handleAddConfirm}
+              disabled={!selectedType}
+            >
+              추가하기
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

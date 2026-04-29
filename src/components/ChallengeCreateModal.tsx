@@ -40,7 +40,6 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated }: Props
     if (!allAllowed && selectedCategories.length === 0) {
       setError('허용 종목을 하나 이상 선택해주세요.'); return;
     }
-
     setSubmitting(true);
     try {
       await challengeService.createChallenge({
@@ -60,68 +59,74 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated }: Props
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>챌린지 만들기</h2>
-          <button className="modal-close-btn" onClick={onClose}><X size={20} /></button>
+    <div className="feedback-overlay" onClick={onClose}>
+      <div className="feedback-sheet challenge-create-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="feedback-handle" />
+
+        <div className="race-modal-header">
+          <h3>챌린지 만들기</h3>
+          <button className="race-modal-close" onClick={onClose}><X size={20} /></button>
         </div>
 
-        <div className="modal-body">
-          <div className="form-group">
+        <div className="race-form">
+          {/* 챌린지 이름 */}
+          <div className="race-form-group">
             <label>챌린지 이름</label>
             <input
-              className="form-input"
-              placeholder="예: 26년 05월 연휴 챌린지!"
+              className="race-input"
+              placeholder="예: 5월 연휴 챌린지!"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={40}
             />
           </div>
 
-          <div className="form-group">
-            <label>시작일</label>
-            <input
-              type="date"
-              className="form-input"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
+          {/* 기간 */}
+          <div className="race-form-row">
+            <div className="race-form-group">
+              <label>시작일</label>
+              <input
+                type="date"
+                className="race-input"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="race-form-group">
+              <label>종료일</label>
+              <input
+                type="date"
+                className="race-input"
+                value={endDate}
+                min={startDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="form-group">
-            <label>종료일</label>
-            <input
-              type="date"
-              className="form-input"
-              value={endDate}
-              min={startDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
+          {/* 허용 종목 */}
+          <div className="race-form-group">
             <label>허용 종목</label>
-            <div className="challenge-allowed-toggle">
+            <div className="challenge-allowed-row">
               <button
-                className={`workout-type-chip ${allAllowed ? 'selected' : ''}`}
+                className={`challenge-scope-btn ${allAllowed ? 'active' : ''}`}
                 onClick={() => setAllAllowed(true)}
               >
-                전체 허용
+                전체
               </button>
               <button
-                className={`workout-type-chip ${!allAllowed ? 'selected' : ''}`}
+                className={`challenge-scope-btn ${!allAllowed ? 'active' : ''}`}
                 onClick={() => setAllAllowed(false)}
               >
-                종목 지정
+                직접 선택
               </button>
             </div>
             {!allAllowed && (
-              <div className="workout-type-grid" style={{ marginTop: 10 }}>
+              <div className="challenge-category-chips">
                 {workoutTypes.map((type) => (
                   <button
                     key={type.id}
-                    className={`workout-type-chip ${selectedCategories.includes(type.name) ? 'selected' : ''}`}
+                    className={`challenge-category-chip ${selectedCategories.includes(type.name) ? 'active' : ''}`}
                     onClick={() => toggleCategory(type.name)}
                   >
                     {type.emoji} {type.name}
@@ -131,13 +136,14 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated }: Props
             )}
           </div>
 
-          {error && <p className="form-error">{error}</p>}
-        </div>
+          {error && <p className="challenge-create-error">{error}</p>}
 
-        <div className="modal-footer">
-          <button className="btn-secondary" onClick={onClose}>취소</button>
-          <button className="btn-primary" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? '생성 중...' : '만들기'}
+          <button
+            className="challenge-create-submit"
+            onClick={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting ? '생성 중...' : '챌린지 열기'}
           </button>
         </div>
       </div>
