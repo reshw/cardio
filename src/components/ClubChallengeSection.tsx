@@ -33,7 +33,7 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
   const loadChallenges = useCallback(async () => {
     setLoading(true);
     try {
-      const challenges = await challengeService.getActiveChallengesForClub(club.id);
+      const challenges = await challengeService.getActiveChallengesForClub(club.id).catch(() => []);
       const states: ChallengeState[] = await Promise.all(
         challenges.map(async (c, idx) => {
           const myParticipant = await challengeService.getMyParticipant(c.id, userId);
@@ -56,6 +56,8 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
         })
       );
       setChallengeStates(states);
+    } catch {
+      // 챌린지 로드 실패 시 섹션만 숨김, 페이지 크래시 방지
     } finally {
       setLoading(false);
     }
