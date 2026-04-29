@@ -157,17 +157,30 @@ const challengeService = {
     // 참여자 목록
     const { data: participants, error } = await supabase
       .from('challenge_participants')
-      .select(`
-        *,
-        user:club_members!inner(club_nickname, user:users(display_name, profile_image))
-      `)
+      .select('*')
       .eq('challenge_id', challenge.id);
 
     if (error) throw error;
     if (!participants || participants.length === 0) return [];
 
-    // 챌린지 기간 내 전체 운동 기록 한 번에 가져오기
+    // 유저 정보 별도 조회 (club_members에서 club_nickname, users에서 display_name)
     const userIds = participants.map((p: ChallengeParticipant) => p.user_id);
+    const { data: members } = await supabase
+      .from('club_members')
+      .select('user_id, club_nickname, user:users(display_name, profile_image)')
+      .eq('club_id', _clubId)
+      .in('user_id', userIds);
+
+    const memberMap = Object.fromEntries(
+      (members || []).map((m: any) => [m.user_id, m])
+    );
+
+    // 참여자에 유저 정보 병합
+    participants.forEach((p: any) => {
+      p.user = memberMap[p.user_id] || null;
+    });
+
+    // 챌린지 기간 내 전체 운동 기록 한 번에 가져오기
     const { data: workouts } = await supabase
       .from('workouts')
       .select('user_id, value, unit, category, sub_type, workout_time')
