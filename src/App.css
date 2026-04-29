@@ -8950,6 +8950,87 @@ body.workout-detail-open .bottom-nav {
   cursor: not-allowed;
 }
 
+/* ============================================
+   챌린지 참여 모달
+   ============================================ */
+.challenge-join-sheet {
+  gap: 0;
+}
+
+.challenge-join-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 20px 24px;
+  overflow-y: auto;
+}
+
+.challenge-join-challenge-name {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.challenge-join-back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  padding: 2px;
+}
+
+.challenge-join-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.challenge-join-section-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.challenge-join-other-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 0;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.challenge-join-value-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.challenge-join-value-input {
+  flex: 1;
+}
+
+.challenge-join-unit {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.challenge-join-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+}
+
 .race-time-input {
   font-size: 20px;
   font-weight: 700;
