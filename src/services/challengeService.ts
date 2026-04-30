@@ -46,6 +46,7 @@ export interface Challenge {
   status: 'active' | 'ended';
   theme_color: string;
   allowed_categories: string[] | null;
+  allow_late_join: boolean;
   created_at: string;
 }
 
@@ -56,6 +57,7 @@ export interface CreateChallengeData {
   start_date: string;
   end_date: string;
   allowed_categories?: string[] | null;
+  allow_late_join?: boolean;
 }
 
 export interface ChallengeParticipant {
@@ -111,6 +113,7 @@ const challengeService = {
         start_date: data.start_date,
         end_date: data.end_date,
         allowed_categories: data.allowed_categories ?? null,
+        allow_late_join: data.allow_late_join ?? false,
         status: 'active',
         theme_color: '#8b5cf6',
       })
@@ -160,29 +163,39 @@ const challengeService = {
     return data;
   },
 
-  // 단일 종목 progress 계산
+  // 단일 종목 progress 계산 (단건용, 내부적으로 bulk 위임)
   async calcParticipantProgress(
     challenge: Challenge,
     participant: ChallengeParticipant
   ): Promise<{ current_value: number; pct: number; achieved: boolean }> {
-    let query = supabase
+    const results = await this.calcMyProgressBulk(challenge, [participant]);
+    return results[0] ?? { current_value: 0, pct: 0, achieved: false };
+  },
+
+  // 내 참여 종목 전체를 workouts 1회 쿼리로 계산
+  async calcMyProgressBulk(
+    challenge: Challenge,
+    participants: ChallengeParticipant[]
+  ): Promise<{ current_value: number; pct: number; achieved: boolean }[]> {
+    if (participants.length === 0) return [];
+
+    const { data: workouts } = await supabase
       .from('workouts')
-      .select('value')
-      .eq('user_id', participant.user_id)
-      .eq('category', participant.category)
+      .select('value, category, sub_type')
+      .eq('user_id', participants[0].user_id)
       .gte('workout_time', challenge.start_date)
       .lte('workout_time', challenge.end_date + 'T23:59:59+09:00');
 
-    if (participant.sub_type) {
-      query = query.eq('sub_type', participant.sub_type);
-    }
-
-    const { data: workouts } = await query;
-    const current_value = Math.round(
-      (workouts || []).reduce((sum: number, w: { value: number }) => sum + w.value, 0) * 10
-    ) / 10;
-    const pct = Math.min(100, Math.round((current_value / participant.target_value) * 100));
-    return { current_value, pct, achieved: pct >= 100 };
+    const wks = workouts || [];
+    return participants.map((p) => {
+      const current_value = Math.round(
+        wks
+          .filter((w) => w.category === p.category && (p.sub_type ? w.sub_type === p.sub_type : true))
+          .reduce((sum, w) => sum + w.value, 0) * 10
+      ) / 10;
+      const pct = Math.min(100, Math.round((current_value / p.target_value) * 100));
+      return { current_value, pct, achieved: pct >= 100 };
+    });
   },
 
   // 챌린지 전체 참여자 progress (유저별 그룹)
@@ -282,6 +295,93 @@ const challengeService = {
   getChallengeDuration(startDate: string, endDate: string): number {
     return dateStrDiff(endDate, startDate) + 1;
   },
+
+  // 목표 검증: 챌린지 시작 전 30일 실적 기반 개인별 목표 적정성 분석
+  async getGoalValidation(
+    challenge: Challenge,
+    clubId: string
+  ): Promise<GoalValidationRow[]> {
+    const { data: participants, error } = await supabase
+      .from('challenge_participants')
+      .select('*')
+      .eq('challenge_id', challenge.id);
+    if (error) throw error;
+    if (!participants || participants.length === 0) return [];
+
+    const userIds = [...new Set(participants.map((p: ChallengeParticipant) => p.user_id))];
+
+    const { data: members } = await supabase
+      .from('club_members')
+      .select('user_id, club_nickname')
+      .eq('club_id', clubId)
+      .in('user_id', userIds);
+    const memberMap: Record<string, string> = Object.fromEntries(
+      (members || []).map((m: any) => [m.user_id, m.club_nickname || ''])
+    );
+
+    // 기준 기간: start_date 기준 30일 전 ~ 하루 전
+    const refEnd = new Date(challenge.start_date);
+    refEnd.setDate(refEnd.getDate() - 1);
+    const refStart = new Date(challenge.start_date);
+    refStart.setDate(refStart.getDate() - 30);
+    const refStartStr = refStart.toISOString().split('T')[0];
+    const refEndStr = refEnd.toISOString().split('T')[0];
+
+    const duration = dateStrDiff(challenge.end_date, challenge.start_date) + 1;
+
+    const { data: workouts } = await supabase
+      .from('workouts')
+      .select('user_id, value, category, sub_type')
+      .in('user_id', userIds)
+      .gte('workout_time', refStartStr)
+      .lte('workout_time', refEndStr + 'T23:59:59+09:00');
+    const wks = workouts || [];
+
+    return participants.map((p: ChallengeParticipant) => {
+      const displayName = memberMap[p.user_id] || p.user_id.slice(0, 8);
+      const refTotal = wks
+        .filter((w) => w.user_id === p.user_id && w.category === p.category && (p.sub_type ? w.sub_type === p.sub_type : true))
+        .reduce((sum, w) => sum + w.value, 0);
+      const dailyAvg = refTotal / 30;
+      const projected = dailyAvg * duration;
+      const ratio = projected > 0 ? Math.round((p.target_value / projected) * 100) : null;
+
+      let verdict: '😴 낮음' | '✅ 적정' | '🔥 도전적' | '⚠️ 과도' | '📊 데이터 없음';
+      if (ratio === null || refTotal === 0) verdict = '📊 데이터 없음';
+      else if (ratio < 70) verdict = '😴 낮음';
+      else if (ratio <= 130) verdict = '✅ 적정';
+      else if (ratio <= 200) verdict = '🔥 도전적';
+      else verdict = '⚠️ 과도';
+
+      return {
+        user_id: p.user_id,
+        displayName,
+        category: p.category,
+        sub_type: p.sub_type,
+        target_value: p.target_value,
+        unit: p.unit,
+        daily_avg: Math.round(dailyAvg * 10) / 10,
+        projected: Math.round(projected * 10) / 10,
+        ratio,
+        verdict,
+        ref_period: `${refStartStr} ~ ${refEndStr}`,
+      };
+    }).sort((a, b) => a.displayName.localeCompare(b.displayName, 'ko'));
+  },
 };
+
+export interface GoalValidationRow {
+  user_id: string;
+  displayName: string;
+  category: string;
+  sub_type: string | null;
+  target_value: number;
+  unit: string;
+  daily_avg: number;
+  projected: number;
+  ratio: number | null;
+  verdict: '😴 낮음' | '✅ 적정' | '🔥 도전적' | '⚠️ 과도' | '📊 데이터 없음';
+  ref_period: string;
+}
 
 export default challengeService;
