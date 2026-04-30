@@ -20,6 +20,7 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated }: Props
   const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [allAllowed, setAllAllowed] = useState(true);
+  const [allowLateJoin, setAllowLateJoin] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -49,6 +50,7 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated }: Props
         start_date: startDate,
         end_date: endDate,
         allowed_categories: allAllowed ? null : selectedCategories,
+        allow_late_join: allowLateJoin,
       });
       onCreated();
     } catch {
@@ -135,6 +137,21 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated }: Props
               </div>
             )}
           </div>
+
+          {/* 시작 후 참여 허용 */}
+          <label className="challenge-toggle-row">
+            <span className="challenge-toggle-label">
+              시작 후 참여 허용
+              <span className="challenge-toggle-hint">끄면 시작일 이후 신규 참여 불가</span>
+            </span>
+            <input
+              type="checkbox"
+              className="challenge-toggle-input"
+              checked={allowLateJoin}
+              onChange={(e) => setAllowLateJoin(e.target.checked)}
+            />
+            <span className={`challenge-toggle-track ${allowLateJoin ? 'on' : ''}`} />
+          </label>
 
           {error && <p className="challenge-create-error">{error}</p>}
 
