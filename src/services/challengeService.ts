@@ -1,5 +1,18 @@
 import { supabase } from '../lib/supabase';
 
+// KST(UTC+9) 기준 오늘 날짜를 'YYYY-MM-DD' 문자열로 반환
+const todayKST = (): string => {
+  const now = new Date();
+  const kst = new Date(now.getTime() + (now.getTimezoneOffset() + 540) * 60000);
+  return kst.toISOString().split('T')[0];
+};
+
+// 'YYYY-MM-DD' 문자열 기준 날짜 차이 (a - b, 일 단위)
+const dateStrDiff = (a: string, b: string): number => {
+  const msPerDay = 1000 * 60 * 60 * 24;
+  return Math.round((new Date(a).getTime() - new Date(b).getTime()) / msPerDay);
+};
+
 export type GoalMetric = 'total_workouts' | 'total_distance' | 'total_duration' | 'total_volume' | 'custom';
 
 export const METRIC_LABELS: Record<GoalMetric, string> = {
@@ -73,7 +86,6 @@ export interface UserProgress {
 
 const challengeService = {
   async getActiveChallengesForClub(clubId: string): Promise<Challenge[]> {
-    const today = new Date().toISOString().split('T')[0];
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     const { data, error } = await supabase
@@ -81,9 +93,8 @@ const challengeService = {
       .select('*')
       .eq('club_id', clubId)
       .eq('scope', 'club')
-      .lte('start_date', today)
-      .gte('end_date', oneWeekAgo)
-      .order('created_at', { ascending: false });
+      .gte('end_date', oneWeekAgo)   // 종료 후 1주일까지만 표시 (start_date 제한 제거)
+      .order('start_date', { ascending: true });
 
     if (error) throw error;
     return data || [];
@@ -252,15 +263,24 @@ const challengeService = {
   },
 
   getDaysLeft(endDate: string): number {
-    const end = new Date(endDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const diff = end.getTime() - today.getTime();
-    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+    const diff = dateStrDiff(endDate, todayKST());
+    return Math.max(0, diff);
   },
 
   isEnded(endDate: string): boolean {
-    return new Date(endDate) < new Date(new Date().setHours(0, 0, 0, 0));
+    return dateStrDiff(endDate, todayKST()) < 0;
+  },
+
+  isUpcoming(startDate: string): boolean {
+    return dateStrDiff(startDate, todayKST()) > 0;
+  },
+
+  getDaysUntilStart(startDate: string): number {
+    return dateStrDiff(startDate, todayKST());
+  },
+
+  getChallengeDuration(startDate: string, endDate: string): number {
+    return dateStrDiff(endDate, startDate) + 1;
   },
 };
 

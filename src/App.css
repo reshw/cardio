@@ -3749,6 +3749,30 @@ body.search-modal-open .bottom-nav {
   color: var(--text-secondary);
 }
 
+.challenge-duration {
+  color: var(--text-secondary);
+  margin-left: 4px;
+  opacity: 0.75;
+}
+
+.challenge-upcoming-badge {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.challenge-card-v2.upcoming {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, var(--card-bg), rgba(245, 158, 11, 0.04));
+}
+
+.challenge-upcoming-joined {
+  font-size: 13px;
+  color: #f59e0b;
+  font-weight: 600;
+  padding: 4px 0 2px;
+  cursor: pointer;
+}
+
 .challenge-card-right {
   display: flex;
   align-items: center;
