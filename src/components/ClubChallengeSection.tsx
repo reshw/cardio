@@ -36,7 +36,7 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
     try {
       const challenges = await challengeService.getActiveChallengesForClub(club.id).catch(() => []);
       const states: ChallengeState[] = await Promise.all(
-        challenges.map(async (c, idx) => {
+        challenges.map(async (c) => {
           const myParticipants = await challengeService.getMyParticipants(c.id, userId).catch(() => []);
           let myOverallPct = 0;
           if (myParticipants.length > 0) {
