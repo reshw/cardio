@@ -262,7 +262,7 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
                           </span>
                         </div>
                       ))}
-                    {!ended && (
+                    {upcoming && !ended && (
                       <button
                         className="challenge-join-add-btn small"
                         onClick={(e) => { e.stopPropagation(); setJoiningChallenge(challenge); }}
