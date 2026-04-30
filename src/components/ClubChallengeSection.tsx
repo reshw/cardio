@@ -157,7 +157,10 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
       {challengeStates.map((cs) => {
         const { challenge, expanded, myParticipants, myOverallPct } = cs;
         const ended = challengeService.isEnded(challenge.end_date);
+        const upcoming = challengeService.isUpcoming(challenge.start_date);
         const daysLeft = challengeService.getDaysLeft(challenge.end_date);
+        const daysUntilStart = upcoming ? challengeService.getDaysUntilStart(challenge.start_date) : 0;
+        const duration = challengeService.getChallengeDuration(challenge.start_date, challenge.end_date);
         const searchQuery = searchQueries[challenge.id] || '';
         const hasJoined = myParticipants.length > 0;
 
@@ -167,14 +170,18 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
         const achievedCount = cs.usersProgress.filter((up) => up.allAchieved).length;
 
         return (
-          <div key={challenge.id} className={`challenge-card-v2 ${ended ? 'ended' : ''}`}>
+          <div key={challenge.id} className={`challenge-card-v2 ${ended ? 'ended' : ''} ${upcoming ? 'upcoming' : ''}`}>
             {/* 헤더 */}
             <div className="challenge-card-header-v2" onClick={() => toggleExpand(challenge.id)}>
               <div className="challenge-card-meta">
                 <span className="challenge-card-title">{challenge.title}</span>
                 <span className="challenge-card-period">
-                  {challenge.start_date} ~ {challenge.end_date}
-                  {!ended && daysLeft > 0 && (
+                  {challenge.start_date.replace(/-/g, '.')} ~ {challenge.end_date.replace(/-/g, '.')}
+                  <span className="challenge-duration">({duration}일간)</span>
+                  {upcoming && (
+                    <span className="challenge-upcoming-badge"> · D-{daysUntilStart} 시작 예정</span>
+                  )}
+                  {!upcoming && !ended && daysLeft > 0 && (
                     <span className="challenge-days-left"> · {daysLeft}일 남음</span>
                   )}
                   {ended && <span className="challenge-ended-badge"> · 종료</span>}
@@ -202,27 +209,33 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
 
             {/* 내 달성률 or 참여하기 */}
             {hasJoined ? (
-              <div className="challenge-my-progress" onClick={() => toggleExpand(challenge.id)}>
-                <div className="challenge-progress-bar-wrap">
-                  <div
-                    className="challenge-progress-bar-fill"
-                    style={{
-                      width: `${myOverallPct}%`,
-                      background: myOverallPct >= 100 ? '#22c55e' : '#8b5cf6',
-                    }}
-                  />
+              upcoming ? (
+                <div className="challenge-upcoming-joined" onClick={() => toggleExpand(challenge.id)}>
+                  참여 선언 완료 · {myParticipants.length}개 종목
                 </div>
-                <span className="challenge-my-pct">
-                  내 달성률 {myOverallPct}%
-                  {myParticipants.length > 1 && ` (${myParticipants.length}개 종목)`}
-                </span>
-              </div>
+              ) : (
+                <div className="challenge-my-progress" onClick={() => toggleExpand(challenge.id)}>
+                  <div className="challenge-progress-bar-wrap">
+                    <div
+                      className="challenge-progress-bar-fill"
+                      style={{
+                        width: `${myOverallPct}%`,
+                        background: myOverallPct >= 100 ? '#22c55e' : '#8b5cf6',
+                      }}
+                    />
+                  </div>
+                  <span className="challenge-my-pct">
+                    내 달성률 {myOverallPct}%
+                    {myParticipants.length > 1 && ` (${myParticipants.length}개 종목)`}
+                  </span>
+                </div>
+              )
             ) : !ended ? (
               <button
                 className="challenge-join-btn"
                 onClick={(e) => { e.stopPropagation(); setJoiningChallenge(challenge); }}
               >
-                참여하기
+                {upcoming ? '사전 참여 선언' : '참여하기'}
               </button>
             ) : null}
 
