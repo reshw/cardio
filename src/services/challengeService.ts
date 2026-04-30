@@ -1,6 +1,35 @@
 import { supabase } from '../lib/supabase';
 
+// KST(UTC+9) 기준 오늘 날짜를 'YYYY-MM-DD' 문자열로 반환
+const todayKST = (): string => {
+  const now = new Date();
+  const kst = new Date(now.getTime() + (now.getTimezoneOffset() + 540) * 60000);
+  return kst.toISOString().split('T')[0];
+};
+
+// 'YYYY-MM-DD' 문자열 기준 날짜 차이 (a - b, 일 단위)
+const dateStrDiff = (a: string, b: string): number => {
+  const msPerDay = 1000 * 60 * 60 * 24;
+  return Math.round((new Date(a).getTime() - new Date(b).getTime()) / msPerDay);
+};
+
 export type GoalMetric = 'total_workouts' | 'total_distance' | 'total_duration' | 'total_volume' | 'custom';
+
+export const METRIC_LABELS: Record<GoalMetric, string> = {
+  total_workouts: '총 운동 횟수',
+  total_distance: '총 거리 (km)',
+  total_duration: '총 시간 (분)',
+  total_volume: '총 운동량',
+  custom: '목표 달성',
+};
+
+export const METRIC_UNITS: Record<GoalMetric, string> = {
+  total_workouts: '회',
+  total_distance: 'km',
+  total_duration: '분',
+  total_volume: '',
+  custom: '',
+};
 
 export interface Challenge {
   id: string;
@@ -9,13 +38,14 @@ export interface Challenge {
   created_by: string | null;
   title: string;
   description: string | null;
-  goal_metric: GoalMetric;
-  goal_value: number;
+  goal_metric: GoalMetric | null;
+  goal_value: number | null;
   current_value: number;
   start_date: string;
   end_date: string;
-  status: 'active' | 'completed' | 'failed';
+  status: 'active' | 'ended';
   theme_color: string;
+  allowed_categories: string[] | null;
   created_at: string;
 }
 
@@ -23,93 +53,51 @@ export interface CreateChallengeData {
   club_id: string;
   created_by: string;
   title: string;
-  description?: string;
-  goal_metric: GoalMetric;
-  goal_value: number;
   start_date: string;
   end_date: string;
-  theme_color?: string;
+  allowed_categories?: string[] | null;
 }
 
-const METRIC_LABELS: Record<GoalMetric, string> = {
-  total_workouts: '총 운동 횟수',
-  total_distance: '총 거리 (km)',
-  total_duration: '총 시간 (분)',
-  total_volume: '총 운동량',
-  custom: '목표 달성',
-};
+export interface ChallengeParticipant {
+  id: string;
+  challenge_id: string;
+  user_id: string;
+  category: string;
+  sub_type: string | null;
+  target_value: number;
+  unit: string;
+  created_at: string;
+}
 
-const METRIC_UNITS: Record<GoalMetric, string> = {
-  total_workouts: '회',
-  total_distance: 'km',
-  total_duration: '분',
-  total_volume: '',
-  custom: '',
-};
+// 유저별 집계 progress
+export interface UserProgress {
+  user_id: string;
+  displayName: string;
+  profileImage?: string;
+  targets: {
+    participant: ChallengeParticipant;
+    current_value: number;
+    pct: number;
+    achieved: boolean;
+  }[];
+  overallPct: number;
+  allAchieved: boolean;
+}
 
 const challengeService = {
-  METRIC_LABELS,
-  METRIC_UNITS,
-
   async getActiveChallengesForClub(clubId: string): Promise<Challenge[]> {
-    const today = new Date().toISOString().split('T')[0];
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     const { data, error } = await supabase
       .from('challenges')
       .select('*')
-      .eq('status', 'active')
-      .lte('start_date', today)
-      .gte('end_date', today)
-      .or(`scope.eq.global,club_id.eq.${clubId}`)
-      .order('created_at', { ascending: false });
+      .eq('club_id', clubId)
+      .eq('scope', 'club')
+      .gte('end_date', oneWeekAgo)   // 종료 후 1주일까지만 표시 (start_date 제한 제거)
+      .order('start_date', { ascending: true });
 
     if (error) throw error;
     return data || [];
-  },
-
-  // userId 지정 시 개인 진행률, 없으면 클럽 전체 집계
-  async calcProgress(challenge: Challenge, clubId: string, userId?: string): Promise<number> {
-    const start = challenge.start_date;
-    const end = challenge.end_date + 'T23:59:59+09:00';
-
-    let query = supabase
-      .from('workouts')
-      .select('value, unit')
-      .gte('workout_time', start)
-      .lte('workout_time', end);
-
-    if (userId) {
-      query = query.eq('user_id', userId);
-    } else {
-      const { data: members } = await supabase
-        .from('club_members')
-        .select('user_id')
-        .eq('club_id', clubId);
-      const memberIds = (members || []).map((m: { user_id: string }) => m.user_id);
-      if (memberIds.length === 0) return 0;
-      query = query.in('user_id', memberIds);
-    }
-
-    const { data: wks } = await query;
-
-    if (!wks) return 0;
-
-    switch (challenge.goal_metric) {
-      case 'total_workouts':
-        return wks.length;
-      case 'total_distance':
-        return Math.round(
-          wks.filter((w) => w.unit === 'km').reduce((s, w) => s + w.value, 0) * 10
-        ) / 10;
-      case 'total_duration':
-        return wks.filter((w) => w.unit === '분').reduce((s, w) => s + w.value, 0);
-      case 'total_volume':
-        return wks.reduce((s, w) => s + w.value, 0);
-      case 'custom':
-        return Math.round(
-          wks.filter((w) => w.unit === 'km').reduce((s, w) => s + w.value, 0) * 10
-        ) / 10;
-    }
   },
 
   async createChallenge(data: CreateChallengeData): Promise<Challenge> {
@@ -120,13 +108,11 @@ const challengeService = {
         club_id: data.club_id,
         created_by: data.created_by,
         title: data.title,
-        description: data.description || null,
-        goal_metric: data.goal_metric,
-        goal_value: data.goal_value,
         start_date: data.start_date,
         end_date: data.end_date,
-        theme_color: data.theme_color || '#8b5cf6',
+        allowed_categories: data.allowed_categories ?? null,
         status: 'active',
+        theme_color: '#8b5cf6',
       })
       .select()
       .single();
@@ -143,12 +129,158 @@ const challengeService = {
     if (error) throw error;
   },
 
+  // 내 참여 목록 (다종목)
+  async getMyParticipants(challengeId: string, userId: string): Promise<ChallengeParticipant[]> {
+    const { data, error } = await supabase
+      .from('challenge_participants')
+      .select('*')
+      .eq('challenge_id', challengeId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // 종목별 참여 선언 (단건)
+  async joinChallenge(params: {
+    challenge_id: string;
+    user_id: string;
+    category: string;
+    sub_type: string | null;
+    target_value: number;
+    unit: string;
+  }): Promise<ChallengeParticipant> {
+    const { data, error } = await supabase
+      .from('challenge_participants')
+      .insert(params)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // 단일 종목 progress 계산
+  async calcParticipantProgress(
+    challenge: Challenge,
+    participant: ChallengeParticipant
+  ): Promise<{ current_value: number; pct: number; achieved: boolean }> {
+    let query = supabase
+      .from('workouts')
+      .select('value')
+      .eq('user_id', participant.user_id)
+      .eq('category', participant.category)
+      .gte('workout_time', challenge.start_date)
+      .lte('workout_time', challenge.end_date + 'T23:59:59+09:00');
+
+    if (participant.sub_type) {
+      query = query.eq('sub_type', participant.sub_type);
+    }
+
+    const { data: workouts } = await query;
+    const current_value = Math.round(
+      (workouts || []).reduce((sum: number, w: { value: number }) => sum + w.value, 0) * 10
+    ) / 10;
+    const pct = Math.min(100, Math.round((current_value / participant.target_value) * 100));
+    return { current_value, pct, achieved: pct >= 100 };
+  },
+
+  // 챌린지 전체 참여자 progress (유저별 그룹)
+  async getParticipantsWithProgress(
+    challenge: Challenge,
+    clubId: string
+  ): Promise<UserProgress[]> {
+    const { data: participants, error } = await supabase
+      .from('challenge_participants')
+      .select('*')
+      .eq('challenge_id', challenge.id);
+
+    if (error) throw error;
+    if (!participants || participants.length === 0) return [];
+
+    const userIds = [...new Set(participants.map((p: ChallengeParticipant) => p.user_id))];
+
+    // 유저 정보 — club_nickname만 (users join FK 없음)
+    const { data: members } = await supabase
+      .from('club_members')
+      .select('user_id, club_nickname')
+      .eq('club_id', clubId)
+      .in('user_id', userIds);
+
+    const memberMap: Record<string, any> = Object.fromEntries(
+      (members || []).map((m: any) => [m.user_id, m])
+    );
+
+    // 운동 기록 한 번에
+    const { data: workouts } = await supabase
+      .from('workouts')
+      .select('user_id, value, category, sub_type, workout_time')
+      .in('user_id', userIds)
+      .gte('workout_time', challenge.start_date)
+      .lte('workout_time', challenge.end_date + 'T23:59:59+09:00');
+
+    const wks = workouts || [];
+
+    // 유저별 그룹
+    const userMap: Record<string, ChallengeParticipant[]> = {};
+    participants.forEach((p: ChallengeParticipant) => {
+      if (!userMap[p.user_id]) userMap[p.user_id] = [];
+      userMap[p.user_id].push(p);
+    });
+
+    return Object.entries(userMap).map(([userId, targets]) => {
+      const member = memberMap[userId];
+      const displayName = member?.club_nickname || '(닉네임 없음)';
+      const profileImage = undefined;
+
+      const targetProgresses = targets.map((p) => {
+        const current_value = Math.round(
+          wks
+            .filter((w) =>
+              w.user_id === userId &&
+              w.category === p.category &&
+              (p.sub_type ? w.sub_type === p.sub_type : true)
+            )
+            .reduce((sum: number, w: { value: number }) => sum + w.value, 0) * 10
+        ) / 10;
+        const pct = Math.min(100, Math.round((current_value / p.target_value) * 100));
+        return { participant: p, current_value, pct, achieved: pct >= 100 };
+      });
+
+      const overallPct = Math.round(
+        targetProgresses.reduce((sum, t) => sum + t.pct, 0) / targetProgresses.length
+      );
+
+      return {
+        user_id: userId,
+        displayName,
+        profileImage,
+        targets: targetProgresses,
+        overallPct,
+        allAchieved: targetProgresses.every((t) => t.achieved),
+      };
+    }).sort((a, b) => a.displayName.localeCompare(b.displayName, 'ko'));
+  },
+
   getDaysLeft(endDate: string): number {
-    const end = new Date(endDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const diff = end.getTime() - today.getTime();
-    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+    const diff = dateStrDiff(endDate, todayKST());
+    return Math.max(0, diff);
+  },
+
+  isEnded(endDate: string): boolean {
+    return dateStrDiff(endDate, todayKST()) < 0;
+  },
+
+  isUpcoming(startDate: string): boolean {
+    return dateStrDiff(startDate, todayKST()) > 0;
+  },
+
+  getDaysUntilStart(startDate: string): number {
+    return dateStrDiff(startDate, todayKST());
+  },
+
+  getChallengeDuration(startDate: string, endDate: string): number {
+    return dateStrDiff(endDate, startDate) + 1;
   },
 };
 

@@ -18,6 +18,25 @@ import {
 type TabType = 'calendar' | 'list' | 'stats' | 'records';
 
 const CATEGORY_GROUPS: Record<string, string> = { '러닝': '달리기', '트레드밀': '달리기' };
+
+const DISTANCE_MILESTONES = [
+  { km: 15,  label: '서울→수원' },
+  { km: 90,  label: '서울→천안' },
+  { km: 140, label: '서울→대전' },
+  { km: 240, label: '서울→대구' },
+  { km: 400, label: '서울→부산' },
+  { km: 700, label: '한반도 종단' },
+];
+
+const getMilestoneProgress = (km: number) => {
+  const passed   = DISTANCE_MILESTONES.filter((m) => km >= m.km);
+  const upcoming = DISTANCE_MILESTONES.filter((m) => km <  m.km);
+  const current  = passed.at(-1) ?? null;
+  const next     = upcoming[0]   ?? null;
+  const fromKm   = current?.km ?? 0;
+  const pct      = next ? Math.min(Math.round(((km - fromKm) / (next.km - fromKm)) * 100), 99) : 100;
+  return { current, next, pct };
+};
 const getCatGroup = (category: string) => CATEGORY_GROUPS[category] || category;
 
 export const History = () => {
@@ -145,7 +164,7 @@ export const History = () => {
       const d = new Date(w.workout_time);
       return d.getMonth() === month && d.getFullYear() === year;
     });
-    const totalDistance = monthWorkouts.filter((w) => w.unit === 'km').reduce((s, w) => s + w.value, 0);
+    const totalDistance = monthWorkouts.filter((w) => w.unit === 'km' || w.unit === 'm').reduce((s, w) => s + (w.unit === 'm' ? w.value / 1000 : w.value), 0);
     const uniqueDays = new Set(monthWorkouts.map((w) => new Date(w.workout_time).toDateString())).size;
     const categoryCount: Record<string, number> = {};
     const distanceByGroup: Record<string, number> = {};
@@ -155,7 +174,10 @@ export const History = () => {
       categoryCount[label] = (categoryCount[label] || 0) + 1;
       const group = getCatGroup(w.category);
       countByGroup[group] = (countByGroup[group] || 0) + 1;
-      if (w.unit === 'km') distanceByGroup[group] = (distanceByGroup[group] || 0) + w.value;
+      if (w.unit === 'km' || w.unit === 'm') {
+        const distKm = w.unit === 'm' ? w.value / 1000 : w.value;
+        distanceByGroup[group] = (distanceByGroup[group] || 0) + distKm;
+      }
     });
     return { totalWorkouts: monthWorkouts.length, totalDistance, workoutDays: uniqueDays, categoryCount, distanceByGroup, countByGroup };
   };
@@ -169,7 +191,7 @@ export const History = () => {
     return { label: `${m + 1}월`, year: y, month: m, ...s };
   });
 
-  const distanceCategories = Array.from(new Set(workouts.filter(w => w.unit === 'km').map(w => getCatGroup(w.category))));
+  const distanceCategories = Array.from(new Set(workouts.filter(w => w.unit === 'km' || w.unit === 'm').map(w => getCatGroup(w.category))));
   const selectedDistanceCat = distanceCategories[distanceCategoryIdx % Math.max(distanceCategories.length, 1)] ?? '';
 
   const stats = calcMonthStats(statsYear, statsMonth);
@@ -179,7 +201,7 @@ export const History = () => {
 
   const METRIC_CONFIG = {
     workoutDays:   { label: '운동일수', unit: '일',  key: 'workoutDays'   as const },
-    totalDistance: { label: '달린 거리', unit: 'km', key: 'totalDistance' as const },
+    totalDistance: { label: '이동 거리', unit: 'km', key: 'totalDistance' as const },
   };
 
   const renderDiffBadge = (cur: number, prev: number, unit: string) => {
@@ -490,7 +512,7 @@ export const History = () => {
 
             <div className="compare-card distance-card">
               <div className="compare-card-label">
-                달린 거리
+                이동 거리
                 {distanceCategories.length > 1 && (
                   <div className="distance-card-nav">
                     <button onClick={() => setDistanceCategoryIdx(i => (i - 1 + distanceCategories.length) % distanceCategories.length)}>‹</button>
@@ -567,6 +589,28 @@ export const History = () => {
                           </span>
                         )}
                       </div>
+                      {(() => {
+                        const { current, next, pct } = getMilestoneProgress(dist);
+                        if (!next && !current) return null;
+                        return (
+                          <div className="cat-gauge-milestone">
+                            <div className="milestone-bar-track">
+                              <div className="milestone-bar-fill" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="milestone-label-inline">
+                              {next ? (
+                                <>
+                                  <span className="milestone-dest">{next.label} ({next.km}km)</span>까지&nbsp;
+                                  <strong>{pct}%</strong>
+                                  {current && <span className="milestone-prev"> · {current.label} ✓</span>}
+                                </>
+                              ) : (
+                                <span className="milestone-complete">한반도 종단 달성! 🎉</span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}

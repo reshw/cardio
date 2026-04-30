@@ -3088,6 +3088,51 @@ body.search-modal-open .bottom-nav {
 }
 
 /* 달린거리 카드 카테고리 전환 */
+.cat-gauge-milestone {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.milestone-bar-track {
+  height: 4px;
+  background: var(--input-bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.milestone-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4FC3F7, #8B5CF6);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+  min-width: 3px;
+}
+
+.milestone-label-inline {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.milestone-dest {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.milestone-label-inline strong {
+  color: var(--primary-color);
+}
+
+.milestone-prev {
+  color: #22c55e;
+}
+
+.milestone-complete {
+  color: #8B5CF6;
+  font-weight: 600;
+}
+
 .distance-card-nav {
   display: flex;
   align-items: center;
@@ -3613,6 +3658,419 @@ body.search-modal-open .bottom-nav {
 
 .challenge-goal {
   color: var(--text-secondary);
+}
+
+/* ============================================
+   챌린지 섹션 v2 (ClubChallengeSection)
+   ============================================ */
+.challenge-section {
+  padding: 12px 16px 0;
+}
+
+.challenge-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.challenge-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.challenge-create-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--primary-color);
+  background: none;
+  border: 1px solid var(--primary-color);
+  border-radius: 14px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+
+.challenge-empty {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 12px 0;
+}
+
+.challenge-card-v2 {
+  background: var(--card-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.challenge-card-v2.ended {
+  opacity: 0.7;
+}
+
+.challenge-card-header-v2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.challenge-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.challenge-card-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.challenge-card-period {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.challenge-days-left {
+  color: #f97316;
+  font-weight: 600;
+}
+
+.challenge-ended-badge {
+  color: var(--text-secondary);
+}
+
+.challenge-duration {
+  color: var(--text-secondary);
+  margin-left: 4px;
+  opacity: 0.75;
+}
+
+.challenge-upcoming-badge {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.challenge-card-v2.upcoming {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, var(--card-bg), rgba(245, 158, 11, 0.04));
+}
+
+.challenge-upcoming-joined {
+  font-size: 13px;
+  color: #f59e0b;
+  font-weight: 600;
+  padding: 4px 0 2px;
+  cursor: pointer;
+}
+
+.challenge-card-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.challenge-stats-icon {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.challenge-stats-icon:hover {
+  color: var(--primary-color);
+}
+
+.challenge-delete-icon {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.challenge-delete-icon:hover {
+  color: #ef4444;
+}
+
+.challenge-my-progress {
+  padding: 0 14px 12px;
+  cursor: pointer;
+}
+
+.challenge-my-progress .challenge-progress-bar-wrap {
+  margin-bottom: 4px;
+}
+
+.challenge-my-pct {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.challenge-join-empty {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 16px 0 8px;
+}
+
+.challenge-join-goals {
+  margin-bottom: 12px;
+}
+
+.challenge-join-goal-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.challenge-join-goal-name {
+  flex: 1;
+  font-size: 14px;
+}
+
+.challenge-join-goal-value {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.challenge-join-goal-remove {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.challenge-join-goal-remove:hover { color: #ef4444; }
+
+.challenge-join-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px;
+  background: none;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  color: var(--primary-color);
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.challenge-join-add-btn.small {
+  padding: 6px;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.challenge-participant-targets {
+  padding: 4px 0 4px 8px;
+  border-left: 2px solid var(--border-color);
+  margin-left: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.challenge-join-btn {
+  display: block;
+  margin: 0 14px 12px;
+  width: calc(100% - 28px);
+  padding: 8px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.challenge-progress-bar-wrap.small {
+  height: 5px;
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 40px;
+}
+
+.challenge-detail {
+  border-top: 1px solid var(--border-color);
+  padding: 12px 14px;
+}
+
+.challenge-total-stat {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.challenge-detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.challenge-my-categories {
+  margin-bottom: 14px;
+}
+
+.challenge-category-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.challenge-category-name {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 80px;
+  white-space: nowrap;
+}
+
+.challenge-category-stat {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.challenge-participants-section {
+  margin-top: 4px;
+}
+
+.challenge-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  color: var(--text-secondary);
+}
+
+.challenge-search-input {
+  background: none;
+  border: none;
+  outline: none;
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.challenge-participant-card {
+  margin-bottom: 8px;
+}
+
+.challenge-participant-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.challenge-participant-name {
+  font-size: 13px;
+  min-width: 72px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.challenge-participant-pct {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.challenge-participant-pct.achieved {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.challenge-participant-detail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 4px 8px;
+  border-left: 2px solid var(--border-color);
+  margin-left: 4px;
+}
+
+/* 챌린지 모달 공통 */
+.modal-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 2px 0 0;
+}
+
+.workout-type-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.workout-type-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.workout-type-chip.selected {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-unit {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.form-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
 }
 
 /* ============================================
@@ -8493,6 +8951,167 @@ body.workout-detail-open .bottom-nav {
 .race-input:focus {
   outline: none;
   border-color: var(--primary-color);
+}
+
+/* ============================================
+   챌린지 생성 모달
+   ============================================ */
+.challenge-create-sheet {
+  gap: 20px;
+}
+
+.challenge-allowed-row {
+  display: flex;
+  gap: 8px;
+}
+
+.challenge-scope-btn {
+  flex: 1;
+  padding: 9px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.challenge-scope-btn.active {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(79, 195, 247, 0.08);
+}
+
+.challenge-category-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.challenge-category-chip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.challenge-category-chip.active {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(79, 195, 247, 0.08);
+  font-weight: 600;
+}
+
+.challenge-create-error {
+  font-size: 13px;
+  color: #ef4444;
+  margin: 0;
+}
+
+.challenge-create-submit {
+  width: 100%;
+  padding: 14px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.challenge-create-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   챌린지 참여 모달
+   ============================================ */
+.challenge-join-sheet {
+  gap: 0;
+}
+
+.challenge-join-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 20px 24px;
+  overflow-y: auto;
+}
+
+.challenge-join-challenge-name {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.challenge-join-back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  padding: 2px;
+}
+
+.challenge-join-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.challenge-join-section-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.challenge-join-other-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 0;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.challenge-join-value-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.challenge-join-value-input {
+  flex: 1;
+}
+
+.challenge-join-unit {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.challenge-join-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
 }
 
 .race-time-input {
