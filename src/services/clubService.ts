@@ -1113,6 +1113,142 @@ class ClubService {
     return stats;
   }
 
+  // 챌린지 기간 상세 통계 (날짜 범위 기반)
+  async getClubStatsByDateRange(
+    clubId: string,
+    startDate: string,
+    endDate: string,
+    allowedCategories?: string[] | null
+  ): Promise<ClubDetailedStats[]> {
+    const { data: clubSettings } = await supabase
+      .from('clubs')
+      .select('count_excluded_workouts_in_days')
+      .eq('id', clubId)
+      .single();
+    const countExcludedWorkouts = clubSettings?.count_excluded_workouts_in_days ?? true;
+
+    const { data: configRows } = await supabase
+      .from('club_mileage_configs')
+      .select('category, sub_type')
+      .eq('club_id', clubId)
+      .eq('enabled', true);
+    let enabledCategories = (configRows || []).map((r) =>
+      r.sub_type ? `${r.category}-${r.sub_type}` : r.category
+    );
+    // 챌린지 허용 종목이 있으면 교집합으로 제한
+    if (allowedCategories && allowedCategories.length > 0) {
+      enabledCategories = enabledCategories.filter((c) => allowedCategories.includes(c));
+    }
+
+    const { data: members } = await supabase
+      .from('club_members')
+      .select('user_id, club_nickname')
+      .eq('club_id', clubId);
+
+    if (!members || members.length === 0) return [];
+
+    const userIds = members.map((m) => m.user_id);
+    const nicknameMap: Record<string, string> = {};
+    members.forEach((m) => { if (m.club_nickname) nicknameMap[m.user_id] = m.club_nickname; });
+
+    // 날짜 범위로 마일리지 조회
+    let mileageData: { user_id: string; workout_id: string; mileage: number; workout_date: string }[] = [];
+    {
+      const PAGE = 1000;
+      let from = 0;
+      while (true) {
+        const { data: page, error: pageError } = await supabase
+          .from('club_workout_mileage')
+          .select('user_id, workout_id, mileage, workout_date')
+          .eq('club_id', clubId)
+          .gte('workout_date', startDate)
+          .lte('workout_date', endDate)
+          .in('user_id', userIds)
+          .range(from, from + PAGE - 1);
+        if (pageError || !page || page.length === 0) break;
+        mileageData = [...mileageData, ...page];
+        if (page.length < PAGE) break;
+        from += PAGE;
+      }
+    }
+
+    if (mileageData.length === 0) return [];
+
+    const workoutIds = Array.from(new Set(mileageData.map((m) => m.workout_id)));
+    const CHUNK = 100;
+    let allWorkouts: { id: string; category: string; sub_type: string | null; value: number; unit: string }[] = [];
+    for (let i = 0; i < workoutIds.length; i += CHUNK) {
+      const { data } = await supabase
+        .from('workouts')
+        .select('id, category, sub_type, value, unit')
+        .in('id', workoutIds.slice(i, i + CHUNK));
+      if (data) allWorkouts = [...allWorkouts, ...data];
+    }
+
+    const workoutCategoryMap: Record<string, string> = {};
+    const workoutValueMap: Record<string, number> = {};
+    const workoutUnitMap: Record<string, string> = {};
+    allWorkouts.forEach((w) => {
+      const key = w.sub_type ? `${w.category}-${w.sub_type}` : w.category;
+      workoutCategoryMap[w.id] = key;
+      workoutValueMap[w.id] = w.value || 0;
+      workoutUnitMap[w.id] = w.unit || '';
+    });
+
+    const userStatsMap: Record<string, {
+      total: number;
+      byWorkout: Record<string, number>;
+      byWorkoutValues: Record<string, number>;
+      byWorkoutUnits: Record<string, string>;
+      workoutDates: Set<string>;
+    }> = {};
+    userIds.forEach((uid) => {
+      userStatsMap[uid] = { total: 0, byWorkout: {}, byWorkoutValues: {}, byWorkoutUnits: {}, workoutDates: new Set() };
+    });
+
+    mileageData.forEach((record) => {
+      const mileage = record.mileage || 0;
+      const category = workoutCategoryMap[record.workout_id];
+      const value = workoutValueMap[record.workout_id] || 0;
+      const unit = workoutUnitMap[record.workout_id] || '';
+      if (!category || !enabledCategories.includes(category)) return;
+      if (record.workout_date && (countExcludedWorkouts || mileage > 0)) {
+        userStatsMap[record.user_id].workoutDates.add(record.workout_date);
+      }
+      if (mileage > 0) {
+        userStatsMap[record.user_id].total += mileage;
+        userStatsMap[record.user_id].byWorkout[category] = (userStatsMap[record.user_id].byWorkout[category] || 0) + mileage;
+        userStatsMap[record.user_id].byWorkoutValues[category] = (userStatsMap[record.user_id].byWorkoutValues[category] || 0) + value;
+        if (!userStatsMap[record.user_id].byWorkoutUnits[category]) {
+          userStatsMap[record.user_id].byWorkoutUnits[category] = unit;
+        }
+      }
+    });
+
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, display_name')
+      .in('id', userIds);
+
+    return (users || [])
+      .map((user) => {
+        const s = userStatsMap[user.id];
+        return {
+          user_id: user.id,
+          display_name: nicknameMap[user.id] || user.display_name,
+          rank: 0,
+          total_mileage: s.total,
+          workout_days: s.workoutDates.size,
+          by_workout: s.byWorkout,
+          by_workout_values: s.byWorkoutValues,
+          by_workout_units: s.byWorkoutUnits,
+        };
+      })
+      .filter((s) => s.total_mileage > 0)
+      .sort((a, b) => b.total_mileage - a.total_mileage)
+      .map((item, idx) => ({ ...item, rank: idx + 1 }));
+  }
+
   // 기본 마일리지 계수 (나눗셈 방식: X km/m/층/분 당 1 마일리지)
   // 동적으로 workout_types에서 로드하되, 기본값 제공
   async getDefaultMileageConfig(): Promise<MileageConfig> {

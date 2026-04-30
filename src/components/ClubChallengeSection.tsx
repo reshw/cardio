@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronDown, ChevronUp, Search, X, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, X, Plus, Trash2, BarChart2 } from 'lucide-react';
 import challengeService from '../services/challengeService';
 import type { Challenge, ChallengeParticipant, UserProgress } from '../services/challengeService';
 import type { MyClubWithOrder } from '../services/clubService';
 import { ChallengeCreateModal } from './ChallengeCreateModal';
 import { ChallengeJoinModal } from './ChallengeJoinModal';
+import { ChallengeStatsModal } from './ChallengeStatsModal';
 
 interface Props {
   club: MyClubWithOrder;
@@ -28,6 +29,7 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
   const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [joiningChallenge, setJoiningChallenge] = useState<Challenge | null>(null);
+  const [statsChallenge, setStatsChallenge] = useState<Challenge | null>(null);
 
   const loadChallenges = useCallback(async () => {
     setLoading(true);
@@ -179,6 +181,13 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
                 </span>
               </div>
               <div className="challenge-card-right">
+                <button
+                  className="challenge-stats-icon"
+                  onClick={(e) => { e.stopPropagation(); setStatsChallenge(challenge); }}
+                  title="기간 통계"
+                >
+                  <BarChart2 size={15} />
+                </button>
                 {isManager && !ended && (
                   <button
                     className="challenge-delete-icon"
@@ -371,6 +380,15 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
           userId={userId}
           onClose={() => setJoiningChallenge(null)}
           onJoined={() => { setJoiningChallenge(null); loadChallenges(); }}
+        />
+      )}
+
+      {statsChallenge && (
+        <ChallengeStatsModal
+          challenge={statsChallenge}
+          clubId={club.id}
+          clubName={club.name}
+          onClose={() => setStatsChallenge(null)}
         />
       )}
     </div>

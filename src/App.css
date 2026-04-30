@@ -3088,6 +3088,51 @@ body.search-modal-open .bottom-nav {
 }
 
 /* 달린거리 카드 카테고리 전환 */
+.cat-gauge-milestone {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.milestone-bar-track {
+  height: 4px;
+  background: var(--input-bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.milestone-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4FC3F7, #8B5CF6);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+  min-width: 3px;
+}
+
+.milestone-label-inline {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.milestone-dest {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.milestone-label-inline strong {
+  color: var(--primary-color);
+}
+
+.milestone-prev {
+  color: #22c55e;
+}
+
+.milestone-complete {
+  color: #8B5CF6;
+  font-weight: 600;
+}
+
 .distance-card-nav {
   display: flex;
   align-items: center;
@@ -3709,6 +3754,20 @@ body.search-modal-open .bottom-nav {
   align-items: center;
   gap: 8px;
   color: var(--text-secondary);
+}
+
+.challenge-stats-icon {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.challenge-stats-icon:hover {
+  color: var(--primary-color);
 }
 
 .challenge-delete-icon {
