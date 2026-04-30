@@ -40,49 +40,22 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
           const myParticipants = await challengeService.getMyParticipants(c.id, userId).catch(() => []);
           let myOverallPct = 0;
           if (myParticipants.length > 0) {
-            const progresses = await Promise.all(
-              myParticipants.map((p) => challengeService.calcParticipantProgress(c, p).catch(() => ({ current_value: 0, pct: 0, achieved: false })))
-            );
-            myOverallPct = Math.round(progresses.reduce((sum, p) => sum + p.pct, 0) / progresses.length);
+            const progresses = await challengeService.calcMyProgressBulk(c, myParticipants).catch(() => []);
+            if (progresses.length > 0) {
+              myOverallPct = Math.round(progresses.reduce((sum, p) => sum + p.pct, 0) / progresses.length);
+            }
           }
-          const autoExpand = challenges.length === 1 && idx === 0;
           return {
             challenge: c,
-            expanded: autoExpand,
+            expanded: false,
             myParticipants,
             myOverallPct,
             usersProgress: [],
             participantsLoaded: false,
-            autoExpand,
           };
         })
       );
       setChallengeStates(states);
-
-      // 자동 펼침된 챌린지 참여자 즉시 로드
-      states.forEach((cs) => {
-        if ((cs as any).autoExpand) {
-          challengeService.getParticipantsWithProgress(cs.challenge, club.id)
-            .then((prog) => {
-              setChallengeStates((prev) =>
-                prev.map((s) =>
-                  s.challenge.id === cs.challenge.id
-                    ? { ...s, usersProgress: prog, participantsLoaded: true }
-                    : s
-                )
-              );
-            })
-            .catch(() => {
-              setChallengeStates((prev) =>
-                prev.map((s) =>
-                  s.challenge.id === cs.challenge.id
-                    ? { ...s, participantsLoaded: true }
-                    : s
-                )
-              );
-            });
-        }
-      });
     } catch (e) {
       console.error('챌린지 로드 실패:', e);
     } finally {
@@ -158,6 +131,7 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
         const { challenge, expanded, myParticipants, myOverallPct } = cs;
         const ended = challengeService.isEnded(challenge.end_date);
         const upcoming = challengeService.isUpcoming(challenge.start_date);
+        const joinLocked = !upcoming && !challenge.allow_late_join;
         const daysLeft = challengeService.getDaysLeft(challenge.end_date);
         const daysUntilStart = upcoming ? challengeService.getDaysUntilStart(challenge.start_date) : 0;
         const duration = challengeService.getChallengeDuration(challenge.start_date, challenge.end_date);
@@ -230,24 +204,37 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
                   </span>
                 </div>
               )
-            ) : !ended ? (
+            ) : !ended && !joinLocked ? (
               <button
                 className="challenge-join-btn"
                 onClick={(e) => { e.stopPropagation(); setJoiningChallenge(challenge); }}
               >
                 {upcoming ? '사전 참여 선언' : '참여하기'}
               </button>
+            ) : !ended && joinLocked ? (
+              <p className="challenge-join-locked">참여 마감 (시작 후 신규 참여 불가)</p>
             ) : null}
+
+            {/* 접힌 상태에서 내 선언 종목 요약 */}
+            {hasJoined && !expanded && myParticipants.length > 0 && (
+              <div className="challenge-my-goals-summary">
+                {myParticipants.map((p, idx) => (
+                  <span key={idx} className="challenge-my-goal-chip">
+                    {p.category}{p.sub_type ? ` · ${p.sub_type}` : ''} {p.target_value}{p.unit}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* 상세 */}
             {expanded && (
               <div className="challenge-detail">
-                {/* 전체 달성도 */}
-                <div className="challenge-total-stat">
-                  {cs.participantsLoaded
-                    ? `${cs.usersProgress.length}명 참여 · ${achievedCount}명 달성`
-                    : '불러오는 중...'}
-                </div>
+                {/* 전체 달성도 — 로드 완료 후만 표시 */}
+                {cs.participantsLoaded && (
+                  <div className="challenge-total-stat">
+                    {cs.usersProgress.length}명 참여 · {achievedCount}명 달성
+                  </div>
+                )}
 
                 {/* 내 종목별 달성도 (펼쳐진 상태에서) */}
                 {hasJoined && cs.participantsLoaded && (
@@ -287,6 +274,9 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
                 )}
 
                 {/* 참여자 리스트 */}
+                {!cs.participantsLoaded && (
+                  <p className="challenge-participants-loading">참여자 불러오는 중...</p>
+                )}
                 {cs.participantsLoaded && cs.usersProgress.length > 0 && (
                   <div className="challenge-participants-section">
                     <div className="challenge-detail-label">참여자</div>
@@ -401,6 +391,7 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
           challenge={statsChallenge}
           clubId={club.id}
           clubName={club.name}
+          isManager={isManager}
           onClose={() => setStatsChallenge(null)}
         />
       )}
