@@ -183,7 +183,7 @@ const challengeService = {
       .from('workouts')
       .select('value, category, sub_type')
       .eq('user_id', participants[0].user_id)
-      .gte('workout_time', challenge.start_date)
+      .gte('workout_time', challenge.start_date + 'T00:00:00+09:00')
       .lte('workout_time', challenge.end_date + 'T23:59:59+09:00');
 
     const wks = workouts || [];
@@ -229,7 +229,7 @@ const challengeService = {
       .from('workouts')
       .select('user_id, value, category, sub_type, workout_time')
       .in('user_id', userIds)
-      .gte('workout_time', challenge.start_date)
+      .gte('workout_time', challenge.start_date + 'T00:00:00+09:00')
       .lte('workout_time', challenge.end_date + 'T23:59:59+09:00');
 
     const wks = workouts || [];
@@ -333,7 +333,7 @@ const challengeService = {
       .from('workouts')
       .select('user_id, value, category, sub_type')
       .in('user_id', userIds)
-      .gte('workout_time', refStartStr)
+      .gte('workout_time', refStartStr + 'T00:00:00+09:00')
       .lte('workout_time', refEndStr + 'T23:59:59+09:00');
     const wks = workouts || [];
 
