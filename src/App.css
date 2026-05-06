@@ -3034,6 +3034,99 @@ body.search-modal-open .bottom-nav {
   opacity: 0.7;
 }
 
+/* 비교 카드 헤더 */
+.compare-cards-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.compare-cards-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.pace-info-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.pace-info-btn:hover {
+  opacity: 1;
+}
+
+.pace-info-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom));
+}
+
+.pace-info-panel {
+  background: var(--card-bg);
+  border-radius: 18px;
+  padding: 10px 20px 24px;
+  width: calc(100% - 32px);
+  max-width: 480px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.pace-info-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  margin: 0 auto 14px;
+}
+
+.pace-info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.pace-info-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pace-info-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.pace-info-panel p {
+  margin: 0;
+}
+
+.pace-info-example {
+  margin-top: 8px !important;
+  opacity: 0.75;
+  font-size: 12px;
+}
+
 /* 비교 카드 */
 .compare-cards {
   display: grid;
