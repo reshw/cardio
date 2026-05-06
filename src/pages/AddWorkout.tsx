@@ -6,6 +6,7 @@ import workoutService from '../services/workoutService';
 import workoutTypeService from '../services/workoutTypeService';
 import type { WorkoutType } from '../services/workoutTypeService';
 import { uploadToR2 } from '../utils/r2Storage';
+import { getDeviceInfo } from '../utils/deviceInfo';
 import type { WorkoutCategory, WorkoutSubType, WorkoutUnit } from '../services/workoutService';
 
 export const AddWorkout = () => {
@@ -160,6 +161,7 @@ export const AddWorkout = () => {
         intensity,
         proof_image: imageUrl,
         memo: memo.trim() || undefined,
+        ...getDeviceInfo(),
         workout_time: new Date(workoutDate).toISOString(), // 사용자가 입력한 운동 시간
       });
       console.log('✅ 운동 기록 저장 성공');

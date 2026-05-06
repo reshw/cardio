@@ -209,6 +209,7 @@ export const handler: Handler = async (event) => {
 
     // 원본 최적화 (설정값 사용)
     const optimizedBuffer = await sharp(fileBuffer)
+      .rotate() // EXIF orientation 기준 자동 회전 (세로 이미지 보정)
       .resize(imageSettings.max_width, imageSettings.max_width, {
         fit: 'inside', // 비율 유지하며 내부에 맞춤
         withoutEnlargement: true, // 작은 이미지는 확대하지 않음
@@ -232,6 +233,7 @@ export const handler: Handler = async (event) => {
 
     // 썸네일 생성 (설정값 사용)
     const thumbnailBuffer = await sharp(fileBuffer)
+      .rotate() // EXIF orientation 기준 자동 회전 (세로 이미지 보정)
       .resize(imageSettings.thumbnail_size, imageSettings.thumbnail_size, {
         fit: 'cover',
         position: 'center',
