@@ -3,7 +3,6 @@ import { ChevronDown, ChevronUp, Search, X, Plus, Trash2, BarChart2 } from 'luci
 import challengeService from '../services/challengeService';
 import type { Challenge, ChallengeParticipant, UserProgress } from '../services/challengeService';
 import type { MyClubWithOrder } from '../services/clubService';
-import { ChallengeCreateModal } from './ChallengeCreateModal';
 import { ChallengeJoinModal } from './ChallengeJoinModal';
 import { ChallengeStatsModal } from './ChallengeStatsModal';
 
@@ -27,7 +26,6 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
   const [loading, setLoading] = useState(true);
   const [searchQueries, setSearchQueries] = useState<Record<string, string>>({});
   const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({});
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [joiningChallenge, setJoiningChallenge] = useState<Challenge | null>(null);
   const [statsChallenge, setStatsChallenge] = useState<Challenge | null>(null);
 
@@ -110,22 +108,13 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
   };
 
   if (loading) return null;
-  if (challengeStates.length === 0 && !isManager) return null;
+  if (challengeStates.length === 0) return null;
 
   return (
     <div className="challenge-section">
       <div className="challenge-section-header">
         <span className="challenge-section-title">챌린지</span>
-        {isManager && (
-          <button className="challenge-create-btn" onClick={() => setShowCreateModal(true)}>
-            <Plus size={14} /> 만들기
-          </button>
-        )}
       </div>
-
-      {challengeStates.length === 0 && (
-        <p className="challenge-empty">진행 중인 챌린지가 없습니다.</p>
-      )}
 
       {challengeStates.map((cs) => {
         const { challenge, expanded, myParticipants, myOverallPct } = cs;
@@ -367,15 +356,6 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
           </div>
         );
       })}
-
-      {showCreateModal && (
-        <ChallengeCreateModal
-          club={club}
-          userId={userId}
-          onClose={() => setShowCreateModal(false)}
-          onCreated={() => { setShowCreateModal(false); loadChallenges(); }}
-        />
-      )}
 
       {joiningChallenge && (
         <ChallengeJoinModal
