@@ -5,11 +5,22 @@ import { Shield, BookOpen, Smartphone, UserX, Image, MessageSquarePlus } from 'l
 import { InstallGuideModal } from '../components/InstallGuideModal';
 import { FeedbackModal } from '../components/FeedbackModal';
 
+const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
+
 export const More = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [kakaoShareOn, setKakaoShareOn] = useState(
+    () => localStorage.getItem(KAKAO_SHARE_KEY) !== 'false'
+  );
+
+  const toggleKakaoShare = () => {
+    const next = !kakaoShareOn;
+    setKakaoShareOn(next);
+    localStorage.setItem(KAKAO_SHARE_KEY, next ? 'true' : 'false');
+  };
 
   return (
     <div className="container">
@@ -39,6 +50,22 @@ export const More = () => {
           )}
         </div>
       )}
+
+      <div className="section">
+        <h3>앱 설정</h3>
+        <div className="menu-list">
+          <div className="menu-item-btn" style={{ cursor: 'default' }}>
+            <div className="menu-item-left">
+              <span style={{ fontSize: 20 }}>💬</span>
+              <span>운동 후 카톡 공유 창 자동 표시</span>
+            </div>
+            <label className="toggle-switch">
+              <input type="checkbox" checked={kakaoShareOn} onChange={toggleKakaoShare} />
+              <span className="toggle-slider" />
+            </label>
+          </div>
+        </div>
+      </div>
 
       <div className="section">
         <h3>멤버 관리</h3>

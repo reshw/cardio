@@ -77,6 +77,7 @@ export interface ClubRanking {
   rank: number;
   is_hall_of_fame?: boolean;  // 명예의 전당 여부
   hof_reason?: string;  // 명예의 전당 사유
+  is_rookie?: boolean;  // 루키리그 여부 (한 번도 월 100점 미달성)
 }
 
 export interface ClubWorkoutMileage {
@@ -820,7 +821,7 @@ class ClubService {
     // 클럽 멤버 조회 (show_mileage=true만)
     const { data: members, error: membersError } = await supabase
       .from('club_members')
-      .select('user_id, club_nickname, club_profile_image')
+      .select('user_id, club_nickname, club_profile_image, rookie_graduated_at')
       .eq('club_id', clubId)
       .eq('show_mileage', true);
 
@@ -832,9 +833,11 @@ class ClubService {
 
     const nicknameMap: Record<string, string> = {};
     const clubProfileImageMap: Record<string, string> = {};
+    const rookieMap: Record<string, boolean> = {};
     members.forEach((m) => {
       if (m.club_nickname) nicknameMap[m.user_id] = m.club_nickname;
       if (m.club_profile_image) clubProfileImageMap[m.user_id] = m.club_profile_image;
+      rookieMap[m.user_id] = !m.rookie_graduated_at;
     });
 
     const targetMonth = month || {
@@ -912,6 +915,7 @@ class ClubService {
         rank: 0,
         is_hall_of_fame: hofSet.has(user.id),
         hof_reason: hofReasonMap[user.id] || undefined,
+        is_rookie: rookieMap[user.id] ?? true,
       }))
       .sort((a, b) => b.total_mileage - a.total_mileage)
       .map((item, index) => ({ ...item, rank: index + 1 }));
@@ -1922,6 +1926,31 @@ class ClubService {
 
     console.log(`✅ 클럽 ${clubId} ${year}년 ${month}월 마일리지 재계산 완료`);
   }
+
+  async getClubGrowthStats(clubId: string, year: number, month: number): Promise<ClubGrowthRow[]> {
+    const { data, error } = await supabase.rpc('get_club_growth_stats', {
+      p_club_id: clubId,
+      p_year: year,
+      p_month: month,
+    });
+    if (error) throw error;
+    return (data || []) as ClubGrowthRow[];
+  }
+}
+
+export interface ClubGrowthRow {
+  user_id: string;
+  display_name: string;
+  club_nickname: string | null;
+  profile_image: string | null;
+  curr_mileage: number;
+  prev_mileage: number;
+  prev_normalized: number | null;
+  elapsed_days: number;
+  growth_rate: number | null;
+  workout_days: number;
+  prev_workout_days: number;
+  prev_workout_days_norm: number | null;
 }
 
 export default new ClubService();

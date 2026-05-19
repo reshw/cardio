@@ -13,6 +13,7 @@ import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
+import { ClubGrowthDashboard } from '../components/ClubGrowthDashboard';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus } from 'lucide-react';
 import {
   DndContext,
@@ -97,6 +98,7 @@ export const Club = () => {
   const [showChallengeCreate, setShowChallengeCreate] = useState(false);
   const [showChallengeArchive, setShowChallengeArchive] = useState(false);
   const [challengeRefreshKey, setChallengeRefreshKey] = useState(0);
+  const [showGrowthDashboard, setShowGrowthDashboard] = useState(false);
 
   // 멤버 상세 모달
   const [selectedMember, setSelectedMember] = useState<{ userId: string; userName: string } | null>(null);
@@ -117,9 +119,11 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   // 피드 캐시: { clubId-dateString: WorkoutFeedItem[] }
   const [feedCache, setFeedCache] = useState<Record<string, WorkoutFeedItem[]>>({});
 
-  // 명예의 전당 필터 state
-  type RankingFilter = 'all' | 'hof' | 'regular';
-  const [rankingFilter, setRankingFilter] = useState<RankingFilter>('all');
+  // 랭킹 필터 state
+  type RankingTab = 'all' | 'hof';
+  const [rankingTab, setRankingTab] = useState<RankingTab>('all');
+  const [hideHof, setHideHof] = useState(false);
+  const [rookieOnly, setRookieOnly] = useState(false);
   const rankingRequestId = useRef(0);
   const [showMemberSearch, setShowMemberSearch] = useState(false);
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
@@ -766,23 +770,17 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             );
           })()}
 
-          {/* 명예의 전당 필터 */}
+          {/* 랭킹 탭 */}
           <div className="ranking-filter-tabs">
             <button
-              className={`filter-tab ${rankingFilter === 'all' ? 'active' : ''}`}
-              onClick={() => setRankingFilter('all')}
+              className={`filter-tab ${rankingTab === 'all' ? 'active' : ''}`}
+              onClick={() => setRankingTab('all')}
             >
               전체
             </button>
             <button
-              className={`filter-tab ${rankingFilter === 'regular' ? 'active' : ''}`}
-              onClick={() => setRankingFilter('regular')}
-            >
-              일반 회원
-            </button>
-            <button
-              className={`filter-tab ${rankingFilter === 'hof' ? 'active' : ''}`}
-              onClick={() => setRankingFilter('hof')}
+              className={`filter-tab ${rankingTab === 'hof' ? 'active' : ''}`}
+              onClick={() => setRankingTab('hof')}
             >
               🏆 명예의 전당
             </button>
@@ -794,239 +792,265 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               <p>랭킹 불러오는 중...</p>
             </div>
           ) : (() => {
-            const filtered = ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0);
-            const filteredByHOF = rankingFilter === 'hof'
-              ? filtered.filter(m => m.is_hall_of_fame)
-              : rankingFilter === 'regular'
-              ? filtered.filter(m => !m.is_hall_of_fame)
-              : filtered;
+            const withRecord = ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0);
 
-            if (filteredByHOF.length === 0) {
+            // ── 명예의 전당 탭 ──────────────────────────────────────
+            if (rankingTab === 'hof') {
+              const hofMembers = withRecord.filter(m => m.is_hall_of_fame);
+              const hofAll = ranking.filter(m => m.is_hall_of_fame); // 이번 달 기록 없어도 표시
+
+              const renderHofProfile = (member: typeof hofAll[0]) => {
+                if (member.profile_image?.startsWith('default:')) {
+                  const color = member.profile_image.replace('default:', '');
+                  return (
+                    <div className="hof-card-avatar" style={{ background: color }}>
+                      {member.display_name[0].toUpperCase()}
+                    </div>
+                  );
+                } else if (member.profile_image) {
+                  return <img src={member.profile_image} alt={member.display_name} className="hof-card-avatar hof-card-avatar--img" />;
+                }
+                return (
+                  <div className="hof-card-avatar" style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}>
+                    {member.display_name[0]}
+                  </div>
+                );
+              };
+
+              if (hofAll.length === 0) {
+                return (
+                  <div className="empty-state">
+                    <p>명예의 전당 멤버가 없습니다.</p>
+                  </div>
+                );
+              }
+
               return (
-                <div className="empty-state">
-                  <p>{rankingFilter === 'hof' ? '명예의 전당 멤버가 없습니다.' : rankingFilter === 'regular' ? '일반 회원의 운동 기록이 없습니다.' : '이번 달 운동 기록이 없습니다.'}</p>
-                </div>
+                <>
+                  <div className="hof-gallery">
+                    {hofAll.map(member => (
+                      <div
+                        key={member.user_id}
+                        className="hof-card"
+                        onClick={() => setSelectedMember({ userId: member.user_id, userName: member.display_name })}
+                      >
+                        <div className="hof-card-crown">🏆</div>
+                        {renderHofProfile(member)}
+                        <div className="hof-card-name">{member.display_name}</div>
+                        <div className="hof-card-reason">{member.hof_reason || '명예의 전당 멤버'}</div>
+                        {hofMembers.find(m => m.user_id === member.user_id) && (
+                          <div className="hof-card-mileage">
+                            이번 달 {hofMembers.find(m => m.user_id === member.user_id)!.total_mileage.toFixed(1)}점
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hof-tab-description">
+                    <p>월별 1위 등 특별한 업적을 달성한 멤버를 운영자 논의 후 등재합니다.</p>
+                  </div>
+                </>
               );
             }
 
-            // 본인 순위 찾기
-            const myRankIndex = filteredByHOF.findIndex(m => m.user_id === user?.id);
-            const myRank = myRankIndex !== -1 ? myRankIndex : -1;
+            // ── 전체 탭 ─────────────────────────────────────────────
+            // 필터 체크박스 적용
+            let filtered = withRecord;
+            if (hideHof) filtered = filtered.filter(m => !m.is_hall_of_fame);
+            if (rookieOnly) filtered = filtered.filter(m => m.is_rookie);
 
-            // 표시할 멤버 결정
-            let displayMembers: typeof filteredByHOF = [];
+            // 필터 적용 후 순위 재계산
+            const reranked = filtered.map((m, i) => ({ ...m, rank: i + 1 }));
+
+            // 내 순위 찾기
+            const myEntry = reranked.find(m => m.user_id === user?.id);
+            const myRankIndex = reranked.findIndex(m => m.user_id === user?.id);
+
+            // 프로필 이미지 렌더링
+            const renderProfileImage = (member: typeof reranked[0]) => {
+              if (member.profile_image?.startsWith('default:')) {
+                const color = member.profile_image.replace('default:', '');
+                return (
+                  <div className="ranking-profile-placeholder" style={{ background: color, color: 'white' }}>
+                    {member.display_name[0].toUpperCase()}
+                  </div>
+                );
+              } else if (member.profile_image) {
+                return <img src={member.profile_image} alt={member.display_name} className="ranking-profile" />;
+              }
+              return (
+                <div className="ranking-profile-placeholder" style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}>
+                  {member.display_name[0]}
+                </div>
+              );
+            };
+
+            // ── 내 순위 상단 카드 ────────────────────────────────────
+            const myRankCard = myEntry && (
+              <div className="my-rank-card">
+                <div className="my-rank-card-header">내 순위</div>
+                {/* ±3 미니 리스트 */}
+                {(() => {
+                  const start = Math.max(0, myRankIndex - 3);
+                  const end = Math.min(reranked.length, myRankIndex + 4);
+                  const slice = reranked.slice(start, end);
+                  return (
+                    <div className="my-rank-context">
+                      {start > 0 && <div className="my-rank-context-ellipsis">⋯ 위 {start}명</div>}
+                      {slice.map(m => {
+                        const isMe = m.user_id === user?.id;
+                        return (
+                          <div
+                            key={m.user_id}
+                            className={`my-rank-context-row${isMe ? ' my-rank-context-row--me' : ''}`}
+                            onClick={() => setSelectedMember({ userId: m.user_id, userName: m.display_name })}
+                          >
+                            <span className="my-rank-context-rank">{m.rank}위</span>
+                            {renderProfileImage(m)}
+                            <span className="my-rank-context-name">
+                              {m.display_name}
+                              {isMe && <span className="my-rank-badge">나</span>}
+                              {m.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
+                            </span>
+                            <span className="my-rank-context-mileage">{m.total_mileage.toFixed(1)}</span>
+                          </div>
+                        );
+                      })}
+                      {end < reranked.length && <div className="my-rank-context-ellipsis">⋯ 아래 {reranked.length - end}명</div>}
+                    </div>
+                  );
+                })()}
+              </div>
+            );
+
+            if (reranked.length === 0) {
+              return (
+                <>
+                  {/* 필터 체크박스 */}
+                  <div className="ranking-filter-checks">
+                    <label className="filter-check-label">
+                      <input type="checkbox" checked={hideHof} onChange={e => setHideHof(e.target.checked)} />
+                      <span>명전 제외</span>
+                    </label>
+                    <label className="filter-check-label">
+                      <input type="checkbox" checked={rookieOnly} onChange={e => setRookieOnly(e.target.checked)} />
+                      <span>루키리그</span>
+                    </label>
+                  </div>
+                  <div className="empty-state"><p>운동 기록이 없습니다.</p></div>
+                </>
+              );
+            }
+
+            // 표시할 멤버 결정 (기존 ±3 로직, 메인 리스트용)
+            let displayMembers: typeof reranked = [];
             let showEllipsis1 = false;
             let showEllipsis2 = false;
-            let ellipsis1AtIdx = 5; // showEllipsis1이 표시될 displayMembers 인덱스
+            let ellipsis1AtIdx = 5;
 
-            // 검색으로 강조된 멤버 기준 표시
             const highlightIndex = highlightedUserId
-              ? filteredByHOF.findIndex(m => m.user_id === highlightedUserId)
+              ? reranked.findIndex(m => m.user_id === highlightedUserId)
               : -1;
 
             if (showFullList) {
-              displayMembers = filteredByHOF;
+              displayMembers = reranked;
             } else if (highlightIndex !== -1) {
-              // 강조 멤버 위 3명 + 본인 + 아래 5명
               const start = Math.max(0, highlightIndex - 3);
-              const end = Math.min(filteredByHOF.length, highlightIndex + 6);
-              displayMembers = filteredByHOF.slice(start, end);
+              const end = Math.min(reranked.length, highlightIndex + 6);
+              displayMembers = reranked.slice(start, end);
               showEllipsis1 = start > 0;
-              ellipsis1AtIdx = 0; // 검색 결과는 첫 번째 항목 앞에 중략 표시
-              showEllipsis2 = end < filteredByHOF.length;
-            } else if (myRank < 20 && myRank !== -1) {
-              // 본인이 20위 안에 있으면 1~20위까지만 표시
-              displayMembers = filteredByHOF.slice(0, 20);
-              if (filteredByHOF.length > 20) {
-                showEllipsis2 = true;
-              }
-            } else if (myRank === -1 && filteredByHOF.length <= 20) {
-              // 본인 순위 없고 총 20명 이하면 전체 표시
-              displayMembers = filteredByHOF;
+              ellipsis1AtIdx = 0;
+              showEllipsis2 = end < reranked.length;
+            } else if (reranked.length <= 20) {
+              displayMembers = reranked;
             } else {
-              // 본인이 21위 이상 또는 순위 없고 21명 이상
-              // 상위 5명
-              displayMembers = filteredByHOF.slice(0, 5);
-
-              // 본인이 있으면 본인 구간 추가
-              if (myRank >= 5) {
-                showEllipsis1 = true;
-
-                // 본인 위3개, 아래3개 추가 (총 7명: 위3 + 본인 + 아래3)
-                const start = Math.max(5, myRank - 3);
-                const end = Math.min(filteredByHOF.length, myRank + 4);
-                const mySection = filteredByHOF.slice(start, end);
-
-                displayMembers = [...displayMembers, ...mySection];
-
-                // 본인 아래에 더 있으면 생략 표시
-                if (myRank + 4 < filteredByHOF.length) {
-                  showEllipsis2 = true;
-                }
-              } else {
-                // 본인이 5위 안이지만 5위 뒤에 더 있으면 생략 표시
-                showEllipsis2 = true;
-              }
+              displayMembers = reranked.slice(0, 20);
+              showEllipsis2 = true;
             }
 
             return (
-              <div className="ranking-list">
-                {displayMembers.map((member, idx) => {
-                const isMyRank = member.user_id === user?.id;
+              <>
+                {myRankCard}
 
-                // 생략 표시 (5위와 본인 구간 사이)
-                const showEllipsisBefore = showEllipsis1 && idx === ellipsis1AtIdx;
-
-                // 프로필 이미지 렌더링 (default:color 형식 처리)
-                const renderProfileImage = () => {
-                  if (member.profile_image?.startsWith('default:')) {
-                    const color = member.profile_image.replace('default:', '');
-                    return (
-                      <div
-                        className="ranking-profile-placeholder"
-                        style={{ background: color, color: 'white' }}
-                      >
-                        {member.display_name[0].toUpperCase()}
-                      </div>
-                    );
-                  } else if (member.profile_image) {
-                    return (
-                      <img
-                        src={member.profile_image}
-                        alt={member.display_name}
-                        className="ranking-profile"
-                      />
-                    );
-                  } else {
-                    return (
-                      <div
-                        className="ranking-profile-placeholder"
-                        style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}
-                      >
-                        {member.display_name[0]}
-                      </div>
-                    );
-                  }
-                };
-
-                return (
-                  <React.Fragment key={member.user_id}>
-                    {showEllipsisBefore && (
-                      <div className="ranking-ellipsis">
-                        <div className="ellipsis-line"></div>
-                        <span className="ellipsis-text">생략 ({highlightIndex !== -1 ? member.rank - 1 : member.rank - 6}명)</span>
-                        <div className="ellipsis-line"></div>
-                      </div>
-                    )}
-                    <div
-                      className={`ranking-item clickable ${member.is_hall_of_fame ? 'hof-highlight' : ''} ${isMyRank ? 'my-rank' : ''}`}
-                      style={{
-                        background: member.user_id === highlightedUserId
-                          ? 'linear-gradient(135deg, #FFE4EE 0%, #FFB6C1 100%)'
-                          : member.is_hall_of_fame
-                          ? 'linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%)'
-                          : isMyRank
-                          ? 'linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)'
-                          : undefined,
-                        borderColor: member.user_id === highlightedUserId ? '#FF6B9D' : member.is_hall_of_fame ? '#FFD700' : isMyRank ? '#2196F3' : undefined,
-                        borderWidth: member.user_id === highlightedUserId || member.is_hall_of_fame || isMyRank ? '2px' : undefined,
-                      }}
-                      onClick={() =>
-                        setSelectedMember({ userId: member.user_id, userName: member.display_name })
-                      }
-                    >
-                    {rankingFilter === 'hof' ? (
-                      // 명예의전당 탭: 순위/운동횟수/마일리지 제거, reason 표시
-                      <>
-                        <div className="ranking-left">
-                          {renderProfileImage()}
-                          <div className="ranking-info">
-                            <div className="ranking-name">
-                              {member.display_name}
-                              <span className="hof-badge-inline">🏆</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="ranking-right">
-                          <div className="hof-reason">
-                            {member.hof_reason || '명예의 전당 멤버'}
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      // 일반/전체 탭: 기존 렌더링
-                      <>
-                        <div className="ranking-left">
-                          {(() => {
-                            // 일반 회원 탭은 별도 순위 번호 사용
-                            const displayRank = rankingFilter === 'regular'
-                              ? filteredByHOF.findIndex(m => m.user_id === member.user_id) + 1
-                              : member.rank;
-
-                            return (
-                              <div className={`rank-badge rank-${displayRank}`}>
-                                {displayRank === 1 ? '🥇' : displayRank === 2 ? '🥈' : displayRank === 3 ? '🥉' : `${displayRank}위`}
-                              </div>
-                            );
-                          })()}
-                          {renderProfileImage()}
-                          <div className="ranking-info">
-                            <div className="ranking-name">
-                              {member.display_name}
-                              {isMyRank && <span className="my-rank-badge">나</span>}
-                              {member.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="ranking-right">
-                          <div className="ranking-mileage">
-                            {member.total_mileage.toFixed(1)}
-                          </div>
-                          {rankingFilter === 'regular' && <div className="ranking-regular-label">(일반)</div>}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  </React.Fragment>
-                );
-              })}
-              {showEllipsis2 && (
-                <div className="ranking-ellipsis">
-                  <div className="ellipsis-line"></div>
-                  <span className="ellipsis-text">이하 생략 (총 {filteredByHOF.length}명)</span>
-                  <div className="ellipsis-line"></div>
+                {/* 필터 체크박스 */}
+                <div className="ranking-filter-checks">
+                  <label className="filter-check-label">
+                    <input type="checkbox" checked={hideHof} onChange={e => { setHideHof(e.target.checked); setShowFullList(false); }} />
+                    <span>명전 제외</span>
+                  </label>
+                  <label className="filter-check-label">
+                    <input type="checkbox" checked={rookieOnly} onChange={e => { setRookieOnly(e.target.checked); setShowFullList(false); }} />
+                    <span>루키리그</span>
+                  </label>
                 </div>
-              )}
-              <button
-                className="show-full-list-button"
-                onClick={() => {
-                  setShowFullList(v => !v);
-                  setHighlightedUserId(null);
-                }}
-                style={{
-                  width: '100%',
-                  marginTop: '12px',
-                  padding: '10px',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                }}
-              >
-                {showFullList ? '▲ 접기' : `▼ 전체 리스트 보기 (${filteredByHOF.length}명)`}
-              </button>
-              </div>
+
+                <div className="ranking-list">
+                  {displayMembers.map((member, idx) => {
+                    const isMyRank = member.user_id === user?.id;
+                    const showEllipsisBefore = showEllipsis1 && idx === ellipsis1AtIdx;
+
+                    return (
+                      <React.Fragment key={member.user_id}>
+                        {showEllipsisBefore && (
+                          <div className="ranking-ellipsis">
+                            <div className="ellipsis-line"></div>
+                            <span className="ellipsis-text">생략 ({member.rank - 1}명)</span>
+                            <div className="ellipsis-line"></div>
+                          </div>
+                        )}
+                        <div
+                          className={`ranking-item clickable ${member.is_hall_of_fame ? 'hof-highlight' : ''} ${isMyRank ? 'my-rank' : ''}`}
+                          style={{
+                            background: member.user_id === highlightedUserId
+                              ? 'linear-gradient(135deg, #FFE4EE 0%, #FFB6C1 100%)'
+                              : member.is_hall_of_fame
+                              ? 'linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%)'
+                              : isMyRank
+                              ? 'linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)'
+                              : undefined,
+                            borderColor: member.user_id === highlightedUserId ? '#FF6B9D' : member.is_hall_of_fame ? '#FFD700' : isMyRank ? '#2196F3' : undefined,
+                            borderWidth: member.user_id === highlightedUserId || member.is_hall_of_fame || isMyRank ? '2px' : undefined,
+                          }}
+                          onClick={() => setSelectedMember({ userId: member.user_id, userName: member.display_name })}
+                        >
+                          <div className="ranking-left">
+                            <div className={`rank-badge rank-${member.rank}`}>
+                              {member.rank === 1 ? '🥇' : member.rank === 2 ? '🥈' : member.rank === 3 ? '🥉' : `${member.rank}위`}
+                            </div>
+                            {renderProfileImage(member)}
+                            <div className="ranking-info">
+                              <div className="ranking-name">
+                                {member.display_name}
+                                {isMyRank && <span className="my-rank-badge">나</span>}
+                                {member.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="ranking-right">
+                            <div className="ranking-mileage">{member.total_mileage.toFixed(1)}</div>
+                          </div>
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
+                  {showEllipsis2 && (
+                    <div className="ranking-ellipsis">
+                      <div className="ellipsis-line"></div>
+                      <span className="ellipsis-text">이하 생략 (총 {reranked.length}명)</span>
+                      <div className="ellipsis-line"></div>
+                    </div>
+                  )}
+                  <button
+                    className="show-full-list-button"
+                    onClick={() => { setShowFullList(v => !v); setHighlightedUserId(null); }}
+                    style={{ width: '100%', marginTop: '12px', padding: '10px', background: 'var(--input-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                  >
+                    {showFullList ? '▲ 접기' : `▼ 전체 리스트 보기 (${reranked.length}명)`}
+                  </button>
+                </div>
+              </>
             );
           })()}
-
-          {/* 명예의전당 탭 설명 */}
-          {rankingFilter === 'hof' && (
-            <div className="hof-tab-description">
-              <p>명예의 전당은 월별 1위 등 특별한 업적을 달성한 멤버를 운영자 논의 후 등재합니다.</p>
-            </div>
-          )}
 
         </div>
       ) : (
@@ -1374,6 +1398,14 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                         </div>
                         <ChevronRight size={16} className="cmenu-arrow" />
                       </button>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); setShowGrowthDashboard(true); }}>
+                        <TrendingUp size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">다크호스 대시보드</div>
+                          <div className="cmenu-row-desc">전달 대비 성장률 · 운동일수</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
                     </>
                   )}
                 </div>
@@ -1443,6 +1475,15 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             </div>
           </div>
         </div>
+      )}
+
+      {/* 다크호스 대시보드 */}
+      {showGrowthDashboard && selectedClub && (
+        <ClubGrowthDashboard
+          clubId={selectedClub.id}
+          clubName={selectedClub.name}
+          onClose={() => setShowGrowthDashboard(false)}
+        />
       )}
 
       {/* 챌린지 만들기 모달 */}

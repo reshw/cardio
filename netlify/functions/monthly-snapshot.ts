@@ -66,6 +66,16 @@ const handler = schedule('0 0 1 * *', async () => {
 
     console.log(`✅ 스냅샷 저장 완료: ${clubs.length}개 클럽`);
 
+    // 루키리그 졸업 체크: 전월 기준으로 100점 달성한 멤버 졸업 처리
+    const { data: graduatedCount, error: rookieError } = await supabase
+      .rpc('update_rookie_graduations');
+
+    if (rookieError) {
+      console.error('❌ 루키 졸업 처리 실패:', rookieError);
+    } else {
+      console.log(`🎓 루키 졸업 처리 완료: ${graduatedCount}명`);
+    }
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -73,6 +83,7 @@ const handler = schedule('0 0 1 * *', async () => {
         year,
         month,
         clubCount: clubs.length,
+        rookieGraduated: graduatedCount ?? 0,
       }),
     };
   } catch (error) {

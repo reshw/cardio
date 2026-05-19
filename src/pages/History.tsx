@@ -242,25 +242,25 @@ export const History = () => {
           className={`tab ${activeTab === 'calendar' ? 'active' : ''}`}
           onClick={() => setActiveTab('calendar')}
         >
-          📅 캘린더
+          캘린더
         </button>
         <button
           className={`tab ${activeTab === 'list' ? 'active' : ''}`}
           onClick={() => setActiveTab('list')}
         >
-          📝 리스트
+          리스트
         </button>
         <button
           className={`tab ${activeTab === 'stats' ? 'active' : ''}`}
           onClick={() => setActiveTab('stats')}
         >
-          📊 통계
+          통계
         </button>
         <button
           className={`tab ${activeTab === 'records' ? 'active' : ''}`}
           onClick={() => setActiveTab('records')}
         >
-          🏅 기록실
+          기록실
         </button>
       </div>
 

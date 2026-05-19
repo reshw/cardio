@@ -7,12 +7,19 @@ import workoutTypeService from '../services/workoutTypeService';
 import type { WorkoutType } from '../services/workoutTypeService';
 import { uploadToR2 } from '../utils/r2Storage';
 import { getDeviceInfo } from '../utils/deviceInfo';
-import type { WorkoutCategory, WorkoutSubType, WorkoutUnit } from '../services/workoutService';
+import type { WorkoutCategory, WorkoutSubType, WorkoutUnit, Workout } from '../services/workoutService';
+import clubService from '../services/clubService';
+import type { MyClubWithOrder } from '../services/clubService';
+
+const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
 
 export const AddWorkout = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [step, setStep] = useState<1 | 2 | 3>(1); // 1: 카테고리, 2: 세부타입, 3: 입력
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1); // 1: 카테고리, 2: 세부타입, 3: 입력, 4: 카톡공유
+  const [savedWorkout, setSavedWorkout] = useState<Workout | null>(null);
+  const [myClubs, setMyClubs] = useState<MyClubWithOrder[]>([]);
+  const [shareClubId, setShareClubId] = useState<string>('');
   const [category, setCategory] = useState<WorkoutCategory | null>(null);
   const [subType, setSubType] = useState<WorkoutSubType>(null);
   const [subTypeRatio, setSubTypeRatio] = useState(50); // 0-100, 요가/복싱용 비율 슬라이더
@@ -123,6 +130,7 @@ export const AddWorkout = () => {
 
     setUploading(true);
 
+    let workout: Workout | null = null;
     try {
       let imageUrl: string | undefined;
 
@@ -151,7 +159,7 @@ export const AddWorkout = () => {
 
       // 운동 기록 저장
       console.log('💾 운동 기록 저장 시작...');
-      await workoutService.createWorkout({
+      workout = await workoutService.createWorkout({
         user_id: user.id,
         category,
         sub_type: subType,
@@ -162,15 +170,32 @@ export const AddWorkout = () => {
         proof_image: imageUrl,
         memo: memo.trim() || undefined,
         ...getDeviceInfo(),
-        workout_time: new Date(workoutDate).toISOString(), // 사용자가 입력한 운동 시간
+        workout_time: new Date(workoutDate).toISOString(),
       });
       console.log('✅ 운동 기록 저장 성공');
-      navigate('/');
+
     } catch (error) {
       console.error('❌ 운동 기록 저장 실패:', error);
       alert(`운동 기록 저장에 실패했습니다.\n${error instanceof Error ? error.message : ''}`);
-    } finally {
       setUploading(false);
+      return;
+    }
+
+    setUploading(false);
+
+    const autoShare = localStorage.getItem(KAKAO_SHARE_KEY) !== 'false';
+    if (autoShare && workout) {
+      try {
+        const clubs = await clubService.getMyClubs(user.id);
+        setMyClubs(clubs);
+        setShareClubId(clubs[0]?.id ?? '');
+      } catch {
+        // 클럽 조회 실패해도 공유 화면은 표시 (빈 목록으로)
+      }
+      setSavedWorkout(workout);
+      setStep(4);
+    } else {
+      navigate('/');
     }
   };
 
@@ -552,6 +577,59 @@ export const AddWorkout = () => {
               </div>
             </div>
           </form>
+        )}
+
+        {/* Step 4: 카톡 공유 */}
+        {step === 4 && savedWorkout && (
+          <div className="kakao-share-step">
+            <div className="kakao-share-icon">💬</div>
+            <h2 className="kakao-share-title">카톡으로 공유할까요?</h2>
+            <p className="kakao-share-desc">공유할 클럽을 선택하세요</p>
+
+            {myClubs.length > 0 ? (
+              <select
+                className="kakao-share-select"
+                value={shareClubId}
+                onChange={e => setShareClubId(e.target.value)}
+              >
+                {myClubs.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            ) : (
+              <p className="kakao-share-no-club">가입된 클럽이 없습니다</p>
+            )}
+
+            <div className="kakao-share-actions">
+              {myClubs.length > 0 && (
+                <button
+                  className="kakao-share-btn"
+                  onClick={() => {
+                    if (!window.Kakao?.isInitialized()) { navigate('/'); return; }
+                    const club = myClubs.find(c => c.id === shareClubId);
+                    const appUrl = `${window.location.origin}/workout/${savedWorkout.id}?clubId=${shareClubId}`;
+                    const shareData: any = {
+                      objectType: 'feed',
+                      content: {
+                        title: `[${club?.name ?? ''}] ${user?.display_name}님의 운동 기록`,
+                        description: `${savedWorkout.category}: ${savedWorkout.value}${savedWorkout.unit}`,
+                        link: { mobileWebUrl: appUrl, webUrl: appUrl },
+                      },
+                      buttons: [{ title: '나도 기록하기', link: { mobileWebUrl: appUrl, webUrl: appUrl } }],
+                    };
+                    if (savedWorkout.proof_image) shareData.content.imageUrl = savedWorkout.proof_image;
+                    window.Kakao.Share.sendDefault(shareData);
+                    navigate('/');
+                  }}
+                >
+                  카카오톡 공유
+                </button>
+              )}
+              <button className="kakao-share-skip" onClick={() => navigate('/')}>
+                건너뛰기
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
