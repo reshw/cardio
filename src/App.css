@@ -760,6 +760,174 @@ body.search-modal-open .bottom-nav {
   color: #FF6B6B;
 }
 
+/* ── Club Menu Bottom Sheet ─────────────────────────────── */
+/* ── Club Menu Bottom Sheet ─────────────────────────────── */
+.cmenu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1100;
+  display: flex;
+  align-items: flex-end;
+}
+
+.cmenu-sheet {
+  width: 100%;
+  max-height: 85vh;
+  background: var(--card-bg);
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.cmenu-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  margin: 12px auto 0;
+  flex-shrink: 0;
+}
+
+.cmenu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px 12px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cmenu-head-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.cmenu-head-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+}
+
+.cmenu-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 16px calc(70px + 20px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cmenu-group {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card-bg);
+  flex-shrink: 0;
+}
+
+.cmenu-group--danger {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.cmenu-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border-color);
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  transition: background 0.12s;
+}
+
+.cmenu-row:first-child {
+  border-top: none;
+}
+
+.cmenu-row:active {
+  background: var(--input-bg);
+}
+
+.cmenu-row--sub {
+  background: var(--input-bg);
+}
+
+.cmenu-row--sub:active {
+  filter: brightness(0.95);
+}
+
+.cmenu-row-icon {
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.cmenu-row-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cmenu-row-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cmenu-row-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.cmenu-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: rgba(79, 195, 247, 0.12);
+  color: var(--primary-color);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cmenu-caret {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.cmenu-caret--open {
+  transform: rotate(180deg);
+}
+
+.cmenu-arrow {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.cmenu-row--danger .cmenu-row-title {
+  color: #ef4444;
+}
+
+.cmenu-row--danger .cmenu-row-icon {
+  color: #ef4444;
+}
+
 /* Category Selection */
 .category-selection h3,
 .subtype-selection h3,
@@ -3032,6 +3200,99 @@ body.search-modal-open .bottom-nav {
   color: var(--text-secondary);
   margin: 6px 0 0;
   opacity: 0.7;
+}
+
+/* 비교 카드 헤더 */
+.compare-cards-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.compare-cards-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.pace-info-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.pace-info-btn:hover {
+  opacity: 1;
+}
+
+.pace-info-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom));
+}
+
+.pace-info-panel {
+  background: var(--card-bg);
+  border-radius: 18px;
+  padding: 10px 20px 24px;
+  width: calc(100% - 32px);
+  max-width: 480px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.pace-info-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  margin: 0 auto 14px;
+}
+
+.pace-info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.pace-info-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pace-info-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.pace-info-panel p {
+  margin: 0;
+}
+
+.pace-info-example {
+  margin-top: 8px !important;
+  opacity: 0.75;
+  font-size: 12px;
 }
 
 /* 비교 카드 */

@@ -4,6 +4,7 @@ import workoutService from '../services/workoutService';
 import workoutTypeService from '../services/workoutTypeService';
 import type { WorkoutType } from '../services/workoutTypeService';
 import { uploadToR2 } from '../utils/r2Storage';
+import { getDeviceInfo } from '../utils/deviceInfo';
 import type { WorkoutCategory, WorkoutSubType, WorkoutUnit } from '../services/workoutService';
 
 interface Props {
@@ -158,6 +159,7 @@ export const AddWorkoutModal = ({ onClose, onSuccess }: Props) => {
         unit: displayUnit as WorkoutUnit,
         intensity,
         proof_image: imageUrl,
+        ...getDeviceInfo(),
       });
       console.log('✅ 운동 기록 저장 성공');
 

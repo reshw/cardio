@@ -26,6 +26,8 @@ export interface Workout {
   intensity: number; // 1-10 단계, 기본값 4
   proof_image?: string;
   memo?: string;
+  upload_device?: string;
+  upload_os?: string;
   created_at: string; // 기록을 올린 시점 (스냅샷, 순서 결정용, 수정 불가)
   workout_time: string; // 실제 운동한 시간 (사용자 수정 가능)
 }
@@ -40,6 +42,8 @@ export interface CreateWorkoutData {
   intensity?: number; // 1-10 단계, 기본값 4
   proof_image?: string;
   memo?: string;
+  upload_device?: string;
+  upload_os?: string;
   workout_time?: string; // 실제 운동한 시간 (사용자 입력/수정 가능)
   created_at?: string; // deprecated - use workout_time instead
 }
@@ -59,6 +63,8 @@ class WorkoutService {
       intensity: data.intensity ?? 4, // 기본값 4
       proof_image: data.proof_image || null,
       memo: data.memo || null,
+      upload_device: data.upload_device || null,
+      upload_os: data.upload_os || null,
     };
 
     // sub_type_ratios가 있으면 포함

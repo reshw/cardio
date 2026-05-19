@@ -11,7 +11,9 @@ import { ClubMemberDetailModal } from '../components/ClubMemberDetailModal';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X } from 'lucide-react';
+import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
+import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -89,6 +91,12 @@ export const Club = () => {
   const [showDetailedStats, setShowDetailedStats] = useState(false);
   const [showClubMenu, setShowClubMenu] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [challengeMenuOpen, setChallengeMenuOpen] = useState(false);
+  const [mileageMenuOpen, setMileageMenuOpen] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const [showChallengeCreate, setShowChallengeCreate] = useState(false);
+  const [showChallengeArchive, setShowChallengeArchive] = useState(false);
+  const [challengeRefreshKey, setChallengeRefreshKey] = useState(0);
 
   // 멤버 상세 모달
   const [selectedMember, setSelectedMember] = useState<{ userId: string; userName: string } | null>(null);
@@ -627,6 +635,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
       {/* 챌린지 섹션 */}
       {selectedClub && user && (
         <ClubChallengeSection
+          key={challengeRefreshKey}
           club={selectedClub}
           userId={user.id}
           isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
@@ -1206,6 +1215,29 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         />
       )}
 
+      {/* 챌린지 만들기 모달 */}
+      {showChallengeCreate && selectedClub && user && (
+        <ChallengeCreateModal
+          club={selectedClub}
+          userId={user.id}
+          onClose={() => setShowChallengeCreate(false)}
+          onCreated={() => {
+            setShowChallengeCreate(false);
+            setChallengeRefreshKey((k) => k + 1);
+          }}
+        />
+      )}
+
+      {/* 지난 챌린지 아카이브 모달 */}
+      {showChallengeArchive && selectedClub && (
+        <ChallengeArchiveModal
+          clubId={selectedClub.id}
+          clubName={selectedClub.name}
+          isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
+          onClose={() => setShowChallengeArchive(false)}
+        />
+      )}
+
       {/* 클럽 초대 모달 */}
       {showInviteModal && selectedClub && (
         <div className="modal-overlay" onClick={() => setShowInviteModal(false)}>
@@ -1248,121 +1280,147 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         </div>
       )}
 
-      {/* 클럽 메뉴 모달 */}
+      {/* 클럽 메뉴 바텀시트 */}
       {showClubMenu && selectedClub && (
-        <div className="modal-overlay" onClick={() => setShowClubMenu(false)}>
-          <div className="modal-content more-menu-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>클럽 메뉴</h2>
-              <button className="modal-close" onClick={() => setShowClubMenu(false)}>
-                ✕
+        <div className="cmenu-overlay" onClick={() => setShowClubMenu(false)}>
+          <div className="cmenu-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="cmenu-handle" />
+            <div className="cmenu-head">
+              <span className="cmenu-head-title">클럽 메뉴</span>
+              <button type="button" className="cmenu-head-close" onClick={() => setShowClubMenu(false)}>
+                <X size={20} />
               </button>
             </div>
-            <div className="modal-body">
-              <div className="more-menu-list">
-                <button
-                  className="more-menu-item"
-                  onClick={() => {
-                    setShowClubMenu(false);
-                    navigate(`/club/my-settings/${selectedClub.id}`);
-                  }}
-                >
-                  <User size={20} />
-                  <div className="more-menu-text">
-                    <div className="more-menu-title">내 정보 변경</div>
-                    <div className="more-menu-desc">별명, 정보공유 설정 등</div>
+
+            <div className="cmenu-body">
+              {/* 기본 */}
+              <div className="cmenu-group">
+                <button type="button" className="cmenu-row" onClick={() => { setShowClubMenu(false); navigate(`/club/my-settings/${selectedClub.id}`); }}>
+                  <User size={18} className="cmenu-row-icon" />
+                  <div className="cmenu-row-text">
+                    <div className="cmenu-row-title">내 정보 변경</div>
+                    <div className="cmenu-row-desc">별명, 정보공유 설정 등</div>
                   </div>
+                  <ChevronRight size={16} className="cmenu-arrow" />
                 </button>
-
-                <button
-                  className="more-menu-item"
-                  onClick={() => {
-                    setShowClubMenu(false);
-                    navigate(`/club/members/${selectedClub.id}`);
-                  }}
-                >
-                  <Users size={20} />
-                  <div className="more-menu-text">
-                    <div className="more-menu-title">클럽원 리스트</div>
-                    <div className="more-menu-desc">클럽원 목록 및 관리</div>
+                <button type="button" className="cmenu-row" onClick={() => { setShowClubMenu(false); navigate(`/club/members/${selectedClub.id}`); }}>
+                  <Users size={18} className="cmenu-row-icon" />
+                  <div className="cmenu-row-text">
+                    <div className="cmenu-row-title">클럽원 리스트</div>
+                    <div className="cmenu-row-desc">클럽원 목록 및 관리</div>
                   </div>
+                  <ChevronRight size={16} className="cmenu-arrow" />
                 </button>
+              </div>
 
-                {/* 마일리지 재계산 - 매니저/부매니저만 */}
-                {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
-                  <button
-                    className="more-menu-item"
-                    onClick={() => {
-                      setShowClubMenu(false);
-                      handleRecalculateMileage();
-                    }}
-                  >
-                    <RefreshCw size={20} />
-                    <div className="more-menu-text">
-                      <div className="more-menu-title">마일리지 재계산</div>
-                      <div className="more-menu-desc">현재 월 전체 마일리지 새로고침</div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 마일리지 계수 설정 - 매니저/부매니저만 */}
-                {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
-                  <button
-                    className="more-menu-item"
-                    onClick={() => {
-                      setShowClubMenu(false);
-                      navigate(`/club/settings/${selectedClub.id}/mileage`);
-                    }}
-                  >
-                    <TrendingUp size={20} />
-                    <div className="more-menu-text">
-                      <div className="more-menu-title">마일리지 계수 설정</div>
-                      <div className="more-menu-desc">운동별 계수 조정</div>
-                    </div>
-                  </button>
-                )}
-
-                {user && selectedClub.created_by === user.id && (
+              {/* 챌린지 */}
+              <div className="cmenu-group">
+                <button type="button" className="cmenu-row" onClick={() => setChallengeMenuOpen(v => !v)}>
+                  <Trophy size={18} className="cmenu-row-icon" />
+                  <div className="cmenu-row-text">
+                    <div className="cmenu-row-title">챌린지</div>
+                  </div>
+                  <ChevronDown size={16} className={`cmenu-caret${challengeMenuOpen ? ' cmenu-caret--open' : ''}`} />
+                </button>
+                {challengeMenuOpen && (
                   <>
-                    <button
-                      className="more-menu-item"
-                      onClick={() => {
-                        setShowClubMenu(false);
-                        navigate(`/club/settings/${selectedClub.id}/general`);
-                      }}
-                    >
-                      <Info size={20} />
-                      <div className="more-menu-text">
-                        <div className="more-menu-title">클럽 정보 변경</div>
-                        <div className="more-menu-desc">이름, 설명, 로고 수정</div>
+                    <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); setShowChallengeArchive(true); }}>
+                      <Clock size={16} className="cmenu-row-icon" />
+                      <div className="cmenu-row-text">
+                        <div className="cmenu-row-title">지난 챌린지</div>
+                        <div className="cmenu-row-desc">종료된 챌린지 결과 보기</div>
                       </div>
+                      <ChevronRight size={16} className="cmenu-arrow" />
                     </button>
-
-                    <button
-                      className="more-menu-item"
-                      onClick={() => {
-                        setShowClubMenu(false);
-                        navigate(`/club/settings/${selectedClub.id}/transfer`);
-                      }}
-                    >
-                      <span style={{ fontSize: '20px' }}>👑</span>
-                      <div className="more-menu-text">
-                        <div className="more-menu-title">클럽장 권한 넘기기</div>
-                        <div className="more-menu-desc">다른 멤버에게 클럽장 위임</div>
-                      </div>
-                    </button>
+                    {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); setShowChallengeCreate(true); }}>
+                        <Plus size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">챌린지 만들기</div>
+                          <div className="cmenu-row-desc">새 챌린지 개설</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
+                    )}
                   </>
                 )}
+              </div>
 
-                {/* 클럽 탈퇴 */}
-                {user && selectedClub.created_by !== user.id && (
+              {/* 마일리지 (관리자) */}
+              {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
+                <div className="cmenu-group">
+                  <button type="button" className="cmenu-row" onClick={() => setMileageMenuOpen(v => !v)}>
+                    <TrendingUp size={18} className="cmenu-row-icon" />
+                    <div className="cmenu-row-text">
+                      <div className="cmenu-row-title">마일리지</div>
+                    </div>
+                    <span className="cmenu-badge">관리자</span>
+                    <ChevronDown size={16} className={`cmenu-caret${mileageMenuOpen ? ' cmenu-caret--open' : ''}`} />
+                  </button>
+                  {mileageMenuOpen && (
+                    <>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); handleRecalculateMileage(); }}>
+                        <RefreshCw size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">마일리지 재계산</div>
+                          <div className="cmenu-row-desc">현재 월 전체 마일리지 새로고침</div>
+                        </div>
+                      </button>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/mileage`); }}>
+                        <TrendingUp size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">마일리지 계수 설정</div>
+                          <div className="cmenu-row-desc">운동별 계수 조정</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* 클럽 관리 (클럽장) */}
+              {user && selectedClub.created_by === user.id && (
+                <div className="cmenu-group">
+                  <button type="button" className="cmenu-row" onClick={() => setAdminMenuOpen(v => !v)}>
+                    <Settings size={18} className="cmenu-row-icon" />
+                    <div className="cmenu-row-text">
+                      <div className="cmenu-row-title">클럽 관리</div>
+                    </div>
+                    <span className="cmenu-badge">클럽장</span>
+                    <ChevronDown size={16} className={`cmenu-caret${adminMenuOpen ? ' cmenu-caret--open' : ''}`} />
+                  </button>
+                  {adminMenuOpen && (
+                    <>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/general`); }}>
+                        <Info size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">클럽 정보 변경</div>
+                          <div className="cmenu-row-desc">이름, 설명, 로고 수정</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/transfer`); }}>
+                        <span style={{ fontSize: '16px', lineHeight: 1, flexShrink: 0 }}>👑</span>
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">클럽장 권한 넘기기</div>
+                          <div className="cmenu-row-desc">다른 멤버에게 클럽장 위임</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* 클럽 탈퇴 (비클럽장) */}
+              {user && selectedClub.created_by !== user.id && (
+                <div className="cmenu-group cmenu-group--danger">
                   <button
-                    className="more-menu-item danger"
+                    type="button"
+                    className="cmenu-row cmenu-row--danger"
                     onClick={async () => {
-                      if (!confirm(`${selectedClub.name}에서 탈퇴하시겠습니까?\n\n탈퇴 후에도 초대코드로 다시 가입할 수 있습니다.`)) {
-                        return;
-                      }
-
+                      if (!confirm(`${selectedClub.name}에서 탈퇴하시겠습니까?\n\n탈퇴 후에도 초대코드로 다시 가입할 수 있습니다.`)) return;
                       try {
                         await clubService.leaveClub(selectedClub.id, user.id);
                         alert('클럽에서 탈퇴했습니다.');
@@ -1374,17 +1432,37 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                       }
                     }}
                   >
-                    <span style={{ fontSize: '20px' }}>🚪</span>
-                    <div className="more-menu-text">
-                      <div className="more-menu-title">클럽 탈퇴</div>
-                      <div className="more-menu-desc">이 클럽에서 나가기</div>
+                    <span style={{ fontSize: '18px', lineHeight: 1, flexShrink: 0 }}>🚪</span>
+                    <div className="cmenu-row-text">
+                      <div className="cmenu-row-title">클럽 탈퇴</div>
+                      <div className="cmenu-row-desc">이 클럽에서 나가기</div>
                     </div>
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
+      )}
+
+      {/* 챌린지 만들기 모달 */}
+      {showChallengeCreate && selectedClub && user && (
+        <ChallengeCreateModal
+          club={selectedClub}
+          userId={user.id}
+          onClose={() => setShowChallengeCreate(false)}
+          onCreated={() => { setShowChallengeCreate(false); setChallengeRefreshKey(k => k + 1); }}
+        />
+      )}
+
+      {/* 지난 챌린지 아카이브 모달 */}
+      {showChallengeArchive && selectedClub && (
+        <ChallengeArchiveModal
+          clubId={selectedClub.id}
+          clubName={selectedClub.name}
+          isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
+          onClose={() => setShowChallengeArchive(false)}
+        />
       )}
     </div>
   );

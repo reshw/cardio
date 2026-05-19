@@ -199,18 +199,30 @@ export const History = () => {
   const prevMonth = statsMonth === 0 ? 11 : statsMonth - 1;
   const prevStats = calcMonthStats(prevYear, prevMonth);
 
+  // 페이스 비교: 지난달 일평균 × 경과일수 기준
+  const isCurrentMonth = statsYear === now.getFullYear() && statsMonth === now.getMonth();
+  const elapsedDays = isCurrentMonth ? now.getDate() : new Date(statsYear, statsMonth + 1, 0).getDate();
+  const prevMonthDays = new Date(prevYear, prevMonth + 1, 0).getDate();
+  const calcPaceTarget = (prevVal: number) => prevVal > 0 ? (prevVal / prevMonthDays) * elapsedDays : 0;
+  const calcPacePct = (cur: number, prevVal: number) => {
+    const target = calcPaceTarget(prevVal);
+    if (target === 0) return null;
+    return Math.round((cur / target) * 100);
+  };
+
+  const [showPaceInfo, setShowPaceInfo] = useState(false);
+
   const METRIC_CONFIG = {
     workoutDays:   { label: '운동일수', unit: '일',  key: 'workoutDays'   as const },
     totalDistance: { label: '이동 거리', unit: 'km', key: 'totalDistance' as const },
   };
 
-  const renderDiffBadge = (cur: number, prev: number, unit: string) => {
-    const diff = +(cur - prev).toFixed(1);
-    if (cur === 0 && prev === 0) return null;
-    if (diff === 0) return <span className="diff-badge neutral">전달과 동일</span>;
+  const renderPaceBadge = (pct: number | null) => {
+    if (pct === null) return null;
+    if (pct === 100) return <span className="diff-badge neutral">지난달 페이스와 동일</span>;
     return (
-      <span className={`diff-badge ${diff > 0 ? 'up' : 'down'}`}>
-        {diff > 0 ? '▲' : '▼'} {Math.abs(diff)}{unit}
+      <span className={`diff-badge ${pct > 100 ? 'up' : 'down'}`}>
+        {pct > 100 ? '▲' : '▼'} {pct}%
       </span>
     );
   };
@@ -502,12 +514,33 @@ export const History = () => {
           )}
 
           {/* ── 비교 카드 ── */}
+          <div className="compare-cards-header">
+            <span className="compare-cards-title">지난달 페이스 비교</span>
+            <button className="pace-info-btn" onClick={() => setShowPaceInfo(v => !v)}>ⓘ</button>
+          </div>
+          {showPaceInfo && (
+            <div className="pace-info-overlay" onClick={() => setShowPaceInfo(false)}>
+              <div className="pace-info-panel" onClick={e => e.stopPropagation()}>
+                <div className="pace-info-handle" />
+                <div className="pace-info-header">
+                  <span className="pace-info-title">지난달 페이스 비교</span>
+                  <button className="pace-info-close" onClick={() => setShowPaceInfo(false)}>✕</button>
+                </div>
+                <p>지난달 하루 평균 × {isCurrentMonth ? `이번 달 경과 ${elapsedDays}일` : `해당 월 전체 ${elapsedDays}일`}을 기준으로, 지금까지의 페이스가 지난달과 비교해 몇 %인지를 보여줍니다.</p>
+                {prevStats.workoutDays > 0 && (
+                  <p className="pace-info-example">
+                    예) 지난달 운동일수 {prevStats.workoutDays}일 ({prevMonthDays}일 기준) → 하루 평균 {(prevStats.workoutDays / prevMonthDays).toFixed(2)}일 · {elapsedDays}일 기준 {(calcPaceTarget(prevStats.workoutDays)).toFixed(1)}일이 기준점
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
           <div className="compare-cards">
             <div className="compare-card">
               <div className="compare-card-label">운동일수</div>
               <div className="compare-card-value">{stats.workoutDays}<span className="compare-unit">일</span></div>
-              <div className="compare-card-prev">전달 {prevStats.workoutDays}일</div>
-              {renderDiffBadge(stats.workoutDays, prevStats.workoutDays, '일')}
+              <div className="compare-card-prev">지난달 {elapsedDays}일 기준 {calcPaceTarget(prevStats.workoutDays).toFixed(1)}일</div>
+              {renderPaceBadge(calcPacePct(stats.workoutDays, prevStats.workoutDays))}
             </div>
 
             <div className="compare-card distance-card">
@@ -527,11 +560,12 @@ export const History = () => {
               {(() => {
                 const cur = +(stats.distanceByGroup[selectedDistanceCat] ?? 0).toFixed(1);
                 const prev = +(prevStats.distanceByGroup[selectedDistanceCat] ?? 0).toFixed(1);
+                const target = +calcPaceTarget(prev).toFixed(1);
                 return (
                   <>
                     <div className="compare-card-value">{cur}<span className="compare-unit">km</span></div>
-                    <div className="compare-card-prev">전달 {prev}km</div>
-                    {renderDiffBadge(cur, prev, 'km')}
+                    <div className="compare-card-prev">지난달 {elapsedDays}일 기준 {target}km</div>
+                    {renderPaceBadge(calcPacePct(cur, prev))}
                   </>
                 );
               })()}
@@ -547,12 +581,13 @@ export const History = () => {
                 .sort((a, b) => b[1] - a[1])
                 .map(([group, dist]) => {
                   const prevDist = prevStats.distanceByGroup[group] ?? 0;
+                  const paceTarget = +calcPaceTarget(prevDist).toFixed(1);
                   const count = stats.countByGroup[group] ?? 0;
-                  const maxVal = Math.max(dist, prevDist * 1.2, 0.1);
+                  const maxVal = Math.max(dist, paceTarget * 1.2, 0.1);
                   const fillPct = (dist / maxVal) * 100;
-                  const prev100Pct = prevDist > 0 ? (prevDist / maxVal) * 100 : null;
-                  const prev110Pct = prevDist > 0 ? (prevDist * 1.1 / maxVal) * 100 : null;
-                  const achievePct = prevDist > 0 ? Math.round((dist / prevDist) * 100) : null;
+                  const prev100Pct = paceTarget > 0 ? (paceTarget / maxVal) * 100 : null;
+                  const prev110Pct = paceTarget > 0 ? (paceTarget * 1.1 / maxVal) * 100 : null;
+                  const achievePct = calcPacePct(dist, prevDist);
                   return (
                     <div key={group} className="cat-gauge-row">
                       <span className="cat-gauge-name">{group}</span>
@@ -570,12 +605,12 @@ export const History = () => {
                           <div className="cat-gauge-tick-labels">
                             {prev100Pct !== null && (
                               <span className="cat-gauge-tick-lbl" style={{ left: `${prev100Pct}%` }}>
-                                {prevDist.toFixed(0)}km
+                                {paceTarget.toFixed(0)}km
                               </span>
                             )}
                             {prev110Pct !== null && (
                               <span className="cat-gauge-tick-lbl target110" style={{ left: `${prev110Pct}%` }}>
-                                {(prevDist * 1.1).toFixed(0)}km
+                                {(paceTarget * 1.1).toFixed(0)}km
                               </span>
                             )}
                           </div>
@@ -585,7 +620,7 @@ export const History = () => {
                         <span className="cat-gauge-record">{dist.toFixed(1)}km · {count}회</span>
                         {achievePct !== null && (
                           <span className={`cat-gauge-achieve ${achievePct >= 110 ? 'over' : achievePct >= 100 ? 'hit' : ''}`}>
-                            전달대비 {achievePct}%
+                            지난달대비 {achievePct}%
                           </span>
                         )}
                       </div>
