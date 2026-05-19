@@ -11,6 +11,7 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
+        "npm:@aws-sdk/client-s3@^3.1019.0",
         "npm:@capacitor/android@^8.2.0",
         "npm:@capacitor/cli@^8.2.0",
         "npm:@capacitor/core@^8.2.0",
@@ -20,16 +21,22 @@
         "npm:@dnd-kit/utilities@^3.2.2",
         "npm:@netlify/functions@^5.1.3",
         "npm:@supabase/supabase-js@^2.89.0",
+        "npm:@types/busboy@^1.5.4",
         "npm:@types/react-dom@^19.2.3",
         "npm:@types/react@^19.2.5",
         "npm:@vitejs/plugin-react@^5.1.1",
+        "npm:busboy@^1.6.0",
+        "npm:exceljs@^4.4.0",
         "npm:html2canvas@^1.4.1",
+        "npm:jodit-react@^5.3.21",
         "npm:lucide-react@0.577",
         "npm:react-calendar@6",
         "npm:react-dom@^19.2.0",
         "npm:react-router-dom@^7.11.0",
         "npm:react@^19.2.0",
+        "npm:recharts@^3.8.1",
         "npm:resend@^6.9.4",
+        "npm:sharp@~0.34.5",
         "npm:typescript@~5.9.3",
         "npm:vite@^7.2.4"
       ]

@@ -106,7 +106,9 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public routes */}
+          {/* Supabase Auth 콜백 (Kakao OAuth 완료 후 여기로 리다이렉트) */}
+          <Route path="/auth/callback" element={<KakaoCallback />} />
+          {/* 기존 URL 하위 호환 */}
           <Route path="/auth/kakao/callback" element={<KakaoCallback />} />
 
           {/* Protected routes */}
