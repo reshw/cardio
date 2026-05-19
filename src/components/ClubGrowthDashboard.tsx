@@ -133,9 +133,11 @@ export const ClubGrowthDashboard = ({ clubId, clubName, onClose }: Props) => {
                 <div className="growth-card-left">
                   <div className="growth-card-rank">{idx + 1}</div>
                   <div className="growth-card-avatar">
-                    {row.profile_image
-                      ? <img src={row.profile_image} alt={nameOf(row)} />
-                      : <span>{nameOf(row)[0]}</span>
+                    {row.profile_image?.startsWith('default:')
+                      ? <div className="growth-card-avatar-default" style={{ background: row.profile_image.replace('default:', '') }}>{nameOf(row)[0]}</div>
+                      : row.profile_image
+                        ? <img src={row.profile_image} alt={nameOf(row)} />
+                        : <span>{nameOf(row)[0]}</span>
                     }
                   </div>
                 </div>
