@@ -120,8 +120,9 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [feedCache, setFeedCache] = useState<Record<string, WorkoutFeedItem[]>>({});
 
   // 랭킹 필터 state
-  type RankingTab = 'all' | 'hof';
-  const [rankingTab, setRankingTab] = useState<RankingTab>('all');
+  type RankingTab = 'myrank' | 'all';
+  const [rankingTab, setRankingTab] = useState<RankingTab>('myrank');
+  const [showHof, setShowHof] = useState(false);
   const [hideHof, setHideHof] = useState(false);
   const [rookieOnly, setRookieOnly] = useState(false);
   const rankingRequestId = useRef(0);
@@ -773,16 +774,16 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           {/* 랭킹 탭 */}
           <div className="ranking-filter-tabs">
             <button
+              className={`filter-tab ${rankingTab === 'myrank' ? 'active' : ''}`}
+              onClick={() => setRankingTab('myrank')}
+            >
+              내순위
+            </button>
+            <button
               className={`filter-tab ${rankingTab === 'all' ? 'active' : ''}`}
               onClick={() => setRankingTab('all')}
             >
               전체
-            </button>
-            <button
-              className={`filter-tab ${rankingTab === 'hof' ? 'active' : ''}`}
-              onClick={() => setRankingTab('hof')}
-            >
-              🏆 명예의 전당
             </button>
           </div>
 
@@ -794,66 +795,6 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           ) : (() => {
             const withRecord = ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0);
 
-            // ── 명예의 전당 탭 ──────────────────────────────────────
-            if (rankingTab === 'hof') {
-              const hofMembers = withRecord.filter(m => m.is_hall_of_fame);
-              const hofAll = ranking.filter(m => m.is_hall_of_fame); // 이번 달 기록 없어도 표시
-
-              const renderHofProfile = (member: typeof hofAll[0]) => {
-                if (member.profile_image?.startsWith('default:')) {
-                  const color = member.profile_image.replace('default:', '');
-                  return (
-                    <div className="hof-card-avatar" style={{ background: color }}>
-                      {member.display_name[0].toUpperCase()}
-                    </div>
-                  );
-                } else if (member.profile_image) {
-                  return <img src={member.profile_image} alt={member.display_name} className="hof-card-avatar hof-card-avatar--img" />;
-                }
-                return (
-                  <div className="hof-card-avatar" style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}>
-                    {member.display_name[0]}
-                  </div>
-                );
-              };
-
-              if (hofAll.length === 0) {
-                return (
-                  <div className="empty-state">
-                    <p>명예의 전당 멤버가 없습니다.</p>
-                  </div>
-                );
-              }
-
-              return (
-                <>
-                  <div className="hof-gallery">
-                    {hofAll.map(member => (
-                      <div
-                        key={member.user_id}
-                        className="hof-card"
-                        onClick={() => setSelectedMember({ userId: member.user_id, userName: member.display_name })}
-                      >
-                        <div className="hof-card-crown">🏆</div>
-                        {renderHofProfile(member)}
-                        <div className="hof-card-name">{member.display_name}</div>
-                        <div className="hof-card-reason">{member.hof_reason || '명예의 전당 멤버'}</div>
-                        {hofMembers.find(m => m.user_id === member.user_id) && (
-                          <div className="hof-card-mileage">
-                            이번 달 {hofMembers.find(m => m.user_id === member.user_id)!.total_mileage.toFixed(1)}점
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="hof-tab-description">
-                    <p>월별 1위 등 특별한 업적을 달성한 멤버를 운영자 논의 후 등재합니다.</p>
-                  </div>
-                </>
-              );
-            }
-
-            // ── 전체 탭 ─────────────────────────────────────────────
             // 필터 체크박스 적용
             let filtered = withRecord;
             if (hideHof) filtered = filtered.filter(m => !m.is_hall_of_fame);
@@ -885,43 +826,43 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               );
             };
 
-            // ── 내 순위 상단 카드 ────────────────────────────────────
-            const myRankCard = myEntry && (
-              <div className="my-rank-card">
-                <div className="my-rank-card-header">내 순위</div>
-                {/* ±3 미니 리스트 */}
-                {(() => {
-                  const start = Math.max(0, myRankIndex - 3);
-                  const end = Math.min(reranked.length, myRankIndex + 4);
-                  const slice = reranked.slice(start, end);
-                  return (
-                    <div className="my-rank-context">
-                      {start > 0 && <div className="my-rank-context-ellipsis">⋯ 위 {start}명</div>}
-                      {slice.map(m => {
-                        const isMe = m.user_id === user?.id;
-                        return (
-                          <div
-                            key={m.user_id}
-                            className={`my-rank-context-row${isMe ? ' my-rank-context-row--me' : ''}`}
-                            onClick={() => setSelectedMember({ userId: m.user_id, userName: m.display_name })}
-                          >
-                            <span className="my-rank-context-rank">{m.rank}위</span>
-                            {renderProfileImage(m)}
-                            <span className="my-rank-context-name">
-                              {m.display_name}
-                              {isMe && <span className="my-rank-badge">나</span>}
-                              {m.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
-                            </span>
-                            <span className="my-rank-context-mileage">{m.total_mileage.toFixed(1)}</span>
-                          </div>
-                        );
-                      })}
-                      {end < reranked.length && <div className="my-rank-context-ellipsis">⋯ 아래 {reranked.length - end}명</div>}
-                    </div>
-                  );
-                })()}
-              </div>
-            );
+            // ── 내순위 탭 ────────────────────────────────────────────
+            if (rankingTab === 'myrank') {
+              if (!myEntry) {
+                return <div className="empty-state"><p>이번 달 운동 기록이 없습니다.</p></div>;
+              }
+              const start = Math.max(0, myRankIndex - 3);
+              const end = Math.min(reranked.length, myRankIndex + 4);
+              const slice = reranked.slice(start, end);
+              return (
+                <div className="myrank-view">
+                  <div className="myrank-view-summary">전체 {reranked.length}명 중 <strong>{myEntry.rank}위</strong></div>
+                  <div className="my-rank-context">
+                    {start > 0 && <div className="my-rank-context-ellipsis">⋯ 위 {start}명</div>}
+                    {slice.map(m => {
+                      const isMe = m.user_id === user?.id;
+                      return (
+                        <div
+                          key={m.user_id}
+                          className={`my-rank-context-row${isMe ? ' my-rank-context-row--me' : ''}`}
+                          onClick={() => setSelectedMember({ userId: m.user_id, userName: m.display_name })}
+                        >
+                          <span className="my-rank-context-rank">{m.rank}위</span>
+                          {renderProfileImage(m)}
+                          <span className="my-rank-context-name">
+                            {m.display_name}
+                            {isMe && <span className="my-rank-badge">나</span>}
+                            {m.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
+                          </span>
+                          <span className="my-rank-context-mileage">{m.total_mileage.toFixed(1)}</span>
+                        </div>
+                      );
+                    })}
+                    {end < reranked.length && <div className="my-rank-context-ellipsis">⋯ 아래 {reranked.length - end}명</div>}
+                  </div>
+                </div>
+              );
+            }
 
             if (reranked.length === 0) {
               return (
@@ -970,8 +911,6 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
             return (
               <>
-                {myRankCard}
-
                 {/* 필터 체크박스 */}
                 <div className="ranking-filter-checks">
                   <label className="filter-check-label">
@@ -1049,6 +988,59 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                   </button>
                 </div>
               </>
+            );
+          })()}
+
+          {/* 명예의 전당 카드 */}
+          {!rankingLoading && (() => {
+            const hofAll = ranking.filter(m => m.is_hall_of_fame);
+            if (hofAll.length === 0) return null;
+            const hofMembers = ranking.filter(m => m.is_hall_of_fame && m.workout_count > 0 && m.total_mileage > 0);
+
+            const renderHofProfile = (member: typeof hofAll[0]) => {
+              if (member.profile_image?.startsWith('default:')) {
+                const color = member.profile_image.replace('default:', '');
+                return <div className="hof-card-avatar" style={{ background: color }}>{member.display_name[0].toUpperCase()}</div>;
+              } else if (member.profile_image) {
+                return <img src={member.profile_image} alt={member.display_name} className="hof-card-avatar hof-card-avatar--img" />;
+              }
+              return <div className="hof-card-avatar" style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}>{member.display_name[0]}</div>;
+            };
+
+            return (
+              <div className="hof-section-card">
+                <button className="hof-section-toggle" onClick={() => setShowHof(v => !v)}>
+                  <span>🏆 명예의 전당</span>
+                  <span className="hof-section-count">{hofAll.length}명</span>
+                  <span className="hof-section-arrow">{showHof ? '▲' : '▼'}</span>
+                </button>
+                {showHof && (
+                  <>
+                    <div className="hof-gallery">
+                      {hofAll.map(member => (
+                        <div
+                          key={member.user_id}
+                          className="hof-card"
+                          onClick={() => setSelectedMember({ userId: member.user_id, userName: member.display_name })}
+                        >
+                          <div className="hof-card-crown">🏆</div>
+                          {renderHofProfile(member)}
+                          <div className="hof-card-name">{member.display_name}</div>
+                          <div className="hof-card-reason">{member.hof_reason || '명예의 전당 멤버'}</div>
+                          {hofMembers.find(m => m.user_id === member.user_id) && (
+                            <div className="hof-card-mileage">
+                              이번 달 {hofMembers.find(m => m.user_id === member.user_id)!.total_mileage.toFixed(1)}점
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="hof-tab-description">
+                      <p>월별 1위 등 특별한 업적을 달성한 멤버를 운영자 논의 후 등재합니다.</p>
+                    </div>
+                  </>
+                )}
+              </div>
             );
           })()}
 
