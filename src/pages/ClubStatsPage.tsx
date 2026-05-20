@@ -138,7 +138,10 @@ export const ClubStatsPage = () => {
                 <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip
-                  formatter={(v: number) => [`${v.toLocaleString()}점`, '마일리지']}
+                  formatter={(v) => {
+                    const value = Array.isArray(v) ? Number(v[0] ?? 0) : Number(v ?? 0);
+                    return [`${value.toLocaleString()}점`, '마일리지'];
+                  }}
                   contentStyle={{ fontSize: 13, borderRadius: 8 }}
                 />
                 <Bar dataKey="마일리지" fill="#3b82f6" radius={[4, 4, 0, 0]} />
@@ -157,7 +160,10 @@ export const ClubStatsPage = () => {
                 <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                 <Tooltip
-                  formatter={(v: number) => [`${v}명`, '활성 멤버']}
+                  formatter={(v) => {
+                    const value = Array.isArray(v) ? Number(v[0] ?? 0) : Number(v ?? 0);
+                    return [`${value}명`, '활성 멤버'];
+                  }}
                   contentStyle={{ fontSize: 13, borderRadius: 8 }}
                 />
                 <Bar dataKey="활성멤버" fill="#22c55e" radius={[4, 4, 0, 0]} />
@@ -177,7 +183,10 @@ export const ClubStatsPage = () => {
                   <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip
-                    formatter={(v: number, name: string) => [`${v}점`, name]}
+                    formatter={(v, name) => {
+                      const value = Array.isArray(v) ? Number(v[0] ?? 0) : Number(v ?? 0);
+                      return [`${value}점`, name];
+                    }}
                     contentStyle={{ fontSize: 13, borderRadius: 8 }}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
