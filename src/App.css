@@ -10048,40 +10048,53 @@ body.workout-detail-open .bottom-nav {
 .my-rank-context {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .my-rank-context-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 8px;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
   cursor: pointer;
-  transition: background 0.15s;
-  font-size: 13px;
+  transition: background 0.15s, border-color 0.15s;
+  font-size: 14px;
 }
 
 .my-rank-context-row:hover {
-  background: rgba(33, 150, 243, 0.08);
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
 }
 
 .my-rank-context-row--me {
-  background: rgba(33, 150, 243, 0.12);
-  border: 1px solid #90CAF9;
+  background: rgba(33, 150, 243, 0.10);
+  border: 2px solid #90CAF9;
   font-weight: 600;
 }
 
+.my-rank-context-row--me:hover {
+  background: rgba(33, 150, 243, 0.16);
+  border-color: #2196F3;
+}
+
 .my-rank-context-rank {
-  width: 30px;
-  font-size: 12px;
+  width: 36px;
+  font-size: 14px;
   color: var(--text-secondary);
   flex-shrink: 0;
   text-align: center;
+  line-height: 1;
+}
+
+.my-rank-context-rank--medal {
+  font-size: 20px;
 }
 
 .my-rank-context-row--me .my-rank-context-rank {
-  color: #1565C0;
+  color: #1976D2;
   font-weight: 700;
 }
 
@@ -10097,10 +10110,11 @@ body.workout-detail-open .bottom-nav {
 }
 
 .my-rank-context-mileage {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary-color);
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .my-rank-context-ellipsis {
@@ -10125,8 +10139,8 @@ body.workout-detail-open .bottom-nav {
 }
 
 .myrank-view-summary strong {
-  color: var(--text-primary);
-  font-size: 14px;
+  color: var(--primary-color);
+  font-size: 16px;
 }
 
 /* ============================================
