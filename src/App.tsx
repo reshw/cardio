@@ -8,6 +8,8 @@ import { Club } from './pages/Club';
 import { ClubSettings } from './pages/ClubSettings';
 import { ClubGeneralSettings } from './pages/ClubGeneralSettings';
 import { ClubMileageSettings } from './pages/ClubMileageSettings';
+import { ClubStatsPage } from './pages/ClubStatsPage';
+import { ClubGrowthDashboard } from './components/ClubGrowthDashboard';
 import { ClubMySettings } from './pages/ClubMySettings';
 import { ClubTransferOwnership } from './pages/ClubTransferOwnership';
 import { ClubMembers } from './pages/ClubMembers';
@@ -71,6 +73,16 @@ function ProtectedRoutes() {
           <Route path="/club/settings/:clubId/transfer" element={
             <ProtectedClubRoute requireAdmin>
               <ClubTransferOwnership />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId/stats" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubStatsPage />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId/growth" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubGrowthDashboard />
             </ProtectedClubRoute>
           } />
           <Route path="/club/my-settings/:clubId" element={

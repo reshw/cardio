@@ -12,16 +12,23 @@ interface Props {
   clubId: string;
   userId: string;
   userName: string;
+  initialYear?: number;
+  initialMonth?: number;
   onClose: () => void;
 }
 
-export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Props) => {
+export const ClubMemberDetailModal = ({ clubId, userId, userName, initialYear, initialMonth, onClose }: Props) => {
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
 
   const now = new Date();
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth()); // 0-indexed
+  const [selectedYear, setSelectedYear] = useState(initialYear ?? now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(
+    initialMonth ? initialMonth - 1 : now.getMonth()
+  ); // 0-indexed
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [monthPickerYear, setMonthPickerYear] = useState(initialYear ?? now.getFullYear());
+  const [monthPickerMonth, setMonthPickerMonth] = useState(initialMonth ?? (now.getMonth() + 1));
 
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(false);
@@ -42,22 +49,43 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
   }, [clubId, userId]);
 
   useEffect(() => {
+    if (initialYear) {
+      setSelectedYear(initialYear);
+      setMonthPickerYear(initialYear);
+    }
+    if (initialMonth) {
+      setSelectedMonth(initialMonth - 1);
+      setMonthPickerMonth(initialMonth);
+    }
+  }, [initialYear, initialMonth]);
+
+  useEffect(() => {
     loadWorkouts();
   }, [clubId, userId, selectedYear, selectedMonth]);
 
   const handleMonthChange = (delta: number) => {
-    setSelectedMonth((prev) => {
-      const next = prev + delta;
-      if (next < 0) {
-        setSelectedYear((y) => y - 1);
-        return 11;
-      }
-      if (next > 11) {
-        setSelectedYear((y) => y + 1);
-        return 0;
-      }
-      return next;
-    });
+    const next = selectedMonth + delta;
+    if (next < 0) {
+      setSelectedYear((y) => y - 1);
+      setSelectedMonth(11);
+    } else if (next > 11) {
+      setSelectedYear((y) => y + 1);
+      setSelectedMonth(0);
+    } else {
+      setSelectedMonth(next);
+    }
+  };
+
+  const openMonthPicker = () => {
+    setMonthPickerYear(selectedYear);
+    setMonthPickerMonth(selectedMonth + 1);
+    setShowMonthPicker(true);
+  };
+
+  const applyMonthSelection = (year: number, month: number) => {
+    setSelectedYear(year);
+    setSelectedMonth(month - 1);
+    setShowMonthPicker(false);
   };
 
   const isCurrentMonth =
@@ -263,9 +291,22 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
                 <button className="date-nav-button" onClick={() => handleMonthChange(-1)}>
                   <ChevronLeft size={20} />
                 </button>
-                <span className="member-month-label">
+                <button
+                  type="button"
+                  className="member-month-label"
+                  onClick={openMonthPicker}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'inherit',
+                    font: 'inherit',
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontWeight: 700,
+                  }}
+                >
                   {selectedYear}년 {selectedMonth + 1}월
-                </span>
+                </button>
                 <button
                   className="date-nav-button"
                   onClick={() => handleMonthChange(1)}
@@ -440,6 +481,106 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
       )}
 
       {/* 이미지 뷰어 */}
+      {showMonthPicker && (
+        <div className="modal-overlay modal-overlay--top" onClick={() => setShowMonthPicker(false)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '420px', width: '92vw' }}
+          >
+            <div className="modal-header">
+              <h2>월/연도 선택</h2>
+              <button className="modal-close" onClick={() => setShowMonthPicker(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="dashboard-action-button"
+                  onClick={() => setMonthPickerYear((y) => y - 1)}
+                  aria-label="연도 감소"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <input
+                  type="number"
+                  value={monthPickerYear}
+                  onChange={(e) => setMonthPickerYear(Number(e.target.value) || selectedYear)}
+                  style={{
+                    flex: 1,
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    fontSize: '16px',
+                    textAlign: 'center',
+                  }}
+                />
+                <button
+                  type="button"
+                  className="dashboard-action-button"
+                  onClick={() => setMonthPickerYear((y) => y + 1)}
+                  aria-label="연도 증가"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '10px',
+                }}
+              >
+                {Array.from({ length: 12 }, (_, idx) => idx + 1).map((month) => (
+                  <button
+                    key={month}
+                    type="button"
+                    onClick={() => {
+                      setMonthPickerMonth(month);
+                      applyMonthSelection(monthPickerYear, month);
+                    }}
+                    style={{
+                      padding: '12px 0',
+                      borderRadius: '10px',
+                      border: monthPickerMonth === month ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                      background: monthPickerMonth === month ? 'rgba(59, 130, 246, 0.12)' : 'var(--input-bg)',
+                      color: 'var(--text-primary)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {month}월
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="dashboard-action-button"
+                  onClick={() => setShowMonthPicker(false)}
+                >
+                  닫기
+                </button>
+                <button
+                  type="button"
+                  className="dashboard-action-button"
+                  onClick={() => applyMonthSelection(monthPickerYear, monthPickerMonth)}
+                  style={{ color: 'var(--primary-color)', borderColor: 'var(--primary-color)' }}
+                >
+                  적용
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {selectedImage && (
         <div className="image-viewer-overlay" style={{ zIndex: 1200 }} onClick={() => setSelectedImage(null)}>
           <button className="image-viewer-close" onClick={() => setSelectedImage(null)}>

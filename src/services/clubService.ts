@@ -1936,6 +1936,43 @@ class ClubService {
     if (error) throw error;
     return (data || []) as ClubGrowthRow[];
   }
+
+  async getClubMonthlySummary(clubId: string, months: number = 6): Promise<ClubMonthlySummary[]> {
+    const now = new Date();
+    const targets: { year: number; month: number }[] = [];
+    for (let i = months - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      targets.push({ year: d.getFullYear(), month: d.getMonth() + 1 });
+    }
+
+    const statsArr = await Promise.all(
+      targets.map(t => this.getClubDetailedStats(clubId, t))
+    );
+
+    return targets.map(({ year, month }, i) => {
+      const stats = statsArr[i];
+      const totalMileage = stats.reduce((s, m) => s + m.total_mileage, 0);
+      const activeMembers = stats.filter(m => m.total_mileage > 0).length;
+      const totalWorkoutDays = stats.reduce((s, m) => s + m.workout_days, 0);
+      const byCategory: Record<string, number> = {};
+      for (const member of stats) {
+        for (const [cat, mileage] of Object.entries(member.by_workout)) {
+          byCategory[cat] = (byCategory[cat] || 0) + (mileage as number);
+        }
+      }
+      return { year, month, label: `${month}월`, totalMileage, activeMembers, totalWorkoutDays, byCategory };
+    });
+  }
+}
+
+export interface ClubMonthlySummary {
+  year: number;
+  month: number;
+  label: string;
+  totalMileage: number;
+  activeMembers: number;
+  totalWorkoutDays: number;
+  byCategory: Record<string, number>;
 }
 
 export interface ClubGrowthRow {
