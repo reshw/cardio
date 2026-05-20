@@ -182,7 +182,7 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, onClose }: Pro
   };
 
   const getWorkoutLabel = (workout: Workout) => {
-    if (workout.category === '요가' || workout.category === '복싱') {
+    if (workout.category === '복싱') {
       return `${workout.category}-혼합`;
     }
     if (workout.sub_type) return `${workout.category}-${workout.sub_type}`;
