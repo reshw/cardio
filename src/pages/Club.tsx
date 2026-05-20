@@ -13,8 +13,7 @@ import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
-import { ClubGrowthDashboard } from '../components/ClubGrowthDashboard';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, BarChart2 } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -94,14 +93,19 @@ export const Club = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [challengeMenuOpen, setChallengeMenuOpen] = useState(false);
   const [mileageMenuOpen, setMileageMenuOpen] = useState(false);
+  const [statsMenuOpen, setStatsMenuOpen] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [showChallengeCreate, setShowChallengeCreate] = useState(false);
   const [showChallengeArchive, setShowChallengeArchive] = useState(false);
   const [challengeRefreshKey, setChallengeRefreshKey] = useState(0);
-  const [showGrowthDashboard, setShowGrowthDashboard] = useState(false);
 
   // 멤버 상세 모달
-  const [selectedMember, setSelectedMember] = useState<{ userId: string; userName: string } | null>(null);
+  const [selectedMember, setSelectedMember] = useState<{
+    userId: string;
+    userName: string;
+    year: number;
+    month: number;
+  } | null>(null);
 
   // 피드 관련 state
   type TabType = 'ranking' | 'feed';
@@ -133,6 +137,9 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   // 랭킹 월 선택 state
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [monthPickerYear, setMonthPickerYear] = useState(selectedMonth.getFullYear());
+  const [monthPickerMonth, setMonthPickerMonth] = useState(selectedMonth.getMonth() + 1);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -223,6 +230,30 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const now = new Date();
     return selectedMonth.getFullYear() === now.getFullYear() &&
            selectedMonth.getMonth() === now.getMonth();
+  };
+
+  const openMonthPicker = () => {
+    setMonthPickerYear(selectedMonth.getFullYear());
+    setMonthPickerMonth(selectedMonth.getMonth() + 1);
+    setShowMonthPicker(true);
+  };
+
+  const applyMonthSelection = (year: number, month: number) => {
+    const nextMonth = new Date(year, month - 1, 1);
+    setSelectedMonth(nextMonth);
+    setShowMonthPicker(false);
+    if (selectedClub) {
+      loadClubRanking(selectedClub.id, nextMonth);
+    }
+  };
+
+  const openMemberDetail = (userId: string, userName: string) => {
+    setSelectedMember({
+      userId,
+      userName,
+      year: selectedMonth.getFullYear(),
+      month: selectedMonth.getMonth() + 1,
+    });
   };
 
   // 피드 로드 (캐싱 적용)
@@ -683,7 +714,23 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               >
                 <ChevronLeft size={20} />
               </button>
-              <h2>{selectedMonth.getFullYear()}년 {String(selectedMonth.getMonth() + 1).padStart(2, '0')}월</h2>
+              <button
+                type="button"
+                className="month-selector-label"
+                onClick={openMonthPicker}
+                title="월/연도 선택"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'inherit',
+                  font: 'inherit',
+                  padding: 0,
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                }}
+              >
+                {selectedMonth.getFullYear()}년 {String(selectedMonth.getMonth() + 1).padStart(2, '0')}월
+              </button>
               <button
                 className="month-nav-button"
                 onClick={handleNextMonth}
@@ -845,7 +892,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                         <div
                           key={m.user_id}
                           className={`my-rank-context-row${isMe ? ' my-rank-context-row--me' : ''}`}
-                          onClick={() => setSelectedMember({ userId: m.user_id, userName: m.display_name })}
+                          onClick={() => openMemberDetail(m.user_id, m.display_name)}
                         >
                           <span className="my-rank-context-rank">{m.rank}위</span>
                           {renderProfileImage(m)}
@@ -950,7 +997,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                             borderColor: member.user_id === highlightedUserId ? '#FF6B9D' : member.is_hall_of_fame ? '#FFD700' : isMyRank ? '#2196F3' : undefined,
                             borderWidth: member.user_id === highlightedUserId || member.is_hall_of_fame || isMyRank ? '2px' : undefined,
                           }}
-                          onClick={() => setSelectedMember({ userId: member.user_id, userName: member.display_name })}
+                          onClick={() => openMemberDetail(member.user_id, member.display_name)}
                         >
                           <div className="ranking-left">
                             <div className={`rank-badge rank-${member.rank}`}>
@@ -1021,7 +1068,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                         <div
                           key={member.user_id}
                           className="hof-card"
-                          onClick={() => setSelectedMember({ userId: member.user_id, userName: member.display_name })}
+                          onClick={() => openMemberDetail(member.user_id, member.display_name)}
                         >
                           <div className="hof-card-crown">🏆</div>
                           {renderHofProfile(member)}
@@ -1074,7 +1121,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           onOptimisticCommentAdd={handleOptimisticCommentAdd}
           onOptimisticCommentDelete={handleOptimisticCommentDelete}
           onBlock={handleBlock}
-          onMemberClick={(userId, userName) => setSelectedMember({ userId, userName })}
+          onMemberClick={(userId, userName) => openMemberDetail(userId, userName)}
         />
       )}
 
@@ -1084,6 +1131,8 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           clubId={selectedClub.id}
           userId={selectedMember.userId}
           userName={selectedMember.userName}
+          initialYear={selectedMember.year}
+          initialMonth={selectedMember.month}
           onClose={() => setSelectedMember(null)}
         />
       )}
@@ -1232,6 +1281,106 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
       )}
 
       {/* 챌린지 만들기 모달 */}
+      {showMonthPicker && (
+        <div className="modal-overlay modal-overlay--top" onClick={() => setShowMonthPicker(false)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '420px', width: '92vw' }}
+          >
+            <div className="modal-header">
+              <h2>월/연도 선택</h2>
+              <button className="modal-close" onClick={() => setShowMonthPicker(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="dashboard-action-button"
+                  onClick={() => setMonthPickerYear((y) => y - 1)}
+                  aria-label="연도 감소"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <input
+                  type="number"
+                  value={monthPickerYear}
+                  onChange={(e) => setMonthPickerYear(Number(e.target.value) || selectedMonth.getFullYear())}
+                  style={{
+                    flex: 1,
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    fontSize: '16px',
+                    textAlign: 'center',
+                  }}
+                />
+                <button
+                  type="button"
+                  className="dashboard-action-button"
+                  onClick={() => setMonthPickerYear((y) => y + 1)}
+                  aria-label="연도 증가"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '10px',
+                }}
+              >
+                {Array.from({ length: 12 }, (_, idx) => idx + 1).map((month) => (
+                  <button
+                    key={month}
+                    type="button"
+                    onClick={() => {
+                      setMonthPickerMonth(month);
+                      applyMonthSelection(monthPickerYear, month);
+                    }}
+                    style={{
+                      padding: '12px 0',
+                      borderRadius: '10px',
+                      border: monthPickerMonth === month ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                      background: monthPickerMonth === month ? 'rgba(59, 130, 246, 0.12)' : 'var(--input-bg)',
+                      color: 'var(--text-primary)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {month}월
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="dashboard-action-button"
+                  onClick={() => setShowMonthPicker(false)}
+                >
+                  닫기
+                </button>
+                <button
+                  type="button"
+                  className="dashboard-action-button"
+                  onClick={() => applyMonthSelection(monthPickerYear, monthPickerMonth)}
+                  style={{ color: 'var(--primary-color)', borderColor: 'var(--primary-color)' }}
+                >
+                  적용
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showChallengeCreate && selectedClub && user && (
         <ChallengeCreateModal
           club={selectedClub}
@@ -1390,11 +1539,37 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                         </div>
                         <ChevronRight size={16} className="cmenu-arrow" />
                       </button>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); setShowGrowthDashboard(true); }}>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* 통계 (관리자) */}
+              {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
+                <div className="cmenu-group">
+                  <button type="button" className="cmenu-row" onClick={() => setStatsMenuOpen(v => !v)}>
+                    <BarChart2 size={18} className="cmenu-row-icon" />
+                    <div className="cmenu-row-text">
+                      <div className="cmenu-row-title">통계</div>
+                    </div>
+                    <span className="cmenu-badge">관리자</span>
+                    <ChevronDown size={16} className={`cmenu-caret${statsMenuOpen ? ' cmenu-caret--open' : ''}`} />
+                  </button>
+                  {statsMenuOpen && (
+                    <>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/stats`); }}>
+                        <BarChart2 size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">클럽 통계</div>
+                          <div className="cmenu-row-desc">월별 마일리지 · 멤버 · 종목 그래프</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/growth`); }}>
                         <TrendingUp size={16} className="cmenu-row-icon" />
                         <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">다크호스 대시보드</div>
-                          <div className="cmenu-row-desc">전달 대비 성장률 · 운동일수</div>
+                          <div className="cmenu-row-title">이달의 성장</div>
+                          <div className="cmenu-row-desc">팀원별 전달 대비 성장 진척률</div>
                         </div>
                         <ChevronRight size={16} className="cmenu-arrow" />
                       </button>
@@ -1467,15 +1642,6 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             </div>
           </div>
         </div>
-      )}
-
-      {/* 다크호스 대시보드 */}
-      {showGrowthDashboard && selectedClub && (
-        <ClubGrowthDashboard
-          clubId={selectedClub.id}
-          clubName={selectedClub.name}
-          onClose={() => setShowGrowthDashboard(false)}
-        />
       )}
 
       {/* 챌린지 만들기 모달 */}

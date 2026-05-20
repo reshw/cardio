@@ -1,18 +1,17 @@
 import { useState, useEffect } from 'react';
-import { X, Search, TrendingUp, Calendar } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ChevronLeft, Search, TrendingUp, Calendar } from 'lucide-react';
 import clubService from '../services/clubService';
 import type { ClubGrowthRow } from '../services/clubService';
 
-interface Props {
-  clubId: string;
-  clubName: string;
-  onClose: () => void;
-}
-
 type SortKey = 'growth_rate' | 'workout_days';
 
-export const ClubGrowthDashboard = ({ clubId, clubName, onClose }: Props) => {
+export const ClubGrowthDashboard = () => {
+  const { clubId } = useParams<{ clubId: string }>();
+  const navigate = useNavigate();
   const now = new Date();
+
+  const [clubName, setClubName] = useState('');
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [rows, setRows] = useState<ClubGrowthRow[]>([]);
@@ -21,10 +20,19 @@ export const ClubGrowthDashboard = ({ clubId, clubName, onClose }: Props) => {
   const [sortKey, setSortKey] = useState<SortKey>('growth_rate');
 
   useEffect(() => {
-    load();
+    if (clubId) {
+      clubService.getClubById(clubId).then(club => {
+        if (club) setClubName(club.name);
+      });
+    }
+  }, [clubId]);
+
+  useEffect(() => {
+    if (clubId) load();
   }, [clubId, year, month]);
 
   const load = async () => {
+    if (!clubId) return;
     setLoading(true);
     try {
       const data = await clubService.getClubGrowthStats(clubId, year, month);
@@ -41,8 +49,8 @@ export const ClubGrowthDashboard = ({ clubId, clubName, onClose }: Props) => {
     else setMonth(m => m - 1);
   };
   const nextMonth = () => {
-    const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
-    if (isCurrentMonth) return;
+    const isNow = year === now.getFullYear() && month === now.getMonth() + 1;
+    if (isNow) return;
     if (month === 12) { setYear(y => y + 1); setMonth(1); }
     else setMonth(m => m + 1);
   };
@@ -76,106 +84,105 @@ export const ClubGrowthDashboard = ({ clubId, clubName, onClose }: Props) => {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content growth-dashboard" onClick={e => e.stopPropagation()}>
-        {/* 헤더 */}
-        <div className="modal-header">
-          <div>
-            <h2 style={{ marginBottom: 2 }}>다크호스 대시보드</h2>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{clubName}</div>
-          </div>
-          <button className="modal-close" onClick={onClose}><X size={20} /></button>
+    <div className="settings-page">
+      <div className="settings-header">
+        <button className="back-button" onClick={() => navigate(-1)}>
+          <ChevronLeft size={24} />
+        </button>
+        <div>
+          <h1 style={{ margin: 0 }}>이달의 성장</h1>
+          {clubName && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>{clubName}</div>}
         </div>
+      </div>
 
-        {/* 월 선택 + 정렬 */}
-        <div className="growth-dash-controls">
-          <div className="growth-dash-month">
-            <button className="growth-dash-arrow" onClick={prevMonth}>‹</button>
-            <span className="growth-dash-month-label">{year}년 {month}월</span>
-            <button className="growth-dash-arrow" onClick={nextMonth} disabled={isCurrentMonth}>›</button>
-          </div>
-          <div className="growth-dash-sort">
-            <button
-              className={`growth-dash-sort-btn${sortKey === 'growth_rate' ? ' active' : ''}`}
-              onClick={() => setSortKey('growth_rate')}
-            >
-              <TrendingUp size={13} /> 성장률
-            </button>
-            <button
-              className={`growth-dash-sort-btn${sortKey === 'workout_days' ? ' active' : ''}`}
-              onClick={() => setSortKey('workout_days')}
-            >
-              <Calendar size={13} /> 운동일수
-            </button>
-          </div>
+      {/* 월 선택 + 정렬 */}
+      <div className="growth-dash-controls" style={{ padding: '0 16px' }}>
+        <div className="growth-dash-month">
+          <button className="growth-dash-arrow" onClick={prevMonth}>‹</button>
+          <span className="growth-dash-month-label">{year}년 {month}월</span>
+          <button className="growth-dash-arrow" onClick={nextMonth} disabled={isCurrentMonth}>›</button>
         </div>
-
-        {/* 검색 */}
-        <div className="growth-dash-search">
-          <Search size={14} className="growth-dash-search-icon" />
-          <input
-            className="growth-dash-search-input"
-            placeholder="이름 검색"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+        <div className="growth-dash-sort">
+          <button
+            className={`growth-dash-sort-btn${sortKey === 'growth_rate' ? ' active' : ''}`}
+            onClick={() => setSortKey('growth_rate')}
+          >
+            <TrendingUp size={13} /> 성장률
+          </button>
+          <button
+            className={`growth-dash-sort-btn${sortKey === 'workout_days' ? ' active' : ''}`}
+            onClick={() => setSortKey('workout_days')}
+          >
+            <Calendar size={13} /> 운동일수
+          </button>
         </div>
+      </div>
 
-        {/* 카드 목록 */}
-        <div className="modal-body growth-dash-body">
-          {loading ? (
-            <div className="growth-dash-empty">불러오는 중...</div>
-          ) : filtered.length === 0 ? (
-            <div className="growth-dash-empty">데이터가 없습니다</div>
-          ) : (
-            filtered.map((row, idx) => (
-              <div key={row.user_id} className="growth-card">
-                <div className="growth-card-left">
-                  <div className="growth-card-rank">{idx + 1}</div>
-                  <div className="growth-card-avatar">
-                    {row.profile_image?.startsWith('default:')
-                      ? <div className="growth-card-avatar-default" style={{ background: row.profile_image.replace('default:', '') }}>{nameOf(row)[0]}</div>
-                      : row.profile_image
-                        ? <img src={row.profile_image} alt={nameOf(row)} />
-                        : <span>{nameOf(row)[0]}</span>
-                    }
-                  </div>
-                </div>
-                <div className="growth-card-info">
-                  <div className="growth-card-name-row">
-                    <span className="growth-card-name">{nameOf(row)}</span>
-                    <span
-                      className="growth-card-rate"
-                      style={{ color: rateColor(row.growth_rate) }}
-                    >
-                      {rateLabel(row.growth_rate)}
-                    </span>
-                  </div>
-                  <div className="growth-card-row">
-                    <span className="growth-card-label">마일리지</span>
-                    <span className="growth-card-compare">
-                      {row.prev_normalized !== null
-                        ? `전달 ${row.elapsed_days}일분 ${row.prev_normalized}`
-                        : '전달 없음'}
-                      {' → '}
-                      <strong>{row.curr_mileage.toFixed(1)}</strong>
-                    </span>
-                  </div>
-                  <div className="growth-card-row">
-                    <span className="growth-card-label">운동일수</span>
-                    <span className="growth-card-compare">
-                      {row.prev_workout_days_norm !== null
-                        ? `전달 ${row.elapsed_days}일분 ${row.prev_workout_days_norm}일`
-                        : '전달 없음'}
-                      {' → '}
-                      <strong>{row.workout_days}일</strong>
-                    </span>
-                  </div>
+      {/* 검색 */}
+      <div className="growth-dash-search" style={{ margin: '0 16px' }}>
+        <Search size={14} className="growth-dash-search-icon" />
+        <input
+          className="growth-dash-search-input"
+          placeholder="이름 검색"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+
+      {/* 카드 목록 */}
+      <div style={{ padding: '0 16px 80px' }}>
+        {loading ? (
+          <div className="growth-dash-empty">불러오는 중...</div>
+        ) : filtered.length === 0 ? (
+          <div className="growth-dash-empty">데이터가 없습니다</div>
+        ) : (
+          filtered.map((row, idx) => (
+            <div key={row.user_id} className="growth-card">
+              <div className="growth-card-left">
+                <div className="growth-card-rank">{idx + 1}</div>
+                <div className="growth-card-avatar">
+                  {row.profile_image?.startsWith('default:')
+                    ? <div className="growth-card-avatar-default" style={{ background: row.profile_image.replace('default:', '') }}>{nameOf(row)[0]}</div>
+                    : row.profile_image
+                      ? <img src={row.profile_image} alt={nameOf(row)} />
+                      : <span>{nameOf(row)[0]}</span>
+                  }
                 </div>
               </div>
-            ))
-          )}
-        </div>
+              <div className="growth-card-info">
+                <div className="growth-card-name-row">
+                  <span className="growth-card-name">{nameOf(row)}</span>
+                  <span
+                    className="growth-card-rate"
+                    style={{ color: rateColor(row.growth_rate) }}
+                  >
+                    {rateLabel(row.growth_rate)}
+                  </span>
+                </div>
+                <div className="growth-card-row">
+                  <span className="growth-card-label">마일리지</span>
+                  <span className="growth-card-compare">
+                    {row.prev_normalized !== null
+                      ? `전달 ${row.elapsed_days}일분 ${row.prev_normalized}`
+                      : '전달 없음'}
+                    {' → '}
+                    <strong>{row.curr_mileage.toFixed(1)}</strong>
+                  </span>
+                </div>
+                <div className="growth-card-row">
+                  <span className="growth-card-label">운동일수</span>
+                  <span className="growth-card-compare">
+                    {row.prev_workout_days_norm !== null
+                      ? `전달 ${row.elapsed_days}일분 ${row.prev_workout_days_norm}일`
+                      : '전달 없음'}
+                    {' → '}
+                    <strong>{row.workout_days}일</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
