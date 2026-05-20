@@ -7,7 +7,7 @@ export type WorkoutCategory = '달리기' | '사이클' | '수영' | '계단' | 
 export type RunningSubType = '트레드밀' | '러닝';
 export type CycleSubType = '실외' | '실내';
 export type BoxingSubType = '샌드백/미트' | '스파링';
-export type YogaSubType = '일반' | '빈야사/아쉬탕가';
+export type YogaSubType = '하타' | '아쉬탕가' | '빈야사' | '인요가';
 
 export type WorkoutSubType = RunningSubType | CycleSubType | BoxingSubType | YogaSubType | null;
 

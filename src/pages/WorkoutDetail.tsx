@@ -167,8 +167,7 @@ export const WorkoutDetail = () => {
   };
 
   const getWorkoutLabel = () => {
-    // 요가/복싱은 항상 "혼합"으로 표시
-    if (workout.category === '요가' || workout.category === '복싱') {
+    if (workout.category === '복싱') {
       return `${workout.category}-혼합`;
     }
     if (workout.sub_type) {
