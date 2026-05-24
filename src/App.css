@@ -1669,6 +1669,8 @@ body.search-modal-open .bottom-nav {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .rank-badge {
@@ -1719,12 +1721,17 @@ body.search-modal-open .bottom-nav {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .ranking-name {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ranking-count {
@@ -1734,6 +1741,7 @@ body.search-modal-open .bottom-nav {
 
 .ranking-right {
   text-align: right;
+  flex-shrink: 0;
 }
 
 .ranking-regular-label {
