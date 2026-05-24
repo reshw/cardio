@@ -22,4 +22,10 @@
   [context.dev.environment]
     NODE_ENV = "development"
 
+# /api/* → Netlify Functions (Vercel 이중 배포 호환)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
 # Redirects are now handled by public/_redirects file
