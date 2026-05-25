@@ -19,6 +19,7 @@ export interface Club {
   approved_at?: string;
   approved_by?: string;
   count_excluded_workouts_in_days?: boolean; // 미산입 운동도 운동일수에 포함할지 여부
+  rookie_league_enabled?: boolean; // 루키리그 기능 활성화 여부
 }
 
 // 동적 마일리지 설정 (모든 운동 종목 지원)
@@ -415,6 +416,18 @@ class ClubService {
     }
 
     return club;
+  }
+
+  async updateRookieLeagueEnabled(clubId: string, enabled: boolean): Promise<void> {
+    const { error } = await supabase
+      .from('clubs')
+      .update({ rookie_league_enabled: enabled })
+      .eq('id', clubId);
+
+    if (error) {
+      console.error('루키리그 설정 변경 실패:', error);
+      throw error;
+    }
   }
 
   // 클럽 삭제

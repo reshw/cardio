@@ -13,7 +13,7 @@ import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, BarChart2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, BarChart2, Star } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -920,10 +920,12 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                       <input type="checkbox" checked={hideHof} onChange={e => setHideHof(e.target.checked)} />
                       <span>명전 제외</span>
                     </label>
-                    <label className="filter-check-label">
-                      <input type="checkbox" checked={rookieOnly} onChange={e => setRookieOnly(e.target.checked)} />
-                      <span>루키리그</span>
-                    </label>
+                    {selectedClub?.rookie_league_enabled !== false && (
+                      <label className="filter-check-label">
+                        <input type="checkbox" checked={rookieOnly} onChange={e => setRookieOnly(e.target.checked)} />
+                        <span>루키리그</span>
+                      </label>
+                    )}
                   </div>
                   <div className="empty-state"><p>운동 기록이 없습니다.</p></div>
                 </>
@@ -964,10 +966,12 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                     <input type="checkbox" checked={hideHof} onChange={e => { setHideHof(e.target.checked); setShowFullList(false); }} />
                     <span>명전 제외</span>
                   </label>
-                  <label className="filter-check-label">
-                    <input type="checkbox" checked={rookieOnly} onChange={e => { setRookieOnly(e.target.checked); setShowFullList(false); }} />
-                    <span>루키리그</span>
-                  </label>
+                  {selectedClub?.rookie_league_enabled !== false && (
+                    <label className="filter-check-label">
+                      <input type="checkbox" checked={rookieOnly} onChange={e => { setRookieOnly(e.target.checked); setShowFullList(false); }} />
+                      <span>루키리그</span>
+                    </label>
+                  )}
                 </div>
 
                 <div className="ranking-list">
@@ -1009,6 +1013,9 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                                 {member.display_name}
                                 {isMyRank && <span className="my-rank-badge">나</span>}
                                 {member.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
+                                {selectedClub?.rookie_league_enabled !== false && member.is_rookie && (
+                                  <span className="rookie-badge">루키</span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1536,6 +1543,14 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                         <div className="cmenu-row-text">
                           <div className="cmenu-row-title">마일리지 계수 설정</div>
                           <div className="cmenu-row-desc">운동별 계수 조정</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/rookie-league`); }}>
+                        <Star size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">리그 제도 운영</div>
+                          <div className="cmenu-row-desc">루키리그 기준 설정</div>
                         </div>
                         <ChevronRight size={16} className="cmenu-arrow" />
                       </button>
