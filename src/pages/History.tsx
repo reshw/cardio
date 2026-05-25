@@ -239,7 +239,7 @@ export const History = () => {
     if (pct === 100) return <span className="diff-badge neutral">지난달 페이스와 동일</span>;
     return (
       <span className={`diff-badge ${pct > 100 ? 'up' : 'down'}`}>
-        {pct > 100 ? '▲' : '▼'} {pct}%
+        {pct > 100 ? `▲ +${pct - 100}%` : `▼ -${100 - pct}%`}
       </span>
     );
   };
@@ -649,7 +649,7 @@ export const History = () => {
                         <span className="cat-gauge-record">{dist.toFixed(1)}km · {count}회</span>
                         {achievePct !== null && (
                           <span className={`cat-gauge-achieve ${achievePct >= 110 ? 'over' : achievePct >= 100 ? 'hit' : ''}`}>
-                            지난달대비 {achievePct}%
+                            지난달대비 {achievePct >= 100 ? `+${achievePct - 100}` : `-${100 - achievePct}`}%
                           </span>
                         )}
                       </div>
