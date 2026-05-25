@@ -1168,46 +1168,175 @@ body.search-modal-open .bottom-nav {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  padding: 20px;
+  padding: 16px;
   margin-bottom: 24px;
   box-shadow: var(--shadow-sm);
+}
+
+.calendar-month-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 0 2px;
+}
+
+.calendar-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-nav-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.calendar-nav-btn:hover:not(:disabled) {
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.calendar-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.calendar-month-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.calendar-workout-days-badge {
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: var(--card-hover-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 3px 12px;
+}
+
+.calendar-workout-days-badge strong {
+  color: var(--primary-color);
+  font-weight: 700;
 }
 
 .react-calendar {
   width: 100%;
   border: none;
   font-family: 'Noto Sans KR', sans-serif;
+  background: transparent;
+}
+
+/* 상단 네비게이션 (월 이동) 숨김 — 커스텀 summary로 대체 */
+.react-calendar__navigation {
+  display: none;
+}
+
+/* 요일 헤더 */
+.react-calendar__month-view__weekdays {
+  margin-bottom: 4px;
+}
+
+.react-calendar__month-view__weekdays__weekday {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 4px 0;
+  text-decoration: none;
+}
+
+.react-calendar__month-view__weekdays__weekday abbr {
+  text-decoration: none;
+}
+
+/* 날짜 타일 */
+.react-calendar__month-view__days {
+  gap: 3px 0;
 }
 
 .react-calendar__tile {
-  padding: 14px 6px;
-  border-radius: 8px;
+  aspect-ratio: 1;
+  padding: 0;
+  border-radius: 10px;
   position: relative;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--input-bg);
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.react-calendar__tile:hover {
+  background: var(--card-hover-bg);
+  border-color: var(--border-color);
 }
 
 .react-calendar__tile--active {
-  background: var(--gradient-primary);
-  color: white;
+  background: var(--gradient-primary) !important;
+  color: white !important;
+  border-color: transparent !important;
 }
 
 .react-calendar__tile--now {
-  background: var(--card-hover-bg);
+  background: rgba(255, 107, 157, 0.12) !important;
+  border-color: #FF6B9D !important;
+  font-weight: 700;
+  color: #FF6B9D;
+}
+
+.react-calendar__tile--now.is-sunday {
+  color: #FF6B9D;
+}
+
+.react-calendar__tile--now.is-saturday {
+  color: #FF6B9D;
+}
+
+.react-calendar__tile.has-workout {
+  background: rgba(79, 195, 247, 0.18);
+  border-color: var(--primary-color);
+  font-weight: 700;
 }
 
 .react-calendar__tile.has-workout::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
-  background: var(--primary-color);
-  border-radius: 50%;
+  display: none;
 }
 
-.react-calendar__tile--active.has-workout::after {
-  background: white;
+.react-calendar__tile--active.has-workout {
+  background: var(--gradient-primary) !important;
+}
+
+.react-calendar__tile.is-sunday {
+  color: #E53935;
+}
+
+.react-calendar__tile.is-saturday {
+  color: #1E88E5;
+}
+
+.react-calendar__tile--active.is-sunday,
+.react-calendar__tile--active.is-saturday {
+  color: white !important;
 }
 
 .react-calendar__navigation button {
@@ -1678,6 +1807,8 @@ body.search-modal-open .bottom-nav {
   font-weight: 700;
   min-width: 40px;
   text-align: center;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .rank-badge.rank-1,
@@ -1700,6 +1831,7 @@ body.search-modal-open .bottom-nav {
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--border-color);
+  flex-shrink: 0;
 }
 
 .ranking-profile-placeholder {
@@ -1715,6 +1847,7 @@ body.search-modal-open .bottom-nav {
   border: 2px solid var(--border-color);
   text-align: center;
   line-height: 48px;
+  flex-shrink: 0;
 }
 
 .ranking-info {
@@ -8269,6 +8402,10 @@ body.workout-detail-open .bottom-nav {
   white-space: nowrap;
 }
 
+.month-selector-label {
+  white-space: nowrap;
+}
+
 .month-nav-button {
   display: flex;
   align-items: center;
@@ -9281,6 +9418,111 @@ body.workout-detail-open .bottom-nav {
 .race-delete-btn:hover {
   opacity: 0.8;
   color: #ef4444;
+}
+
+/* 기록 상세 바텀시트 */
+.race-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.race-detail-sheet {
+  width: 100%;
+  background: var(--card-bg);
+  border-radius: 20px 20px 0 0;
+  padding: 12px 20px calc(70px + 16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: slideUp 0.22s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.race-detail-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  margin: 0 auto 4px;
+}
+
+.race-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.race-detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.race-detail-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.race-detail-date {
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+}
+
+.race-detail-time {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--primary-color);
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.race-detail-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.race-detail-edit-btn,
+.race-detail-delete-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+
+.race-detail-edit-btn {
+  background: var(--gradient-primary);
+  color: white;
+}
+
+.race-detail-delete-btn {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: #ef4444;
+}
+
+.race-detail-edit-btn:hover,
+.race-detail-delete-btn:hover {
+  opacity: 0.85;
 }
 
 /* 추가 모달 */
@@ -10307,4 +10549,37 @@ body.workout-detail-open .bottom-nav {
   background: rgba(255, 215, 0, 0.15);
   padding: 2px 8px;
   border-radius: 8px;
+}
+
+/* ==========================================
+   320px 이하 초소형 화면 — 랭킹 레이아웃 압축
+   ========================================== */
+@media (max-width: 360px) {
+  .container {
+    padding: 16px 10px;
+  }
+
+  .ranking-list {
+    gap: 6px;
+  }
+
+  .ranking-item {
+    padding: 8px 10px;
+    border-radius: 10px;
+  }
+
+  .ranking-left {
+    gap: 7px;
+  }
+
+  .rank-badge {
+    min-width: 26px;
+  }
+
+  .ranking-profile,
+  .ranking-profile-placeholder {
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+  }
 }

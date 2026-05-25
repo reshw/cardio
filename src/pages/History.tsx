@@ -8,6 +8,7 @@ import raceService, { computePBIds } from '../services/raceService';
 import type { RaceRecord } from '../services/raceService';
 import { RaceRecordCard } from '../components/RaceRecordCard';
 import { AddRaceModal } from '../components/AddRaceModal';
+import { ExternalLink, Pencil, Trash2 } from 'lucide-react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import {
@@ -51,6 +52,7 @@ export const History = () => {
   const [raceLoading, setRaceLoading] = useState(false);
   const [showAddRace, setShowAddRace] = useState(false);
   const [editingRace, setEditingRace] = useState<RaceRecord | undefined>();
+  const [viewingRace, setViewingRace] = useState<RaceRecord | null>(null);
 
   // 운동 기록 불러오기
   const loadWorkouts = async () => {
@@ -151,6 +153,18 @@ export const History = () => {
     });
   };
 
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+
+  const getCalendarMonthWorkoutDays = (baseDate: Date) => {
+    const y = baseDate.getFullYear();
+    const m = baseDate.getMonth();
+    const days = workouts.filter((w) => {
+      const d = new Date(w.workout_time);
+      return d.getFullYear() === y && d.getMonth() === m;
+    });
+    return new Set(days.map((w) => new Date(w.workout_time).toDateString())).size;
+  };
+
   const now = new Date();
   const [statsYear, setStatsYear] = useState(now.getFullYear());
   const [statsMonth, setStatsMonth] = useState(now.getMonth());
@@ -193,6 +207,10 @@ export const History = () => {
   const distanceCategories = Array.from(new Set(workouts.filter(w => w.unit === 'km' || w.unit === 'm').map(w => getCatGroup(w.category))));
   const selectedDistanceCat = distanceCategories[distanceCategoryIdx % Math.max(distanceCategories.length, 1)] ?? '';
 
+  const allCategories = Array.from(new Set(workouts.map(w => getCatGroup(w.category))));
+  const [chartCategoryIdx, setChartCategoryIdx] = useState(0);
+  const selectedChartCat = allCategories[chartCategoryIdx % Math.max(allCategories.length, 1)] ?? '';
+
   const stats = calcMonthStats(statsYear, statsMonth);
   const prevYear = statsMonth === 0 ? statsYear - 1 : statsYear;
   const prevMonth = statsMonth === 0 ? 11 : statsMonth - 1;
@@ -212,8 +230,8 @@ export const History = () => {
   const [showPaceInfo, setShowPaceInfo] = useState(false);
 
   const METRIC_CONFIG = {
-    workoutDays:   { label: '운동일수', unit: '일',  key: 'workoutDays'   as const },
-    totalDistance: { label: '이동 거리', unit: 'km', key: 'totalDistance' as const },
+    workoutDays:   { label: '운동일수', unit: '일' },
+    totalDistance: { label: '종목별',   unit: '회' },
   };
 
   const renderPaceBadge = (pct: number | null) => {
@@ -267,13 +285,45 @@ export const History = () => {
       {activeTab === 'calendar' && (
         <div className="tab-content">
           <div className="calendar-container">
+            <div className="calendar-month-summary">
+              <div className="calendar-month-nav">
+                <button
+                  className="calendar-nav-btn"
+                  onClick={() => setCalendarMonth(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+                >‹</button>
+                <span className="calendar-month-label">
+                  {calendarMonth.getFullYear()}년 {calendarMonth.getMonth() + 1}월
+                </span>
+                <button
+                  className="calendar-nav-btn"
+                  onClick={() => setCalendarMonth(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+                  disabled={
+                    calendarMonth.getFullYear() === now.getFullYear() &&
+                    calendarMonth.getMonth() === now.getMonth()
+                  }
+                >›</button>
+              </div>
+              <span className="calendar-workout-days-badge">
+                운동 <strong>{getCalendarMonthWorkoutDays(calendarMonth)}</strong>일
+              </span>
+            </div>
             <Calendar
               locale="ko-KR"
               calendarType="gregory"
-              tileClassName={({ date }) =>
-                hasWorkoutOnDate(date) ? 'has-workout' : ''
-              }
+              activeStartDate={calendarMonth}
+              tileClassName={({ date }) => {
+                const classes: string[] = [];
+                if (hasWorkoutOnDate(date)) classes.push('has-workout');
+                if (date.getDay() === 0) classes.push('is-sunday');
+                if (date.getDay() === 6) classes.push('is-saturday');
+                return classes.join(' ') || null;
+              }}
               onClickDay={(date) => setSelectedDate(date)}
+              onActiveStartDateChange={({ activeStartDate }) => {
+                if (activeStartDate) setCalendarMonth(activeStartDate);
+              }}
+              formatDay={(_locale, date) => String(date.getDate())}
+              showNeighboringMonth={false}
             />
           </div>
 
@@ -399,17 +449,15 @@ export const History = () => {
                 <YAxis hide />
                 <Tooltip
                   formatter={(val: any) => {
-                    const label = chartMetric === 'totalDistance' && selectedDistanceCat
-                      ? selectedDistanceCat
-                      : METRIC_CONFIG[chartMetric].label;
-                    return [`${(+val).toFixed(chartMetric === 'totalDistance' ? 1 : 0)}${METRIC_CONFIG[chartMetric].unit}`, label];
+                    const tooltipLabel = chartMetric === 'totalDistance' ? selectedChartCat : METRIC_CONFIG[chartMetric].label;
+                    return [`${Math.round(+val)}${METRIC_CONFIG[chartMetric].unit}`, tooltipLabel];
                   }}
                   contentStyle={{ borderRadius: 10, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: 13 }}
                   cursor={{ fill: 'rgba(79,195,247,0.08)' }}
                 />
                 <Bar
-                  dataKey={chartMetric === 'totalDistance' && selectedDistanceCat
-                    ? (d: any) => d.distanceByGroup?.[selectedDistanceCat] ?? 0
+                  dataKey={chartMetric === 'totalDistance'
+                    ? (d: any) => d.countByGroup?.[selectedChartCat] ?? 0
                     : (chartMetric as string)}
                   radius={[6, 6, 0, 0]}
                   cursor="pointer"
@@ -428,32 +476,14 @@ export const History = () => {
                     />
                   ))}
                 </Bar>
-                {chartMetric === 'totalDistance' && (prevStats.distanceByGroup?.[selectedDistanceCat] ?? 0) > 0 && (
-                  <>
-                    <ReferenceLine
-                      y={(prevStats.distanceByGroup[selectedDistanceCat]) * 1.1}
-                      stroke="#FF6B9D"
-                      strokeDasharray="4 3"
-                      strokeOpacity={0.85}
-                      label={{ value: '+10%', position: 'insideTopRight', fontSize: 10, fill: '#FF6B9D' }}
-                    />
-                    <ReferenceLine
-                      y={(prevStats.distanceByGroup[selectedDistanceCat]) * 1.2}
-                      stroke="#8B5CF6"
-                      strokeDasharray="4 3"
-                      strokeOpacity={0.85}
-                      label={{ value: '+20%', position: 'insideTopRight', fontSize: 10, fill: '#8B5CF6' }}
-                    />
-                  </>
-                )}
               </BarChart>
             </ResponsiveContainer>
 
-            {chartMetric === 'totalDistance' && distanceCategories.length > 1 && (
+            {chartMetric === 'totalDistance' && allCategories.length > 1 && (
               <div className="chart-category-nav">
-                <button className="cat-nav-btn" onClick={() => setDistanceCategoryIdx(i => (i - 1 + distanceCategories.length) % distanceCategories.length)}>‹</button>
-                <span className="cat-nav-label">{selectedDistanceCat}</span>
-                <button className="cat-nav-btn" onClick={() => setDistanceCategoryIdx(i => (i + 1) % distanceCategories.length)}>›</button>
+                <button className="cat-nav-btn" onClick={() => setChartCategoryIdx(i => (i - 1 + allCategories.length) % allCategories.length)}>‹</button>
+                <span className="cat-nav-label">{selectedChartCat}</span>
+                <button className="cat-nav-btn" onClick={() => setChartCategoryIdx(i => (i + 1) % allCategories.length)}>›</button>
               </div>
             )}
 
@@ -687,11 +717,60 @@ export const History = () => {
                     isPB={pbIds.has(r.id)}
                     onDelete={handleDeleteRace}
                     onEdit={(rec) => { setEditingRace(rec); setShowAddRace(true); }}
+                    onView={(rec) => setViewingRace(rec)}
                   />
                 ))}
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {viewingRace && (
+        <div className="race-detail-overlay" onClick={() => setViewingRace(null)}>
+          <div className="race-detail-sheet" onClick={e => e.stopPropagation()}>
+            <div className="race-detail-handle" />
+
+            <div className="race-detail-header">
+              <div className="race-detail-title-row">
+                <span className="race-detail-name">{viewingRace.race_name}</span>
+                {viewingRace.link_url && (
+                  <a href={viewingRace.link_url} target="_blank" rel="noopener noreferrer" className="race-link-btn">
+                    <ExternalLink size={15} />
+                  </a>
+                )}
+              </div>
+              <span className="race-detail-date">
+                {(() => { const d = new Date(viewingRace.race_date); return `${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()}`; })()}
+                <span className="race-cat-badge" style={{ marginLeft: 8 }}>{viewingRace.category}</span>
+              </span>
+            </div>
+
+            <div className="race-detail-time">{viewingRace.finish_time}</div>
+
+            {viewingRace.image_url && (
+              <div className="race-image-wrap">
+                <img src={getThumbnail(viewingRace.image_url, 600, 300)} alt="대회 인증" />
+              </div>
+            )}
+
+            {viewingRace.notes && <p className="race-notes">{viewingRace.notes}</p>}
+
+            <div className="race-detail-actions">
+              <button
+                className="race-detail-edit-btn"
+                onClick={() => { setViewingRace(null); setEditingRace(viewingRace); setShowAddRace(true); }}
+              >
+                <Pencil size={15} /> 수정
+              </button>
+              <button
+                className="race-detail-delete-btn"
+                onClick={() => { setViewingRace(null); handleDeleteRace(viewingRace.id); }}
+              >
+                <Trash2 size={15} /> 삭제
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

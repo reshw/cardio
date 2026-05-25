@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Info, TrendingUp, UserCog, User, Users, BarChart2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, TrendingUp, UserCog, User, Users, BarChart2, Star } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
@@ -112,6 +112,17 @@ export const ClubSettings = () => {
               <div className="menu-item-left">
                 <TrendingUp size={20} />
                 <span>마일리지 계수 설정</span>
+              </div>
+              <ChevronRight size={20} />
+            </button>
+
+            <button
+              className="settings-menu-item"
+              onClick={() => navigate(`/club/settings/${clubId}/rookie-league`)}
+            >
+              <div className="menu-item-left">
+                <Star size={20} />
+                <span>루키리그 설정</span>
               </div>
               <ChevronRight size={20} />
             </button>
