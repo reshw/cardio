@@ -13,7 +13,7 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, ReferenceLine,
+  ResponsiveContainer, Cell,
 } from 'recharts';
 
 type TabType = 'calendar' | 'list' | 'stats' | 'records';
