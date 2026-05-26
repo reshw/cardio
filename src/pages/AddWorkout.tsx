@@ -20,6 +20,8 @@ export const AddWorkout = () => {
   const [savedWorkout, setSavedWorkout] = useState<Workout | null>(null);
   const [myClubs, setMyClubs] = useState<MyClubWithOrder[]>([]);
   const [shareClubId, setShareClubId] = useState<string>('');
+  const [shareNickname, setShareNickname] = useState<string | null>(null);
+  const [shareWorkoutNumber, setShareWorkoutNumber] = useState<number | undefined>(undefined);
   const [category, setCategory] = useState<WorkoutCategory | null>(null);
   const [subType, setSubType] = useState<WorkoutSubType>(null);
   const [subTypeRatio, setSubTypeRatio] = useState(50); // 0-100, 요가/복싱용 비율 슬라이더
@@ -56,6 +58,19 @@ export const AddWorkout = () => {
     };
     loadWorkoutTypes();
   }, []);
+
+  useEffect(() => {
+    if (step !== 4 || !shareClubId || !savedWorkout || !user) return;
+    setShareNickname(null);
+    setShareWorkoutNumber(undefined);
+    Promise.all([
+      clubService.getClubNickname(shareClubId, user.id),
+      clubService.getWorkoutNumberInClub(savedWorkout.id, shareClubId, new Date(savedWorkout.workout_time)),
+    ]).then(([nickname, workoutNumber]) => {
+      setShareNickname(nickname);
+      setShareWorkoutNumber(workoutNumber);
+    }).catch(() => {});
+  }, [step, shareClubId]);
 
   // 동적 카테고리 및 서브타입 매핑
   const CATEGORIES = workoutTypes.map((type) => ({
@@ -587,15 +602,21 @@ export const AddWorkout = () => {
             <p className="kakao-share-desc">공유할 클럽을 선택하세요</p>
 
             {myClubs.length > 0 ? (
-              <select
-                className="kakao-share-select"
-                value={shareClubId}
-                onChange={e => setShareClubId(e.target.value)}
-              >
-                {myClubs.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <>
+                <select
+                  className="kakao-share-select"
+                  value={shareClubId}
+                  onChange={e => setShareClubId(e.target.value)}
+                >
+                  {myClubs.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <div className="kakao-share-info">
+                  <p className="kakao-share-info-name">{shareNickname ?? user?.display_name}</p>
+                  {shareWorkoutNumber && <p className="kakao-share-info-number">오늘 클럽 {shareWorkoutNumber}번째 🏅</p>}
+                </div>
+              </>
             ) : (
               <p className="kakao-share-no-club">가입된 클럽이 없습니다</p>
             )}
@@ -608,11 +629,13 @@ export const AddWorkout = () => {
                     if (!window.Kakao?.isInitialized()) { navigate('/'); return; }
                     const club = myClubs.find(c => c.id === shareClubId);
                     const appUrl = `${window.location.origin}/workout/${savedWorkout.id}?clubId=${shareClubId}`;
+                    const displayName = shareNickname ?? user?.display_name ?? '';
+                    const numberText = shareWorkoutNumber ? `\n오늘 클럽 ${shareWorkoutNumber}번째` : '';
                     const shareData: any = {
                       objectType: 'feed',
                       content: {
-                        title: `[${club?.name ?? ''}] ${user?.display_name}님의 운동 기록`,
-                        description: `${savedWorkout.category}: ${savedWorkout.value}${savedWorkout.unit}`,
+                        title: `[${club?.name ?? ''}] ${displayName}님의 운동 기록`,
+                        description: `${savedWorkout.category}: ${savedWorkout.value}${savedWorkout.unit}${numberText}`,
                         link: { mobileWebUrl: appUrl, webUrl: appUrl },
                       },
                       buttons: [{ title: '나도 기록하기', link: { mobileWebUrl: appUrl, webUrl: appUrl } }],

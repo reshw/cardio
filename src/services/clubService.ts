@@ -1721,6 +1721,36 @@ class ClubService {
     });
   }
 
+  async getWorkoutNumberInClub(workoutId: string, clubId: string, workoutDate: Date): Promise<number | undefined> {
+    const { data: members } = await supabase
+      .from('club_members')
+      .select('user_id')
+      .eq('club_id', clubId)
+      .eq('show_in_feed', true);
+
+    if (!members || members.length === 0) return undefined;
+
+    const startOfDay = new Date(workoutDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(workoutDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const { data: workouts } = await supabase
+      .from('workouts')
+      .select('id, created_at')
+      .in('user_id', members.map((m) => m.user_id))
+      .gte('workout_time', startOfDay.toISOString())
+      .lte('workout_time', endOfDay.toISOString());
+
+    if (!workouts || workouts.length === 0) return undefined;
+
+    const sorted = [...workouts].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    const idx = sorted.findIndex((w) => w.id === workoutId);
+    return idx === -1 ? undefined : idx + 1;
+  }
+
   // 개인 설정 업데이트
   async updateMemberSettings(
     clubId: string,
