@@ -10193,6 +10193,31 @@ body.workout-detail-open .bottom-nav {
   margin-top: 4px;
 }
 
+.kakao-share-info {
+  width: 100%;
+  max-width: 320px;
+  background: var(--bg-secondary, rgba(0, 0, 0, 0.04));
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.kakao-share-info-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.kakao-share-info-number {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
 .kakao-share-no-club {
   font-size: 14px;
   color: var(--text-secondary);
