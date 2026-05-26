@@ -102,6 +102,21 @@ const challengeService = {
     return data || [];
   },
 
+  async getPastChallengesForClub(clubId: string): Promise<Challenge[]> {
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const { data, error } = await supabase
+      .from('challenges')
+      .select('*')
+      .eq('club_id', clubId)
+      .eq('scope', 'club')
+      .lt('end_date', oneWeekAgo)
+      .order('start_date', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
   async createChallenge(data: CreateChallengeData): Promise<Challenge> {
     const { data: created, error } = await supabase
       .from('challenges')

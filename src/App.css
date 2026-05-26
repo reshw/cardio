@@ -1,4 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+@font-face {
+  font-family: 'LineSeed';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Th.woff2') format('woff2');
+  font-weight: 100;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'LineSeed';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Rg.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'LineSeed';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Bd.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
 
 :root {
   /* White Theme with Pink/Blue Gradient Accent */
@@ -28,7 +45,7 @@
 }
 
 body {
-  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'LineSeed', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 50%, #FFF5F8 100%);
@@ -760,6 +777,174 @@ body.search-modal-open .bottom-nav {
   color: #FF6B6B;
 }
 
+/* ── Club Menu Bottom Sheet ─────────────────────────────── */
+/* ── Club Menu Bottom Sheet ─────────────────────────────── */
+.cmenu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1100;
+  display: flex;
+  align-items: flex-end;
+}
+
+.cmenu-sheet {
+  width: 100%;
+  max-height: 85vh;
+  background: var(--card-bg);
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.cmenu-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  margin: 12px auto 0;
+  flex-shrink: 0;
+}
+
+.cmenu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px 12px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cmenu-head-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.cmenu-head-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+}
+
+.cmenu-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 16px calc(70px + 20px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cmenu-group {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card-bg);
+  flex-shrink: 0;
+}
+
+.cmenu-group--danger {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.cmenu-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border-color);
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  transition: background 0.12s;
+}
+
+.cmenu-row:first-child {
+  border-top: none;
+}
+
+.cmenu-row:active {
+  background: var(--input-bg);
+}
+
+.cmenu-row--sub {
+  background: var(--input-bg);
+}
+
+.cmenu-row--sub:active {
+  filter: brightness(0.95);
+}
+
+.cmenu-row-icon {
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.cmenu-row-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cmenu-row-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cmenu-row-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.cmenu-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: rgba(79, 195, 247, 0.12);
+  color: var(--primary-color);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cmenu-caret {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.cmenu-caret--open {
+  transform: rotate(180deg);
+}
+
+.cmenu-arrow {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.cmenu-row--danger .cmenu-row-title {
+  color: #ef4444;
+}
+
+.cmenu-row--danger .cmenu-row-icon {
+  color: #ef4444;
+}
+
 /* Category Selection */
 .category-selection h3,
 .subtype-selection h3,
@@ -983,46 +1168,175 @@ body.search-modal-open .bottom-nav {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  padding: 20px;
+  padding: 16px;
   margin-bottom: 24px;
   box-shadow: var(--shadow-sm);
+}
+
+.calendar-month-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 0 2px;
+}
+
+.calendar-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-nav-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.calendar-nav-btn:hover:not(:disabled) {
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.calendar-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.calendar-month-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.calendar-workout-days-badge {
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: var(--card-hover-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 3px 12px;
+}
+
+.calendar-workout-days-badge strong {
+  color: var(--primary-color);
+  font-weight: 700;
 }
 
 .react-calendar {
   width: 100%;
   border: none;
   font-family: 'Noto Sans KR', sans-serif;
+  background: transparent;
+}
+
+/* 상단 네비게이션 (월 이동) 숨김 — 커스텀 summary로 대체 */
+.react-calendar__navigation {
+  display: none;
+}
+
+/* 요일 헤더 */
+.react-calendar__month-view__weekdays {
+  margin-bottom: 4px;
+}
+
+.react-calendar__month-view__weekdays__weekday {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 4px 0;
+  text-decoration: none;
+}
+
+.react-calendar__month-view__weekdays__weekday abbr {
+  text-decoration: none;
+}
+
+/* 날짜 타일 */
+.react-calendar__month-view__days {
+  gap: 3px 0;
 }
 
 .react-calendar__tile {
-  padding: 14px 6px;
-  border-radius: 8px;
+  aspect-ratio: 1;
+  padding: 0;
+  border-radius: 10px;
   position: relative;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--input-bg);
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.react-calendar__tile:hover {
+  background: var(--card-hover-bg);
+  border-color: var(--border-color);
 }
 
 .react-calendar__tile--active {
-  background: var(--gradient-primary);
-  color: white;
+  background: var(--gradient-primary) !important;
+  color: white !important;
+  border-color: transparent !important;
 }
 
 .react-calendar__tile--now {
-  background: var(--card-hover-bg);
+  background: rgba(255, 107, 157, 0.12) !important;
+  border-color: #FF6B9D !important;
+  font-weight: 700;
+  color: #FF6B9D;
+}
+
+.react-calendar__tile--now.is-sunday {
+  color: #FF6B9D;
+}
+
+.react-calendar__tile--now.is-saturday {
+  color: #FF6B9D;
+}
+
+.react-calendar__tile.has-workout {
+  background: rgba(79, 195, 247, 0.18);
+  border-color: var(--primary-color);
+  font-weight: 700;
 }
 
 .react-calendar__tile.has-workout::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
-  background: var(--primary-color);
-  border-radius: 50%;
+  display: none;
 }
 
-.react-calendar__tile--active.has-workout::after {
-  background: white;
+.react-calendar__tile--active.has-workout {
+  background: var(--gradient-primary) !important;
+}
+
+.react-calendar__tile.is-sunday {
+  color: #E53935;
+}
+
+.react-calendar__tile.is-saturday {
+  color: #1E88E5;
+}
+
+.react-calendar__tile--active.is-sunday,
+.react-calendar__tile--active.is-saturday {
+  color: white !important;
 }
 
 .react-calendar__navigation button {
@@ -1484,6 +1798,8 @@ body.search-modal-open .bottom-nav {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .rank-badge {
@@ -1491,6 +1807,8 @@ body.search-modal-open .bottom-nav {
   font-weight: 700;
   min-width: 40px;
   text-align: center;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .rank-badge.rank-1,
@@ -1513,6 +1831,7 @@ body.search-modal-open .bottom-nav {
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--border-color);
+  flex-shrink: 0;
 }
 
 .ranking-profile-placeholder {
@@ -1528,18 +1847,24 @@ body.search-modal-open .bottom-nav {
   border: 2px solid var(--border-color);
   text-align: center;
   line-height: 48px;
+  flex-shrink: 0;
 }
 
 .ranking-info {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .ranking-name {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ranking-count {
@@ -1549,6 +1874,7 @@ body.search-modal-open .bottom-nav {
 
 .ranking-right {
   text-align: right;
+  flex-shrink: 0;
 }
 
 .ranking-regular-label {
@@ -8076,6 +8402,10 @@ body.workout-detail-open .bottom-nav {
   white-space: nowrap;
 }
 
+.month-selector-label {
+  white-space: nowrap;
+}
+
 .month-nav-button {
   display: flex;
   align-items: center;
@@ -9090,6 +9420,111 @@ body.workout-detail-open .bottom-nav {
   color: #ef4444;
 }
 
+/* 기록 상세 바텀시트 */
+.race-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.race-detail-sheet {
+  width: 100%;
+  background: var(--card-bg);
+  border-radius: 20px 20px 0 0;
+  padding: 12px 20px calc(70px + 16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: slideUp 0.22s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.race-detail-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  margin: 0 auto 4px;
+}
+
+.race-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.race-detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.race-detail-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.race-detail-date {
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+}
+
+.race-detail-time {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--primary-color);
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.race-detail-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.race-detail-edit-btn,
+.race-detail-delete-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+
+.race-detail-edit-btn {
+  background: var(--gradient-primary);
+  color: white;
+}
+
+.race-detail-delete-btn {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: #ef4444;
+}
+
+.race-detail-edit-btn:hover,
+.race-detail-delete-btn:hover {
+  opacity: 0.85;
+}
+
 /* 추가 모달 */
 .race-modal-header {
   display: flex;
@@ -9472,4 +9907,679 @@ body.workout-detail-open .bottom-nav {
 
 .race-save-btn:disabled {
   opacity: 0.6;
+}
+
+
+/* ── 다크호스 성장률 대시보드 ───────────────────────────────── */
+.growth-dashboard {
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+}
+
+.growth-dash-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px 0;
+  gap: 8px;
+}
+
+.growth-dash-month {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.growth-dash-month-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 72px;
+  text-align: center;
+}
+
+.growth-dash-arrow {
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.growth-dash-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.growth-dash-sort {
+  display: flex;
+  gap: 6px;
+}
+
+.growth-dash-sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.growth-dash-sort-btn.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+}
+
+.growth-dash-search {
+  position: relative;
+  margin: 12px 20px 4px;
+}
+
+.growth-dash-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+}
+
+.growth-dash-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 14px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.growth-dash-body {
+  padding: 8px 16px 20px;
+  gap: 8px;
+}
+
+.growth-dash-empty {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  padding: 32px 0;
+}
+
+.growth-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.growth-card-rank {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  min-width: 18px;
+  text-align: center;
+}
+
+.growth-card-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.growth-card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.growth-card-avatar-default {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.growth-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.growth-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.growth-card-stats {
+  display: flex;
+  gap: 8px;
+  margin-top: 3px;
+}
+
+.growth-card-days {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: rgba(0,0,0,0.05);
+  padding: 1px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.growth-card-mileage {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.growth-card-rate {
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+  min-width: 52px;
+  text-align: right;
+}
+
+/* ── 토글 스위치 ───────────────────────────────────────────── */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border-color);
+  border-radius: 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--primary-color);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+
+/* ── 카톡 공유 step 4 ──────────────────────────────────────── */
+.kakao-share-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px 32px;
+  gap: 12px;
+  text-align: center;
+}
+
+.kakao-share-icon {
+  font-size: 52px;
+  line-height: 1;
+}
+
+.kakao-share-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.kakao-share-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.kakao-share-select {
+  width: 100%;
+  max-width: 320px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 15px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  margin-top: 4px;
+}
+
+.kakao-share-no-club {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.kakao-share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+  margin-top: 8px;
+}
+
+.kakao-share-btn {
+  padding: 14px;
+  background: #FEE500;
+  color: #3C1E1E;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.kakao-share-skip {
+  padding: 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+/* ── 성장률 카드 레이아웃 개선 ─────────────────────────────── */
+.growth-card {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.growth-card-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.growth-card-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.growth-card-row {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.growth-card-label {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 42px;
+}
+
+.growth-card-compare {
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.growth-card-compare strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ============================================
+   내 순위 상단 카드
+   ============================================ */
+.my-rank-card {
+  background: linear-gradient(135deg, #E3F2FD 0%, #EEF7FF 100%);
+  border: 2px solid #90CAF9;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.my-rank-card-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1565C0;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.my-rank-context {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.my-rank-context-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-size: 14px;
+}
+
+.my-rank-context-row:hover {
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
+}
+
+.my-rank-context-row--me {
+  background: rgba(33, 150, 243, 0.10);
+  border: 2px solid #90CAF9;
+  font-weight: 600;
+}
+
+.my-rank-context-row--me:hover {
+  background: rgba(33, 150, 243, 0.16);
+  border-color: #2196F3;
+}
+
+.my-rank-context-rank {
+  width: 36px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  text-align: center;
+  line-height: 1;
+}
+
+.my-rank-context-rank--medal {
+  font-size: 20px;
+}
+
+.my-rank-context-row--me .my-rank-context-rank {
+  color: #1976D2;
+  font-weight: 700;
+}
+
+.my-rank-context-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.my-rank-context-mileage {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary-color);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.my-rank-context-ellipsis {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 2px 0;
+}
+
+/* ============================================
+   내순위 탭 뷰
+   ============================================ */
+.myrank-view {
+  padding: 4px 0;
+}
+
+.myrank-view-summary {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+.myrank-view-summary strong {
+  color: var(--primary-color);
+  font-size: 16px;
+}
+
+/* ============================================
+   명예의 전당 카드 (접힘/펼침)
+   ============================================ */
+.hof-section-card {
+  margin-top: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.hof-section-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--input-bg);
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.hof-section-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.hof-section-arrow {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   필터 체크박스
+   ============================================ */
+.ranking-filter-checks {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-check-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.filter-check-label input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--primary-color);
+  cursor: pointer;
+}
+
+.filter-check-label span {
+  font-weight: 500;
+}
+
+/* ============================================
+   루키 배지
+   ============================================ */
+.rookie-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  background: linear-gradient(135deg, #A8EDEA 0%, #FED6E3 100%);
+  color: #2C3E50;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+/* ============================================
+   명예의 전당 카드 갤러리
+   ============================================ */
+.hof-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.hof-card {
+  background: linear-gradient(135deg, #FFFBEA 0%, #FFFDE7 100%);
+  border: 2px solid #FFD700;
+  border-radius: 16px;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.15);
+  text-align: center;
+}
+
+.hof-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(255, 215, 0, 0.3);
+  border-color: #FFC107;
+}
+
+.hof-card-crown {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.hof-card-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: white;
+  border: 3px solid #FFD700;
+  flex-shrink: 0;
+}
+
+.hof-card-avatar--img {
+  object-fit: cover;
+}
+
+.hof-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.hof-card-reason {
+  font-size: 11px;
+  color: #B8860B;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+
+.hof-card-mileage {
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: rgba(255, 215, 0, 0.15);
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+
+/* ==========================================
+   320px 이하 초소형 화면 — 랭킹 레이아웃 압축
+   ========================================== */
+@media (max-width: 360px) {
+  .container {
+    padding: 16px 10px;
+  }
+
+  .ranking-list {
+    gap: 6px;
+  }
+
+  .ranking-item {
+    padding: 8px 10px;
+    border-radius: 10px;
+  }
+
+  .ranking-left {
+    gap: 7px;
+  }
+
+  .rank-badge {
+    min-width: 26px;
+  }
+
+  .ranking-profile,
+  .ranking-profile-placeholder {
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+  }
 }

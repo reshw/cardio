@@ -36,3 +36,4 @@ check_rls.sql
 
 # Claude local settings
 .claude/settings.local.json
+.vercel

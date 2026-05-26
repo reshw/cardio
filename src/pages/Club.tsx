@@ -11,7 +11,9 @@ import { ClubMemberDetailModal } from '../components/ClubMemberDetailModal';
 import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X } from 'lucide-react';
+import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
+import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, BarChart2, Star } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -89,9 +91,21 @@ export const Club = () => {
   const [showDetailedStats, setShowDetailedStats] = useState(false);
   const [showClubMenu, setShowClubMenu] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [challengeMenuOpen, setChallengeMenuOpen] = useState(false);
+  const [mileageMenuOpen, setMileageMenuOpen] = useState(false);
+  const [statsMenuOpen, setStatsMenuOpen] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const [showChallengeCreate, setShowChallengeCreate] = useState(false);
+  const [showChallengeArchive, setShowChallengeArchive] = useState(false);
+  const [challengeRefreshKey, setChallengeRefreshKey] = useState(0);
 
   // 멤버 상세 모달
-  const [selectedMember, setSelectedMember] = useState<{ userId: string; userName: string } | null>(null);
+  const [selectedMember, setSelectedMember] = useState<{
+    userId: string;
+    userName: string;
+    year: number;
+    month: number;
+  } | null>(null);
 
   // 피드 관련 state
   type TabType = 'ranking' | 'feed';
@@ -109,9 +123,12 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   // 피드 캐시: { clubId-dateString: WorkoutFeedItem[] }
   const [feedCache, setFeedCache] = useState<Record<string, WorkoutFeedItem[]>>({});
 
-  // 명예의 전당 필터 state
-  type RankingFilter = 'all' | 'hof' | 'regular';
-  const [rankingFilter, setRankingFilter] = useState<RankingFilter>('all');
+  // 랭킹 필터 state
+  type RankingTab = 'myrank' | 'all';
+  const [rankingTab, setRankingTab] = useState<RankingTab>('myrank');
+  const [showHof, setShowHof] = useState(false);
+  const [hideHof, setHideHof] = useState(false);
+  const [rookieOnly, setRookieOnly] = useState(false);
   const rankingRequestId = useRef(0);
   const [showMemberSearch, setShowMemberSearch] = useState(false);
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
@@ -120,6 +137,9 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   // 랭킹 월 선택 state
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [monthPickerYear, setMonthPickerYear] = useState(selectedMonth.getFullYear());
+  const [monthPickerMonth, setMonthPickerMonth] = useState(selectedMonth.getMonth() + 1);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -210,6 +230,30 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const now = new Date();
     return selectedMonth.getFullYear() === now.getFullYear() &&
            selectedMonth.getMonth() === now.getMonth();
+  };
+
+  const openMonthPicker = () => {
+    setMonthPickerYear(selectedMonth.getFullYear());
+    setMonthPickerMonth(selectedMonth.getMonth() + 1);
+    setShowMonthPicker(true);
+  };
+
+  const applyMonthSelection = (year: number, month: number) => {
+    const nextMonth = new Date(year, month - 1, 1);
+    setSelectedMonth(nextMonth);
+    setShowMonthPicker(false);
+    if (selectedClub) {
+      loadClubRanking(selectedClub.id, nextMonth);
+    }
+  };
+
+  const openMemberDetail = (userId: string, userName: string) => {
+    setSelectedMember({
+      userId,
+      userName,
+      year: selectedMonth.getFullYear(),
+      month: selectedMonth.getMonth() + 1,
+    });
   };
 
   // 피드 로드 (캐싱 적용)
@@ -627,6 +671,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
       {/* 챌린지 섹션 */}
       {selectedClub && user && (
         <ClubChallengeSection
+          key={challengeRefreshKey}
           club={selectedClub}
           userId={user.id}
           isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
@@ -669,7 +714,23 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               >
                 <ChevronLeft size={20} />
               </button>
-              <h2>{selectedMonth.getFullYear()}년 {String(selectedMonth.getMonth() + 1).padStart(2, '0')}월</h2>
+              <button
+                type="button"
+                className="month-selector-label"
+                onClick={openMonthPicker}
+                title="월/연도 선택"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'inherit',
+                  font: 'inherit',
+                  padding: 0,
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                }}
+              >
+                {selectedMonth.getFullYear()}년 {String(selectedMonth.getMonth() + 1).padStart(2, '0')}월
+              </button>
               <button
                 className="month-nav-button"
                 onClick={handleNextMonth}
@@ -757,25 +818,19 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             );
           })()}
 
-          {/* 명예의 전당 필터 */}
+          {/* 랭킹 탭 */}
           <div className="ranking-filter-tabs">
             <button
-              className={`filter-tab ${rankingFilter === 'all' ? 'active' : ''}`}
-              onClick={() => setRankingFilter('all')}
+              className={`filter-tab ${rankingTab === 'myrank' ? 'active' : ''}`}
+              onClick={() => setRankingTab('myrank')}
+            >
+              내순위
+            </button>
+            <button
+              className={`filter-tab ${rankingTab === 'all' ? 'active' : ''}`}
+              onClick={() => setRankingTab('all')}
             >
               전체
-            </button>
-            <button
-              className={`filter-tab ${rankingFilter === 'regular' ? 'active' : ''}`}
-              onClick={() => setRankingFilter('regular')}
-            >
-              일반 회원
-            </button>
-            <button
-              className={`filter-tab ${rankingFilter === 'hof' ? 'active' : ''}`}
-              onClick={() => setRankingFilter('hof')}
-            >
-              🏆 명예의 전당
             </button>
           </div>
 
@@ -785,239 +840,263 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               <p>랭킹 불러오는 중...</p>
             </div>
           ) : (() => {
-            const filtered = ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0);
-            const filteredByHOF = rankingFilter === 'hof'
-              ? filtered.filter(m => m.is_hall_of_fame)
-              : rankingFilter === 'regular'
-              ? filtered.filter(m => !m.is_hall_of_fame)
-              : filtered;
+            const withRecord = ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0);
 
-            if (filteredByHOF.length === 0) {
+            // 필터 체크박스 적용
+            let filtered = withRecord;
+            if (hideHof) filtered = filtered.filter(m => !m.is_hall_of_fame);
+            if (rookieOnly) filtered = filtered.filter(m => m.is_rookie);
+
+            // 필터 적용 후 순위 재계산
+            const reranked = filtered.map((m, i) => ({ ...m, rank: i + 1 }));
+
+            // 내 순위 찾기
+            const myEntry = reranked.find(m => m.user_id === user?.id);
+            const myRankIndex = reranked.findIndex(m => m.user_id === user?.id);
+
+            // 프로필 이미지 렌더링
+            const renderProfileImage = (member: typeof reranked[0]) => {
+              if (member.profile_image?.startsWith('default:')) {
+                const color = member.profile_image.replace('default:', '');
+                return (
+                  <div className="ranking-profile-placeholder" style={{ background: color, color: 'white' }}>
+                    {member.display_name[0].toUpperCase()}
+                  </div>
+                );
+              } else if (member.profile_image) {
+                return <img src={member.profile_image} alt={member.display_name} className="ranking-profile" />;
+              }
               return (
-                <div className="empty-state">
-                  <p>{rankingFilter === 'hof' ? '명예의 전당 멤버가 없습니다.' : rankingFilter === 'regular' ? '일반 회원의 운동 기록이 없습니다.' : '이번 달 운동 기록이 없습니다.'}</p>
+                <div className="ranking-profile-placeholder" style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}>
+                  {member.display_name[0]}
+                </div>
+              );
+            };
+
+            // ── 내순위 탭 ────────────────────────────────────────────
+            if (rankingTab === 'myrank') {
+              if (!myEntry) {
+                return <div className="empty-state"><p>이번 달 운동 기록이 없습니다.</p></div>;
+              }
+              const start = Math.max(0, myRankIndex - 3);
+              const end = Math.min(reranked.length, myRankIndex + 4);
+              const slice = reranked.slice(start, end);
+              return (
+                <div className="myrank-view">
+                  <div className="myrank-view-summary">전체 {reranked.length}명 중 <strong>{myEntry.rank}위</strong></div>
+                  <div className="my-rank-context">
+                    {start > 0 && <div className="my-rank-context-ellipsis">⋯ 위 {start}명</div>}
+                    {slice.map(m => {
+                      const isMe = m.user_id === user?.id;
+                      return (
+                        <div
+                          key={m.user_id}
+                          className={`my-rank-context-row${isMe ? ' my-rank-context-row--me' : ''}`}
+                          onClick={() => openMemberDetail(m.user_id, m.display_name)}
+                        >
+                          <span className="my-rank-context-rank">{m.rank}위</span>
+                          {renderProfileImage(m)}
+                          <span className="my-rank-context-name">
+                            {m.display_name}
+                            {isMe && <span className="my-rank-badge">나</span>}
+                            {m.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
+                          </span>
+                          <span className="my-rank-context-mileage">{m.total_mileage.toFixed(1)}</span>
+                        </div>
+                      );
+                    })}
+                    {end < reranked.length && <div className="my-rank-context-ellipsis">⋯ 아래 {reranked.length - end}명</div>}
+                  </div>
                 </div>
               );
             }
 
-            // 본인 순위 찾기
-            const myRankIndex = filteredByHOF.findIndex(m => m.user_id === user?.id);
-            const myRank = myRankIndex !== -1 ? myRankIndex : -1;
+            if (reranked.length === 0) {
+              return (
+                <>
+                  {/* 필터 체크박스 */}
+                  <div className="ranking-filter-checks">
+                    <label className="filter-check-label">
+                      <input type="checkbox" checked={hideHof} onChange={e => setHideHof(e.target.checked)} />
+                      <span>명전 제외</span>
+                    </label>
+                    {selectedClub?.rookie_league_enabled !== false && (
+                      <label className="filter-check-label">
+                        <input type="checkbox" checked={rookieOnly} onChange={e => setRookieOnly(e.target.checked)} />
+                        <span>루키리그</span>
+                      </label>
+                    )}
+                  </div>
+                  <div className="empty-state"><p>운동 기록이 없습니다.</p></div>
+                </>
+              );
+            }
 
-            // 표시할 멤버 결정
-            let displayMembers: typeof filteredByHOF = [];
+            // 표시할 멤버 결정 (기존 ±3 로직, 메인 리스트용)
+            let displayMembers: typeof reranked = [];
             let showEllipsis1 = false;
             let showEllipsis2 = false;
-            let ellipsis1AtIdx = 5; // showEllipsis1이 표시될 displayMembers 인덱스
+            let ellipsis1AtIdx = 5;
 
-            // 검색으로 강조된 멤버 기준 표시
             const highlightIndex = highlightedUserId
-              ? filteredByHOF.findIndex(m => m.user_id === highlightedUserId)
+              ? reranked.findIndex(m => m.user_id === highlightedUserId)
               : -1;
 
             if (showFullList) {
-              displayMembers = filteredByHOF;
+              displayMembers = reranked;
             } else if (highlightIndex !== -1) {
-              // 강조 멤버 위 3명 + 본인 + 아래 5명
               const start = Math.max(0, highlightIndex - 3);
-              const end = Math.min(filteredByHOF.length, highlightIndex + 6);
-              displayMembers = filteredByHOF.slice(start, end);
+              const end = Math.min(reranked.length, highlightIndex + 6);
+              displayMembers = reranked.slice(start, end);
               showEllipsis1 = start > 0;
-              ellipsis1AtIdx = 0; // 검색 결과는 첫 번째 항목 앞에 중략 표시
-              showEllipsis2 = end < filteredByHOF.length;
-            } else if (myRank < 20 && myRank !== -1) {
-              // 본인이 20위 안에 있으면 1~20위까지만 표시
-              displayMembers = filteredByHOF.slice(0, 20);
-              if (filteredByHOF.length > 20) {
-                showEllipsis2 = true;
-              }
-            } else if (myRank === -1 && filteredByHOF.length <= 20) {
-              // 본인 순위 없고 총 20명 이하면 전체 표시
-              displayMembers = filteredByHOF;
+              ellipsis1AtIdx = 0;
+              showEllipsis2 = end < reranked.length;
+            } else if (reranked.length <= 20) {
+              displayMembers = reranked;
             } else {
-              // 본인이 21위 이상 또는 순위 없고 21명 이상
-              // 상위 5명
-              displayMembers = filteredByHOF.slice(0, 5);
-
-              // 본인이 있으면 본인 구간 추가
-              if (myRank >= 5) {
-                showEllipsis1 = true;
-
-                // 본인 위3개, 아래3개 추가 (총 7명: 위3 + 본인 + 아래3)
-                const start = Math.max(5, myRank - 3);
-                const end = Math.min(filteredByHOF.length, myRank + 4);
-                const mySection = filteredByHOF.slice(start, end);
-
-                displayMembers = [...displayMembers, ...mySection];
-
-                // 본인 아래에 더 있으면 생략 표시
-                if (myRank + 4 < filteredByHOF.length) {
-                  showEllipsis2 = true;
-                }
-              } else {
-                // 본인이 5위 안이지만 5위 뒤에 더 있으면 생략 표시
-                showEllipsis2 = true;
-              }
+              displayMembers = reranked.slice(0, 20);
+              showEllipsis2 = true;
             }
 
             return (
-              <div className="ranking-list">
-                {displayMembers.map((member, idx) => {
-                const isMyRank = member.user_id === user?.id;
-
-                // 생략 표시 (5위와 본인 구간 사이)
-                const showEllipsisBefore = showEllipsis1 && idx === ellipsis1AtIdx;
-
-                // 프로필 이미지 렌더링 (default:color 형식 처리)
-                const renderProfileImage = () => {
-                  if (member.profile_image?.startsWith('default:')) {
-                    const color = member.profile_image.replace('default:', '');
-                    return (
-                      <div
-                        className="ranking-profile-placeholder"
-                        style={{ background: color, color: 'white' }}
-                      >
-                        {member.display_name[0].toUpperCase()}
-                      </div>
-                    );
-                  } else if (member.profile_image) {
-                    return (
-                      <img
-                        src={member.profile_image}
-                        alt={member.display_name}
-                        className="ranking-profile"
-                      />
-                    );
-                  } else {
-                    return (
-                      <div
-                        className="ranking-profile-placeholder"
-                        style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}
-                      >
-                        {member.display_name[0]}
-                      </div>
-                    );
-                  }
-                };
-
-                return (
-                  <React.Fragment key={member.user_id}>
-                    {showEllipsisBefore && (
-                      <div className="ranking-ellipsis">
-                        <div className="ellipsis-line"></div>
-                        <span className="ellipsis-text">생략 ({highlightIndex !== -1 ? member.rank - 1 : member.rank - 6}명)</span>
-                        <div className="ellipsis-line"></div>
-                      </div>
-                    )}
-                    <div
-                      className={`ranking-item clickable ${member.is_hall_of_fame ? 'hof-highlight' : ''} ${isMyRank ? 'my-rank' : ''}`}
-                      style={{
-                        background: member.user_id === highlightedUserId
-                          ? 'linear-gradient(135deg, #FFE4EE 0%, #FFB6C1 100%)'
-                          : member.is_hall_of_fame
-                          ? 'linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%)'
-                          : isMyRank
-                          ? 'linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)'
-                          : undefined,
-                        borderColor: member.user_id === highlightedUserId ? '#FF6B9D' : member.is_hall_of_fame ? '#FFD700' : isMyRank ? '#2196F3' : undefined,
-                        borderWidth: member.user_id === highlightedUserId || member.is_hall_of_fame || isMyRank ? '2px' : undefined,
-                      }}
-                      onClick={() =>
-                        setSelectedMember({ userId: member.user_id, userName: member.display_name })
-                      }
-                    >
-                    {rankingFilter === 'hof' ? (
-                      // 명예의전당 탭: 순위/운동횟수/마일리지 제거, reason 표시
-                      <>
-                        <div className="ranking-left">
-                          {renderProfileImage()}
-                          <div className="ranking-info">
-                            <div className="ranking-name">
-                              {member.display_name}
-                              <span className="hof-badge-inline">🏆</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="ranking-right">
-                          <div className="hof-reason">
-                            {member.hof_reason || '명예의 전당 멤버'}
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      // 일반/전체 탭: 기존 렌더링
-                      <>
-                        <div className="ranking-left">
-                          {(() => {
-                            // 일반 회원 탭은 별도 순위 번호 사용
-                            const displayRank = rankingFilter === 'regular'
-                              ? filteredByHOF.findIndex(m => m.user_id === member.user_id) + 1
-                              : member.rank;
-
-                            return (
-                              <div className={`rank-badge rank-${displayRank}`}>
-                                {displayRank === 1 ? '🥇' : displayRank === 2 ? '🥈' : displayRank === 3 ? '🥉' : `${displayRank}위`}
-                              </div>
-                            );
-                          })()}
-                          {renderProfileImage()}
-                          <div className="ranking-info">
-                            <div className="ranking-name">
-                              {member.display_name}
-                              {isMyRank && <span className="my-rank-badge">나</span>}
-                              {member.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="ranking-right">
-                          <div className="ranking-mileage">
-                            {member.total_mileage.toFixed(1)}
-                          </div>
-                          {rankingFilter === 'regular' && <div className="ranking-regular-label">(일반)</div>}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  </React.Fragment>
-                );
-              })}
-              {showEllipsis2 && (
-                <div className="ranking-ellipsis">
-                  <div className="ellipsis-line"></div>
-                  <span className="ellipsis-text">이하 생략 (총 {filteredByHOF.length}명)</span>
-                  <div className="ellipsis-line"></div>
+              <>
+                {/* 필터 체크박스 */}
+                <div className="ranking-filter-checks">
+                  <label className="filter-check-label">
+                    <input type="checkbox" checked={hideHof} onChange={e => { setHideHof(e.target.checked); setShowFullList(false); }} />
+                    <span>명전 제외</span>
+                  </label>
+                  {selectedClub?.rookie_league_enabled !== false && (
+                    <label className="filter-check-label">
+                      <input type="checkbox" checked={rookieOnly} onChange={e => { setRookieOnly(e.target.checked); setShowFullList(false); }} />
+                      <span>루키리그</span>
+                    </label>
+                  )}
                 </div>
-              )}
-              <button
-                className="show-full-list-button"
-                onClick={() => {
-                  setShowFullList(v => !v);
-                  setHighlightedUserId(null);
-                }}
-                style={{
-                  width: '100%',
-                  marginTop: '12px',
-                  padding: '10px',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                }}
-              >
-                {showFullList ? '▲ 접기' : `▼ 전체 리스트 보기 (${filteredByHOF.length}명)`}
-              </button>
-              </div>
+
+                <div className="ranking-list">
+                  {displayMembers.map((member, idx) => {
+                    const isMyRank = member.user_id === user?.id;
+                    const showEllipsisBefore = showEllipsis1 && idx === ellipsis1AtIdx;
+
+                    return (
+                      <React.Fragment key={member.user_id}>
+                        {showEllipsisBefore && (
+                          <div className="ranking-ellipsis">
+                            <div className="ellipsis-line"></div>
+                            <span className="ellipsis-text">생략 ({member.rank - 1}명)</span>
+                            <div className="ellipsis-line"></div>
+                          </div>
+                        )}
+                        <div
+                          className={`ranking-item clickable ${member.is_hall_of_fame ? 'hof-highlight' : ''} ${isMyRank ? 'my-rank' : ''}`}
+                          style={{
+                            background: member.user_id === highlightedUserId
+                              ? 'linear-gradient(135deg, #FFE4EE 0%, #FFB6C1 100%)'
+                              : member.is_hall_of_fame
+                              ? 'linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%)'
+                              : isMyRank
+                              ? 'linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)'
+                              : undefined,
+                            borderColor: member.user_id === highlightedUserId ? '#FF6B9D' : member.is_hall_of_fame ? '#FFD700' : isMyRank ? '#2196F3' : undefined,
+                            borderWidth: member.user_id === highlightedUserId || member.is_hall_of_fame || isMyRank ? '2px' : undefined,
+                          }}
+                          onClick={() => openMemberDetail(member.user_id, member.display_name)}
+                        >
+                          <div className="ranking-left">
+                            <div className={`rank-badge rank-${member.rank}`}>
+                              {member.rank === 1 ? '🥇' : member.rank === 2 ? '🥈' : member.rank === 3 ? '🥉' : `${member.rank}위`}
+                            </div>
+                            {renderProfileImage(member)}
+                            <div className="ranking-info">
+                              <div className="ranking-name">
+                                {member.display_name}
+                                {isMyRank && <span className="my-rank-badge">나</span>}
+                                {member.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
+                                {selectedClub?.rookie_league_enabled !== false && member.is_rookie && (
+                                  <span className="rookie-badge">루키</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="ranking-right">
+                            <div className="ranking-mileage">{member.total_mileage.toFixed(1)}</div>
+                          </div>
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
+                  {showEllipsis2 && (
+                    <div className="ranking-ellipsis">
+                      <div className="ellipsis-line"></div>
+                      <span className="ellipsis-text">이하 생략 (총 {reranked.length}명)</span>
+                      <div className="ellipsis-line"></div>
+                    </div>
+                  )}
+                  <button
+                    className="show-full-list-button"
+                    onClick={() => { setShowFullList(v => !v); setHighlightedUserId(null); }}
+                    style={{ width: '100%', marginTop: '12px', padding: '10px', background: 'var(--input-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                  >
+                    {showFullList ? '▲ 접기' : `▼ 전체 리스트 보기 (${reranked.length}명)`}
+                  </button>
+                </div>
+              </>
             );
           })()}
 
-          {/* 명예의전당 탭 설명 */}
-          {rankingFilter === 'hof' && (
-            <div className="hof-tab-description">
-              <p>명예의 전당은 월별 1위 등 특별한 업적을 달성한 멤버를 운영자 논의 후 등재합니다.</p>
-            </div>
-          )}
+          {/* 명예의 전당 카드 */}
+          {!rankingLoading && (() => {
+            const hofAll = ranking.filter(m => m.is_hall_of_fame);
+            if (hofAll.length === 0) return null;
+            const hofMembers = ranking.filter(m => m.is_hall_of_fame && m.workout_count > 0 && m.total_mileage > 0);
+
+            const renderHofProfile = (member: typeof hofAll[0]) => {
+              if (member.profile_image?.startsWith('default:')) {
+                const color = member.profile_image.replace('default:', '');
+                return <div className="hof-card-avatar" style={{ background: color }}>{member.display_name[0].toUpperCase()}</div>;
+              } else if (member.profile_image) {
+                return <img src={member.profile_image} alt={member.display_name} className="hof-card-avatar hof-card-avatar--img" />;
+              }
+              return <div className="hof-card-avatar" style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}>{member.display_name[0]}</div>;
+            };
+
+            return (
+              <div className="hof-section-card">
+                <button className="hof-section-toggle" onClick={() => setShowHof(v => !v)}>
+                  <span>🏆 명예의 전당</span>
+                  <span className="hof-section-count">{hofAll.length}명</span>
+                  <span className="hof-section-arrow">{showHof ? '▲' : '▼'}</span>
+                </button>
+                {showHof && (
+                  <>
+                    <div className="hof-gallery">
+                      {hofAll.map(member => (
+                        <div
+                          key={member.user_id}
+                          className="hof-card"
+                          onClick={() => openMemberDetail(member.user_id, member.display_name)}
+                        >
+                          <div className="hof-card-crown">🏆</div>
+                          {renderHofProfile(member)}
+                          <div className="hof-card-name">{member.display_name}</div>
+                          <div className="hof-card-reason">{member.hof_reason || '명예의 전당 멤버'}</div>
+                          {hofMembers.find(m => m.user_id === member.user_id) && (
+                            <div className="hof-card-mileage">
+                              이번 달 {hofMembers.find(m => m.user_id === member.user_id)!.total_mileage.toFixed(1)}점
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="hof-tab-description">
+                      <p>월별 1위 등 특별한 업적을 달성한 멤버를 운영자 논의 후 등재합니다.</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
 
         </div>
       ) : (
@@ -1049,7 +1128,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           onOptimisticCommentAdd={handleOptimisticCommentAdd}
           onOptimisticCommentDelete={handleOptimisticCommentDelete}
           onBlock={handleBlock}
-          onMemberClick={(userId, userName) => setSelectedMember({ userId, userName })}
+          onMemberClick={(userId, userName) => openMemberDetail(userId, userName)}
         />
       )}
 
@@ -1059,6 +1138,8 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           clubId={selectedClub.id}
           userId={selectedMember.userId}
           userName={selectedMember.userName}
+          initialYear={selectedMember.year}
+          initialMonth={selectedMember.month}
           onClose={() => setSelectedMember(null)}
         />
       )}
@@ -1206,6 +1287,129 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         />
       )}
 
+      {/* 챌린지 만들기 모달 */}
+      {showMonthPicker && (
+        <div className="modal-overlay modal-overlay--top" onClick={() => setShowMonthPicker(false)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '420px', width: '92vw' }}
+          >
+            <div className="modal-header">
+              <h2>월/연도 선택</h2>
+              <button className="modal-close" onClick={() => setShowMonthPicker(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="dashboard-action-button"
+                  onClick={() => setMonthPickerYear((y) => y - 1)}
+                  aria-label="연도 감소"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <input
+                  type="number"
+                  value={monthPickerYear}
+                  onChange={(e) => setMonthPickerYear(Number(e.target.value) || selectedMonth.getFullYear())}
+                  style={{
+                    flex: 1,
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    fontSize: '16px',
+                    textAlign: 'center',
+                  }}
+                />
+                <button
+                  type="button"
+                  className="dashboard-action-button"
+                  onClick={() => setMonthPickerYear((y) => y + 1)}
+                  aria-label="연도 증가"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '10px',
+                }}
+              >
+                {Array.from({ length: 12 }, (_, idx) => idx + 1).map((month) => (
+                  <button
+                    key={month}
+                    type="button"
+                    onClick={() => {
+                      setMonthPickerMonth(month);
+                      applyMonthSelection(monthPickerYear, month);
+                    }}
+                    style={{
+                      padding: '12px 0',
+                      borderRadius: '10px',
+                      border: monthPickerMonth === month ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                      background: monthPickerMonth === month ? 'rgba(59, 130, 246, 0.12)' : 'var(--input-bg)',
+                      color: 'var(--text-primary)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {month}월
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="dashboard-action-button"
+                  onClick={() => setShowMonthPicker(false)}
+                >
+                  닫기
+                </button>
+                <button
+                  type="button"
+                  className="dashboard-action-button"
+                  onClick={() => applyMonthSelection(monthPickerYear, monthPickerMonth)}
+                  style={{ color: 'var(--primary-color)', borderColor: 'var(--primary-color)' }}
+                >
+                  적용
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showChallengeCreate && selectedClub && user && (
+        <ChallengeCreateModal
+          club={selectedClub}
+          userId={user.id}
+          onClose={() => setShowChallengeCreate(false)}
+          onCreated={() => {
+            setShowChallengeCreate(false);
+            setChallengeRefreshKey((k) => k + 1);
+          }}
+        />
+      )}
+
+      {/* 지난 챌린지 아카이브 모달 */}
+      {showChallengeArchive && selectedClub && (
+        <ChallengeArchiveModal
+          clubId={selectedClub.id}
+          clubName={selectedClub.name}
+          isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
+          onClose={() => setShowChallengeArchive(false)}
+        />
+      )}
+
       {/* 클럽 초대 모달 */}
       {showInviteModal && selectedClub && (
         <div className="modal-overlay" onClick={() => setShowInviteModal(false)}>
@@ -1248,121 +1452,189 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         </div>
       )}
 
-      {/* 클럽 메뉴 모달 */}
+      {/* 클럽 메뉴 바텀시트 */}
       {showClubMenu && selectedClub && (
-        <div className="modal-overlay" onClick={() => setShowClubMenu(false)}>
-          <div className="modal-content more-menu-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>클럽 메뉴</h2>
-              <button className="modal-close" onClick={() => setShowClubMenu(false)}>
-                ✕
+        <div className="cmenu-overlay" onClick={() => setShowClubMenu(false)}>
+          <div className="cmenu-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="cmenu-handle" />
+            <div className="cmenu-head">
+              <span className="cmenu-head-title">클럽 메뉴</span>
+              <button type="button" className="cmenu-head-close" onClick={() => setShowClubMenu(false)}>
+                <X size={20} />
               </button>
             </div>
-            <div className="modal-body">
-              <div className="more-menu-list">
-                <button
-                  className="more-menu-item"
-                  onClick={() => {
-                    setShowClubMenu(false);
-                    navigate(`/club/my-settings/${selectedClub.id}`);
-                  }}
-                >
-                  <User size={20} />
-                  <div className="more-menu-text">
-                    <div className="more-menu-title">내 정보 변경</div>
-                    <div className="more-menu-desc">별명, 정보공유 설정 등</div>
+
+            <div className="cmenu-body">
+              {/* 기본 */}
+              <div className="cmenu-group">
+                <button type="button" className="cmenu-row" onClick={() => { setShowClubMenu(false); navigate(`/club/my-settings/${selectedClub.id}`); }}>
+                  <User size={18} className="cmenu-row-icon" />
+                  <div className="cmenu-row-text">
+                    <div className="cmenu-row-title">내 정보 변경</div>
+                    <div className="cmenu-row-desc">별명, 정보공유 설정 등</div>
                   </div>
+                  <ChevronRight size={16} className="cmenu-arrow" />
                 </button>
-
-                <button
-                  className="more-menu-item"
-                  onClick={() => {
-                    setShowClubMenu(false);
-                    navigate(`/club/members/${selectedClub.id}`);
-                  }}
-                >
-                  <Users size={20} />
-                  <div className="more-menu-text">
-                    <div className="more-menu-title">클럽원 리스트</div>
-                    <div className="more-menu-desc">클럽원 목록 및 관리</div>
+                <button type="button" className="cmenu-row" onClick={() => { setShowClubMenu(false); navigate(`/club/members/${selectedClub.id}`); }}>
+                  <Users size={18} className="cmenu-row-icon" />
+                  <div className="cmenu-row-text">
+                    <div className="cmenu-row-title">클럽원 리스트</div>
+                    <div className="cmenu-row-desc">클럽원 목록 및 관리</div>
                   </div>
+                  <ChevronRight size={16} className="cmenu-arrow" />
                 </button>
+              </div>
 
-                {/* 마일리지 재계산 - 매니저/부매니저만 */}
-                {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
-                  <button
-                    className="more-menu-item"
-                    onClick={() => {
-                      setShowClubMenu(false);
-                      handleRecalculateMileage();
-                    }}
-                  >
-                    <RefreshCw size={20} />
-                    <div className="more-menu-text">
-                      <div className="more-menu-title">마일리지 재계산</div>
-                      <div className="more-menu-desc">현재 월 전체 마일리지 새로고침</div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 마일리지 계수 설정 - 매니저/부매니저만 */}
-                {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
-                  <button
-                    className="more-menu-item"
-                    onClick={() => {
-                      setShowClubMenu(false);
-                      navigate(`/club/settings/${selectedClub.id}/mileage`);
-                    }}
-                  >
-                    <TrendingUp size={20} />
-                    <div className="more-menu-text">
-                      <div className="more-menu-title">마일리지 계수 설정</div>
-                      <div className="more-menu-desc">운동별 계수 조정</div>
-                    </div>
-                  </button>
-                )}
-
-                {user && selectedClub.created_by === user.id && (
+              {/* 챌린지 */}
+              <div className="cmenu-group">
+                <button type="button" className="cmenu-row" onClick={() => setChallengeMenuOpen(v => !v)}>
+                  <Trophy size={18} className="cmenu-row-icon" />
+                  <div className="cmenu-row-text">
+                    <div className="cmenu-row-title">챌린지</div>
+                  </div>
+                  <ChevronDown size={16} className={`cmenu-caret${challengeMenuOpen ? ' cmenu-caret--open' : ''}`} />
+                </button>
+                {challengeMenuOpen && (
                   <>
-                    <button
-                      className="more-menu-item"
-                      onClick={() => {
-                        setShowClubMenu(false);
-                        navigate(`/club/settings/${selectedClub.id}/general`);
-                      }}
-                    >
-                      <Info size={20} />
-                      <div className="more-menu-text">
-                        <div className="more-menu-title">클럽 정보 변경</div>
-                        <div className="more-menu-desc">이름, 설명, 로고 수정</div>
+                    <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); setShowChallengeArchive(true); }}>
+                      <Clock size={16} className="cmenu-row-icon" />
+                      <div className="cmenu-row-text">
+                        <div className="cmenu-row-title">지난 챌린지</div>
+                        <div className="cmenu-row-desc">종료된 챌린지 결과 보기</div>
                       </div>
+                      <ChevronRight size={16} className="cmenu-arrow" />
                     </button>
-
-                    <button
-                      className="more-menu-item"
-                      onClick={() => {
-                        setShowClubMenu(false);
-                        navigate(`/club/settings/${selectedClub.id}/transfer`);
-                      }}
-                    >
-                      <span style={{ fontSize: '20px' }}>👑</span>
-                      <div className="more-menu-text">
-                        <div className="more-menu-title">클럽장 권한 넘기기</div>
-                        <div className="more-menu-desc">다른 멤버에게 클럽장 위임</div>
-                      </div>
-                    </button>
+                    {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); setShowChallengeCreate(true); }}>
+                        <Plus size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">챌린지 만들기</div>
+                          <div className="cmenu-row-desc">새 챌린지 개설</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
+                    )}
                   </>
                 )}
+              </div>
 
-                {/* 클럽 탈퇴 */}
-                {user && selectedClub.created_by !== user.id && (
+              {/* 마일리지 (관리자) */}
+              {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
+                <div className="cmenu-group">
+                  <button type="button" className="cmenu-row" onClick={() => setMileageMenuOpen(v => !v)}>
+                    <TrendingUp size={18} className="cmenu-row-icon" />
+                    <div className="cmenu-row-text">
+                      <div className="cmenu-row-title">마일리지</div>
+                    </div>
+                    <span className="cmenu-badge">관리자</span>
+                    <ChevronDown size={16} className={`cmenu-caret${mileageMenuOpen ? ' cmenu-caret--open' : ''}`} />
+                  </button>
+                  {mileageMenuOpen && (
+                    <>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); handleRecalculateMileage(); }}>
+                        <RefreshCw size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">마일리지 재계산</div>
+                          <div className="cmenu-row-desc">현재 월 전체 마일리지 새로고침</div>
+                        </div>
+                      </button>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/mileage`); }}>
+                        <TrendingUp size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">마일리지 계수 설정</div>
+                          <div className="cmenu-row-desc">운동별 계수 조정</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/rookie-league`); }}>
+                        <Star size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">리그 제도 운영</div>
+                          <div className="cmenu-row-desc">루키리그 기준 설정</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* 통계 (관리자) */}
+              {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
+                <div className="cmenu-group">
+                  <button type="button" className="cmenu-row" onClick={() => setStatsMenuOpen(v => !v)}>
+                    <BarChart2 size={18} className="cmenu-row-icon" />
+                    <div className="cmenu-row-text">
+                      <div className="cmenu-row-title">통계</div>
+                    </div>
+                    <span className="cmenu-badge">관리자</span>
+                    <ChevronDown size={16} className={`cmenu-caret${statsMenuOpen ? ' cmenu-caret--open' : ''}`} />
+                  </button>
+                  {statsMenuOpen && (
+                    <>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/stats`); }}>
+                        <BarChart2 size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">클럽 통계</div>
+                          <div className="cmenu-row-desc">월별 마일리지 · 멤버 · 종목 그래프</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/growth`); }}>
+                        <TrendingUp size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">이달의 성장</div>
+                          <div className="cmenu-row-desc">팀원별 전달 대비 성장 진척률</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* 클럽 관리 (클럽장) */}
+              {user && selectedClub.created_by === user.id && (
+                <div className="cmenu-group">
+                  <button type="button" className="cmenu-row" onClick={() => setAdminMenuOpen(v => !v)}>
+                    <Settings size={18} className="cmenu-row-icon" />
+                    <div className="cmenu-row-text">
+                      <div className="cmenu-row-title">클럽 관리</div>
+                    </div>
+                    <span className="cmenu-badge">클럽장</span>
+                    <ChevronDown size={16} className={`cmenu-caret${adminMenuOpen ? ' cmenu-caret--open' : ''}`} />
+                  </button>
+                  {adminMenuOpen && (
+                    <>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/general`); }}>
+                        <Info size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">클럽 정보 변경</div>
+                          <div className="cmenu-row-desc">이름, 설명, 로고 수정</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/transfer`); }}>
+                        <span style={{ fontSize: '16px', lineHeight: 1, flexShrink: 0 }}>👑</span>
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">클럽장 권한 넘기기</div>
+                          <div className="cmenu-row-desc">다른 멤버에게 클럽장 위임</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* 클럽 탈퇴 (비클럽장) */}
+              {user && selectedClub.created_by !== user.id && (
+                <div className="cmenu-group cmenu-group--danger">
                   <button
-                    className="more-menu-item danger"
+                    type="button"
+                    className="cmenu-row cmenu-row--danger"
                     onClick={async () => {
-                      if (!confirm(`${selectedClub.name}에서 탈퇴하시겠습니까?\n\n탈퇴 후에도 초대코드로 다시 가입할 수 있습니다.`)) {
-                        return;
-                      }
-
+                      if (!confirm(`${selectedClub.name}에서 탈퇴하시겠습니까?\n\n탈퇴 후에도 초대코드로 다시 가입할 수 있습니다.`)) return;
                       try {
                         await clubService.leaveClub(selectedClub.id, user.id);
                         alert('클럽에서 탈퇴했습니다.');
@@ -1374,17 +1646,37 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                       }
                     }}
                   >
-                    <span style={{ fontSize: '20px' }}>🚪</span>
-                    <div className="more-menu-text">
-                      <div className="more-menu-title">클럽 탈퇴</div>
-                      <div className="more-menu-desc">이 클럽에서 나가기</div>
+                    <span style={{ fontSize: '18px', lineHeight: 1, flexShrink: 0 }}>🚪</span>
+                    <div className="cmenu-row-text">
+                      <div className="cmenu-row-title">클럽 탈퇴</div>
+                      <div className="cmenu-row-desc">이 클럽에서 나가기</div>
                     </div>
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
+      )}
+
+      {/* 챌린지 만들기 모달 */}
+      {showChallengeCreate && selectedClub && user && (
+        <ChallengeCreateModal
+          club={selectedClub}
+          userId={user.id}
+          onClose={() => setShowChallengeCreate(false)}
+          onCreated={() => { setShowChallengeCreate(false); setChallengeRefreshKey(k => k + 1); }}
+        />
+      )}
+
+      {/* 지난 챌린지 아카이브 모달 */}
+      {showChallengeArchive && selectedClub && (
+        <ChallengeArchiveModal
+          clubId={selectedClub.id}
+          clubName={selectedClub.name}
+          isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
+          onClose={() => setShowChallengeArchive(false)}
+        />
       )}
     </div>
   );

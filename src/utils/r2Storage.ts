@@ -18,7 +18,7 @@ export const uploadToR2 = async (file: File): Promise<string> => {
   formData.append('file', file);
 
   try {
-    const response = await fetch('/.netlify/functions/upload-to-r2', {
+    const response = await fetch('/api/upload-to-r2', {
       method: 'POST',
       body: formData,
     });

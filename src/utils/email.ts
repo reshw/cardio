@@ -9,7 +9,7 @@ export const sendMileageAlertEmail = async (data: {
   errorMessage: string;
 }): Promise<void> => {
   try {
-    const response = await fetch('/.netlify/functions/send-mileage-alert-email', {
+    const response = await fetch('/api/send-mileage-alert-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -29,7 +29,7 @@ export const sendClubRequestEmail = async (data: {
   creatorName: string;
 }): Promise<void> => {
   try {
-    const response = await fetch('/.netlify/functions/send-club-request-email', {
+    const response = await fetch('/api/send-club-request-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
