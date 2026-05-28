@@ -11,7 +11,7 @@ export const KakaoLogin = () => {
       provider: 'kakao',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        scopes: 'profile_nickname profile_image account_email',
+        scopes: 'profile_nickname profile_image account_email phone_number name birthyear birthday gender',
         queryParams: {
           prompt: 'login', // 매번 계정 선택 강제
         },

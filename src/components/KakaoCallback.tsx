@@ -40,6 +40,9 @@ const KakaoCallback = () => {
           p_profile_image: authUser.user_metadata?.avatar_url
                            ?? authUser.user_metadata?.picture
                            ?? null,
+          p_phone_number:  authUser.user_metadata?.phone_number ?? null,
+          p_birthyear:     authUser.user_metadata?.birthyear ?? null,
+          p_gender:        authUser.user_metadata?.gender ?? null,
         });
       } catch (err) {
         console.error('link_or_create_user 실패:', err);

@@ -631,10 +631,12 @@ export const AddWorkout = () => {
                     const appUrl = `${window.location.origin}/workout/${savedWorkout.id}?clubId=${shareClubId}`;
                     const displayName = shareNickname ?? user?.display_name ?? '';
                     const numberText = shareWorkoutNumber ? `\n오늘 클럽 ${shareWorkoutNumber}번째` : '';
+                    const workoutDate = new Date(savedWorkout.workout_time);
+                    const dateStr = `${workoutDate.getFullYear()}.${String(workoutDate.getMonth() + 1).padStart(2, '0')}.${String(workoutDate.getDate()).padStart(2, '0')}`;
                     const shareData: any = {
                       objectType: 'feed',
                       content: {
-                        title: `[${club?.name ?? ''}] ${displayName}님의 운동 기록`,
+                        title: `[${club?.name ?? ''}] ${displayName}님 (${dateStr})`,
                         description: `${savedWorkout.category}: ${savedWorkout.value}${savedWorkout.unit}${numberText}`,
                         link: { mobileWebUrl: appUrl, webUrl: appUrl },
                       },
