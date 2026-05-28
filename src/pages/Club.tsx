@@ -14,46 +14,23 @@ import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, BarChart2, Star } from 'lucide-react';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { arrayMove } from '@dnd-kit/sortable';
 
-// 드래그 가능한 클럽 아이템
-function SortableClubItem({ club, isSelected, onSelect }: {
+// 순서 변경 버튼이 있는 클럽 아이템
+function ClubOrderItem({ club, isSelected, isFirst, isLast, onSelect, onMoveUp, onMoveDown }: {
   club: MyClubWithOrder;
   isSelected: boolean;
+  isFirst: boolean;
+  isLast: boolean;
   onSelect: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: club.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`sortable-club-item ${isSelected ? 'selected' : ''}`}
-      onClick={onSelect}
-    >
-      <div className="drag-handle" {...attributes} {...listeners}>
-        ⋮⋮
+    <div className={`sortable-club-item ${isSelected ? 'selected' : ''}`} onClick={onSelect}>
+      <div className="order-buttons" onClick={e => e.stopPropagation()}>
+        <button className="order-btn" onClick={onMoveUp} disabled={isFirst} aria-label="위로">▲</button>
+        <button className="order-btn" onClick={onMoveDown} disabled={isLast} aria-label="아래로">▼</button>
       </div>
       {club.logo_url ? (
         <div className="club-item-logo">
@@ -141,12 +118,6 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [monthPickerYear, setMonthPickerYear] = useState(selectedMonth.getFullYear());
   const [monthPickerMonth, setMonthPickerMonth] = useState(selectedMonth.getMonth() + 1);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
 
   // 내 클럽 불러오기
   const loadMyClubs = async () => {
@@ -466,28 +437,19 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     localStorage.setItem('lastSelectedClubId', club.id);
   };
 
-  // 드래그 앤 드롭으로 순서 변경
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
+  // ▲▼ 버튼으로 순서 변경
+  const handleMoveClub = async (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= myClubs.length) return;
 
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = myClubs.findIndex((c) => c.id === active.id);
-    const newIndex = myClubs.findIndex((c) => c.id === over.id);
-
-    const newOrder = arrayMove(myClubs, oldIndex, newIndex);
+    const newOrder = arrayMove(myClubs, index, targetIndex);
     setMyClubs(newOrder);
 
-    // 서버에 순서 저장
     try {
-      const clubOrders = newOrder.map((club, index) => ({
-        club_id: club.id,
-        order: index,
-      }));
+      const clubOrders = newOrder.map((club, i) => ({ club_id: club.id, order: i }));
       await clubService.updateClubOrder(user!.id, clubOrders);
     } catch (error) {
       console.error('순서 변경 실패:', error);
-      // 실패 시 되돌리기
       loadMyClubs();
     }
   };
@@ -617,30 +579,23 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                 </button>
               </div>
 
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={myClubs.map((c) => c.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="sortable-club-list">
-                    {myClubs.map((club) => (
-                      <SortableClubItem
-                        key={club.id}
-                        club={club}
-                        isSelected={selectedClub?.id === club.id}
-                        onSelect={() => handleSelectClub(club)}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
+              <div className="sortable-club-list">
+                {myClubs.map((club, index) => (
+                  <ClubOrderItem
+                    key={club.id}
+                    club={club}
+                    isSelected={selectedClub?.id === club.id}
+                    isFirst={index === 0}
+                    isLast={index === myClubs.length - 1}
+                    onSelect={() => handleSelectClub(club)}
+                    onMoveUp={() => handleMoveClub(index, 'up')}
+                    onMoveDown={() => handleMoveClub(index, 'down')}
+                  />
+                ))}
+              </div>
 
               <div className="dropdown-footer">
-                드래그하여 순서 변경
+                ▲▼ 버튼으로 순서 변경
               </div>
             </div>
           )}

@@ -2170,16 +2170,34 @@ body.search-modal-open .bottom-nav {
   border: 2px solid var(--primary-color);
 }
 
-.drag-handle {
-  font-size: 18px;
-  color: var(--text-secondary);
-  cursor: grab;
-  padding: 4px;
-  user-select: none;
+.order-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-right: 4px;
+  flex-shrink: 0;
 }
 
-.drag-handle:active {
-  cursor: grabbing;
+.order-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 5px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.order-btn:hover:not(:disabled) {
+  background: var(--border-color);
+  color: var(--text-primary);
+}
+
+.order-btn:disabled {
+  opacity: 0.2;
+  cursor: default;
 }
 
 .club-item-content {
@@ -8926,7 +8944,7 @@ body.workout-detail-open .bottom-nav {
   background: var(--input-bg);
 }
 
-.drag-handle {
+.drag-handle-unused {
   display: flex;
   align-items: center;
   cursor: grab;
