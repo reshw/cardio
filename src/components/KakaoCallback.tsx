@@ -13,6 +13,7 @@ const KakaoCallback = () => {
       processed.current = true;
 
       const authUser = session.user;
+      const kakaoAccessToken = session.provider_token;
 
       // Kakao ID: identities 배열에서 추출 (Supabase가 provider_id로 저장)
       const kakaoIdentity = authUser.identities?.find(i => i.provider === 'kakao');
@@ -28,21 +29,47 @@ const KakaoCallback = () => {
         return;
       }
 
+      // Kakao /v2/user/me로 실명·전화번호·생년·성별 조회 (provider_token = Kakao access token)
+      let displayName: string | null = null;
+      let phoneNumber: string | null = null;
+      let birthyear: string | null = null;
+      let gender: string | null = null;
+
+      if (kakaoAccessToken) {
+        try {
+          const meRes = await fetch('https://kapi.kakao.com/v2/user/me', {
+            headers: { Authorization: `Bearer ${kakaoAccessToken}` },
+          });
+          if (meRes.ok) {
+            const meData = await meRes.json();
+            const account = meData?.kakao_account || {};
+            const profile = account?.profile || {};
+            displayName = account?.name || profile?.nickname || null;
+            phoneNumber = account?.phone_number || null;
+            birthyear = account?.birthyear || null;
+            gender = account?.gender || null;
+          }
+        } catch (err) {
+          console.warn('카카오 사용자 정보 조회 실패:', err);
+        }
+      }
+
       try {
         // public.users와 auth.users 연결 (기존 계정 매핑 or 신규 생성)
         await supabase.rpc('link_or_create_user', {
           p_auth_id:       authUser.id,
           p_kakao_id:      kakaoId,
           p_email:         authUser.email ?? null,
-          p_display_name:  authUser.user_metadata?.name
+          p_display_name:  displayName
+                           ?? authUser.user_metadata?.name
                            ?? authUser.user_metadata?.full_name
                            ?? null,
           p_profile_image: authUser.user_metadata?.avatar_url
                            ?? authUser.user_metadata?.picture
                            ?? null,
-          p_phone_number:  authUser.user_metadata?.phone_number ?? null,
-          p_birthyear:     authUser.user_metadata?.birthyear ?? null,
-          p_gender:        authUser.user_metadata?.gender ?? null,
+          p_phone_number:  phoneNumber,
+          p_birthyear:     birthyear,
+          p_gender:        gender,
         });
       } catch (err) {
         console.error('link_or_create_user 실패:', err);
