@@ -74,9 +74,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // POST: 활동 생성/수정/삭제 이벤트
   if (req.method === 'POST') {
-    // Strava는 웹훅에 200을 빠르게 반환하길 요구
-    res.status(200).end();
-
     const { object_type, object_id, owner_id, aspect_type } = req.body as {
       object_type: string;
       object_id: number;
@@ -84,7 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       aspect_type: 'create' | 'update' | 'delete';
     };
 
-    if (object_type !== 'activity') return;
+    if (object_type !== 'activity') return res.status(200).end();
 
     const { data: integration } = await supabase
       .from('user_integrations')
@@ -93,9 +90,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .eq('provider_user_id', String(owner_id))
       .single();
 
-    if (!integration) return; // 연동되지 않은 유저
+    if (!integration) return res.status(200).end();
 
-    // 삭제 이벤트: 연동된 운동 기록 제거
     if (aspect_type === 'delete') {
       await supabase
         .from('workouts')
@@ -103,13 +99,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('user_id', integration.user_id)
         .eq('source', 'strava')
         .eq('source_activity_id', String(object_id));
-      return;
+      return res.status(200).end();
     }
 
-    if (aspect_type !== 'create' && aspect_type !== 'update') return;
+    if (aspect_type !== 'create' && aspect_type !== 'update') return res.status(200).end();
 
     const accessToken = await getValidToken(integration);
-    if (!accessToken) return;
+    if (!accessToken) return res.status(200).end();
 
     const activityRes = await fetch(
       `https://www.strava.com/api/v3/activities/${object_id}`,
@@ -118,19 +114,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!activityRes.ok) {
       console.error('Strava activity fetch failed:', object_id, await activityRes.text());
-      return;
+      return res.status(200).end();
     }
 
     const activity = await activityRes.json();
     const mapping = STRAVA_TYPE_MAP[activity.type as string];
-    if (!mapping) return; // 지원하지 않는 운동 타입
+    if (!mapping) return res.status(200).end();
 
     const value =
       mapping.unit === 'km'
         ? Math.round((activity.distance / 1000) * 100) / 100
         : Math.round(activity.distance);
 
-    if (value <= 0) return;
+    if (value <= 0) return res.status(200).end();
 
     const workoutData = {
       user_id: integration.user_id,
@@ -148,7 +144,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { error } = await supabase.from('workouts').insert(workoutData);
       if (error) console.error('Workout insert error:', error);
     } else {
-      // update: 기존 기록 갱신 (거리 변경 등)
       const { error } = await supabase
         .from('workouts')
         .update({ value, workout_time: activity.start_date_local })
@@ -157,5 +152,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('source_activity_id', String(object_id));
       if (error) console.error('Workout update error:', error);
     }
+
+    return res.status(200).end();
   }
 }
