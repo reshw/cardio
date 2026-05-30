@@ -133,7 +133,7 @@ export const More = () => {
           <div className="menu-item-btn" style={{ cursor: 'default' }}>
             <div className="menu-item-left">
               <img
-                src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Strava_Logo.svg/32px-Strava_Logo.svg.png"
+                src="https://cdn.simpleicons.org/strava/FC4C02"
                 alt="Strava"
                 style={{ width: 20, height: 20, objectFit: 'contain' }}
               />
