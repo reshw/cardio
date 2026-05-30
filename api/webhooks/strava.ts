@@ -6,16 +6,31 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+type ValueSource = 'distance_km' | 'distance_m' | 'elapsed_min';
+
+interface StravaMapping {
+  category: string;
+  sub_type: string | null;
+  unit: string;
+  value_source: ValueSource;
+}
+
 // Strava 운동 타입 → Cardio 카테고리 매핑
-const STRAVA_TYPE_MAP: Record<string, { category: string; sub_type: string | null; unit: string } | null> = {
-  Run:            { category: '달리기', sub_type: '러닝',     unit: 'km' },
-  TrailRun:       { category: '달리기', sub_type: '러닝',     unit: 'km' },
-  VirtualRun:     { category: '달리기', sub_type: '트레드밀', unit: 'km' },
-  Ride:           { category: '사이클', sub_type: '실외',     unit: 'km' },
-  VirtualRide:    { category: '사이클', sub_type: '실내',     unit: 'km' },
-  MountainBikeRide: { category: '사이클', sub_type: '실외',   unit: 'km' },
-  GravelRide:     { category: '사이클', sub_type: '실외',     unit: 'km' },
-  Swim:           { category: '수영',   sub_type: null,       unit: 'm'  },
+const STRAVA_TYPE_MAP: Record<string, StravaMapping | null> = {
+  Run:               { category: '달리기', sub_type: '러닝',       unit: 'km', value_source: 'distance_km' },
+  TrailRun:          { category: '달리기', sub_type: '러닝',       unit: 'km', value_source: 'distance_km' },
+  VirtualRun:        { category: '달리기', sub_type: '트레드밀',   unit: 'km', value_source: 'distance_km' },
+  Ride:              { category: '사이클', sub_type: '실외',       unit: 'km', value_source: 'distance_km' },
+  VirtualRide:       { category: '사이클', sub_type: '실내',       unit: 'km', value_source: 'distance_km' },
+  MountainBikeRide:  { category: '사이클', sub_type: '실외',       unit: 'km', value_source: 'distance_km' },
+  GravelRide:        { category: '사이클', sub_type: '실외',       unit: 'km', value_source: 'distance_km' },
+  EBikeRide:         { category: '사이클', sub_type: '전기자전거', unit: 'km', value_source: 'distance_km' },
+  EMountainBikeRide: { category: '사이클', sub_type: '전기자전거', unit: 'km', value_source: 'distance_km' },
+  Swim:              { category: '수영',   sub_type: null,         unit: 'm',  value_source: 'distance_m'  },
+  OpenWaterSwim:     { category: '수영',   sub_type: null,         unit: 'm',  value_source: 'distance_m'  },
+  Rowing:            { category: '로잉',   sub_type: '실외',       unit: 'km', value_source: 'distance_km' },
+  VirtualRow:        { category: '로잉',   sub_type: '실내',       unit: 'km', value_source: 'distance_km' },
+  Yoga:              { category: '요가',   sub_type: '하타',       unit: '분', value_source: 'elapsed_min' },
 };
 
 async function getValidToken(integration: {
@@ -121,10 +136,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const mapping = STRAVA_TYPE_MAP[activity.type as string];
     if (!mapping) return res.status(200).end();
 
-    const value =
-      mapping.unit === 'km'
-        ? Math.round((activity.distance / 1000) * 100) / 100
-        : Math.round(activity.distance);
+    let value: number;
+    if (mapping.value_source === 'distance_km') {
+      value = Math.round((activity.distance / 1000) * 100) / 100;
+    } else if (mapping.value_source === 'distance_m') {
+      value = Math.round(activity.distance);
+    } else {
+      value = Math.round(activity.elapsed_time / 60);
+    }
 
     if (value <= 0) return res.status(200).end();
 
