@@ -1078,6 +1078,76 @@ body.search-modal-open .bottom-nav {
   background: var(--card-hover-bg);
 }
 
+.file-input-hidden {
+  display: none;
+}
+
+/* Photo upload zone */
+.photo-upload-group label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.required-badge {
+  display: inline-block;
+  background: #FF3B30;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  margin-left: 4px;
+  letter-spacing: 0.3px;
+}
+
+.optional-badge {
+  display: inline-block;
+  background: var(--text-secondary);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  margin-left: 4px;
+  opacity: 0.6;
+}
+
+.photo-upload-zone {
+  border: 2px dashed var(--primary-color);
+  border-radius: 16px;
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  background: rgba(255, 107, 157, 0.04);
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.photo-upload-zone:hover,
+.photo-upload-zone:active {
+  background: rgba(255, 107, 157, 0.1);
+  border-color: #FF3B82;
+}
+
+.photo-upload-icon {
+  font-size: 44px;
+  margin-bottom: 10px;
+  line-height: 1;
+}
+
+.photo-upload-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 6px;
+}
+
+.photo-upload-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
 /* Image Preview */
 .image-preview {
   margin-top: 12px;
@@ -1086,10 +1156,49 @@ body.search-modal-open .bottom-nav {
   border: 1px solid var(--border-color);
 }
 
+.image-preview-clickable {
+  cursor: pointer;
+  position: relative;
+}
+
+.image-preview-change {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  text-align: center;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
 .image-preview img {
   width: 100%;
   height: auto;
   display: block;
+}
+
+/* Memo group */
+.memo-group label {
+  display: flex;
+  align-items: center;
+}
+
+.memo-textarea {
+  background: var(--input-bg);
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  transition: border-color 0.2s;
+}
+
+.memo-textarea:focus {
+  border-color: var(--primary-color);
+  outline: none;
 }
 
 /* Workout Item Updates */
@@ -3293,6 +3402,646 @@ body.search-modal-open .bottom-nav {
     transform: translateX(-50%);
     border-radius: 12px 12px 0 0;
   }
+}
+
+/* ============================================
+   STEP 3 전면 재설계 — iF Design
+   ============================================ */
+
+.step3-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 120px;
+}
+
+/* ① 날짜 카드 */
+.step3-date-card {
+  position: relative;
+  background: linear-gradient(145deg, #1B2B3A 0%, #243B55 60%, #2E4A6A 100%);
+  border-radius: 22px;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+}
+
+.step3-date-inner {
+  padding: 20px 20px 18px;
+}
+
+.step3-date-workout-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.step3-date-subtype {
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.step3-date-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.step3-date-datetime {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.step3-date-big {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.step3-date-sep {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 300;
+}
+
+.step3-date-time {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
+  letter-spacing: 0.2px;
+}
+
+.step3-date-edit-chip {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  margin-bottom: 2px;
+}
+
+.step3-date-hidden-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  border: none;
+}
+
+/* ② 수치 입력 히어로 카드 */
+.step3-value-card {
+  background: var(--card-bg);
+  border-radius: 22px;
+  padding: 22px 24px 18px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.step3-value-hint {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 4px;
+  opacity: 0.7;
+}
+
+/* 수치 입력 한 줄 통합 레이아웃 */
+.step3-value-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 0 8px;
+}
+
+.step3-adj-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  font-size: 22px;
+  font-weight: 300;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.12s;
+  font-family: inherit;
+  line-height: 1;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.step3-adj-minus {
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  border: 1.5px solid var(--border-color) !important;
+}
+
+.step3-adj-plus {
+  background: var(--gradient-primary);
+  color: white;
+  box-shadow: 0 3px 10px rgba(79, 195, 247, 0.3);
+}
+
+.step3-adj-btn:active {
+  transform: scale(0.88);
+  box-shadow: none;
+  opacity: 0.75;
+}
+
+/* 자릿수 네비게이터 */
+.step3-digit-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 16px;
+}
+
+.step3-nav-arrow {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--input-bg);
+  border: 1.5px solid var(--border-color);
+  font-size: 16px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.step3-nav-arrow:active {
+  background: rgba(79, 195, 247, 0.1);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.step3-digit-display {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.step3-digit-slot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.step3-digit-box {
+  width: 36px;
+  height: 46px;
+  border-radius: 10px;
+  background: var(--input-bg);
+  border: 2px solid transparent;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-family: inherit;
+  line-height: 1;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.step3-digit-box.selected {
+  background: white;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.15), 0 4px 14px rgba(79, 195, 247, 0.2);
+  transform: scale(1.1) translateY(-2px);
+  font-size: 28px;
+}
+
+.step3-digit-box.dim {
+  color: #D8E4ED;
+  background: transparent;
+  border-color: transparent;
+}
+
+.step3-digit-dot {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  line-height: 1;
+  opacity: 0.5;
+  margin-bottom: 1px;
+}
+
+.step3-digit-unit-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-left: 4px;
+  opacity: 0.55;
+}
+
+.step3-digit-controls {
+  display: flex;
+  gap: 12px;
+}
+
+.step3-stepper-btn {
+  flex: 1;
+  height: 54px;
+  border-radius: 16px;
+  border: none;
+  font-size: 28px;
+  font-weight: 300;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s;
+  font-family: inherit;
+  line-height: 1;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.step3-stepper-minus {
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  border: 1.5px solid var(--border-color);
+}
+
+.step3-stepper-plus {
+  background: var(--gradient-primary);
+  color: white;
+  box-shadow: 0 4px 14px rgba(79, 195, 247, 0.3);
+}
+
+.step3-stepper-btn:active {
+  transform: scale(0.94);
+  box-shadow: none;
+}
+
+.step3-type-direct-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 10px;
+  background: none;
+  border: 1.5px dashed var(--border-color);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  letter-spacing: 0.2px;
+}
+
+.step3-type-direct-btn:active {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(79, 195, 247, 0.04);
+}
+
+/* 직접 입력 모드 */
+.step3-direct-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 8px 0 4px;
+}
+
+.step3-direct-input {
+  flex: 1;
+  font-size: 52px;
+  font-weight: 700;
+  color: var(--text-primary);
+  border: none;
+  border-bottom: 2.5px solid var(--primary-color);
+  background: transparent;
+  outline: none;
+  text-align: right;
+  font-family: inherit;
+  letter-spacing: -1.5px;
+  padding: 4px 0 6px;
+  min-width: 0;
+}
+
+.step3-direct-input::-webkit-inner-spin-button,
+.step3-direct-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+.step3-direct-unit {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  opacity: 0.65;
+  padding-bottom: 4px;
+}
+
+.step3-value-bar {
+  margin-top: 14px;
+  height: 2px;
+  background: linear-gradient(90deg, #4FC3F7 0%, #FF6B9D 100%);
+  border-radius: 2px;
+  opacity: 0.35;
+}
+
+/* ③④⑤ 공통 섹션 카드 */
+.step3-section-card {
+  background: var(--card-bg);
+  border-radius: 22px;
+  padding: 18px 18px 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.step3-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.step3-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+
+/* 필수/선택 pill */
+.step3-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+}
+
+.step3-pill-required {
+  background: #FF3B30;
+  color: white;
+}
+
+.step3-pill-optional {
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  font-weight: 500;
+  border: 1px solid var(--border-color);
+}
+
+/* ③ 사진 — 컴팩트 헤더형 */
+.step3-photo-card {
+  padding: 14px 18px;
+}
+
+.step3-photo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.step3-photo-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.step3-photo-add-btn {
+  padding: 8px 14px;
+  background: var(--input-bg);
+  border: 1.5px dashed var(--border-color);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.step3-photo-add-btn:active {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(79, 195, 247, 0.06);
+}
+
+.step3-photo-thumb {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border-color);
+}
+
+.step3-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.step3-photo-thumb-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.52);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  padding: 3px 0;
+  letter-spacing: 0.2px;
+}
+
+/* ④ 난이도 */
+.step3-diff-current-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.step3-diff-intensity-num {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+/* 난이도 이모지 시각화 */
+.step3-diff-emoji-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+.step3-diff-emoji-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  opacity: 0.25;
+  transition: opacity 0.2s, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.step3-diff-emoji-item.active {
+  opacity: 1;
+  transform: translateY(-4px);
+}
+
+.step3-diff-emoji-icon {
+  font-size: 26px;
+  line-height: 1;
+  transition: font-size 0.2s;
+}
+
+.step3-diff-emoji-item.active .step3-diff-emoji-icon {
+  font-size: 32px;
+}
+
+.step3-diff-emoji-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.step3-diff-emoji-item.active .step3-diff-emoji-name {
+  color: var(--primary-color);
+}
+
+/* 난이도 슬라이더 */
+.step3-diff-slider-wrap {
+  padding: 0 2px;
+}
+
+.step3-diff-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  display: block;
+}
+
+.step3-diff-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: white;
+  border: 2.5px solid var(--primary-color);
+  box-shadow: 0 2px 8px rgba(79, 195, 247, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s;
+}
+
+.step3-diff-slider::-webkit-slider-thumb:active {
+  transform: scale(1.28);
+  box-shadow: 0 3px 14px rgba(79, 195, 247, 0.55);
+}
+
+.step3-diff-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: white;
+  border: 2.5px solid var(--primary-color);
+  box-shadow: 0 2px 8px rgba(79, 195, 247, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.step3-diff-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  padding: 0 1px;
+}
+
+.step3-diff-tick {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.45;
+  text-align: center;
+  width: 10%;
+  transition: all 0.15s;
+  line-height: 1;
+}
+
+.step3-diff-tick.active {
+  color: var(--primary-color);
+  opacity: 1;
+  font-weight: 700;
+}
+
+/* ⑤ 메모 */
+.step3-memo-textarea {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  padding: 13px 15px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-primary);
+  resize: none;
+  transition: all 0.2s;
+  line-height: 1.7;
+}
+
+.step3-memo-textarea::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.step3-memo-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.08);
 }
 
 /* Workout Detail Page */
@@ -6733,7 +7482,9 @@ body.search-modal-open .bottom-nav {
 }
 
 .feed-workout-type-v2 {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   background: var(--gradient-light);
   color: var(--primary-color);
   padding: 3px 7px;
@@ -6741,6 +7492,12 @@ body.search-modal-open .bottom-nav {
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.strava-source-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
 }
 
 .feed-intensity-badge-v2 {
@@ -6848,6 +7605,90 @@ body.search-modal-open .bottom-nav {
 
 body.workout-detail-open .bottom-nav {
   display: none;
+}
+
+.detail-header-modal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.detail-header-modal h1 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.detail-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.detail-modal-close:hover {
+  background: var(--hover-bg);
+}
+
+.strava-source-card {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  background: #fff5f2;
+  border: 1px solid #ffd5c8;
+  border-radius: 10px;
+}
+
+.strava-source-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #FC4C02;
+  margin-bottom: 6px;
+}
+
+.strava-source-metrics {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.workout-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  margin: 10px auto 0;
+  flex-shrink: 0;
+}
+
+.workout-detail-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 16px;
+}
+
+.workout-detail-modal-content .detail-actions-fixed {
+  position: sticky;
+  bottom: 0;
+  left: unset;
+  right: unset;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
 .workout-sheet-overlay {

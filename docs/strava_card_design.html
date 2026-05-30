@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<style>
+  @font-face { font-family: 'LineSeed'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Th.woff2') format('woff2'); font-weight: 100; }
+  @font-face { font-family: 'LineSeed'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Rg.woff2') format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'LineSeed'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Bd.woff2') format('woff2'); font-weight: 700; }
+
+  body {
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    padding: 56px 24px;
+    font-family: 'LineSeed', sans-serif;
+  }
+
+  .section-title {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 6px 18px;
+    border-radius: 20px;
+    margin-bottom: 4px;
+  }
+  .section-title.confirmed {
+    color: #4ade80;
+    background: rgba(74,222,128,0.08);
+    border: 1px solid rgba(74,222,128,0.2);
+  }
+  .section-title.reference {
+    color: #555;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid #222;
+  }
+
+  .label {
+    color: #444;
+    font-size: 11px;
+    margin-bottom: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .card {
+    width: 800px;
+    height: 420px;
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    box-sizing: border-box;
+  }
+
+  .sep {
+    width: 800px;
+    height: 1px;
+    background: #1a1a1a;
+    margin: 16px 0;
+  }
+
+  /* ══════════════════════════════════════════
+     확정 A — 경로 있을 때 (실외 달리기·사이클 등)
+  ══════════════════════════════════════════ */
+  .card-route {
+    background: linear-gradient(140deg, #111111 0%, #1a0e08 60%, #0f0f0f 100%);
+    display: flex;
+  }
+  .card-route .sidebar {
+    width: 6px;
+    background: linear-gradient(180deg, #FC4C02 0%, #e03a00 100%);
+    flex-shrink: 0;
+  }
+  .card-route .body {
+    flex: 1;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+  }
+  .card-route .left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 36px 28px 36px 42px;
+    z-index: 1;
+  }
+  .card-route .activity-type { font-size: 15px; font-weight: 400; color: #ccc; }
+  .card-route .strava-badge { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .card-route .strava-badge img { width: 12px; height: 12px; opacity: 0.45; }
+  .card-route .strava-badge span { font-size: 11px; color: #555; letter-spacing: 0.04em; }
+  .card-route .main-value { display: flex; align-items: baseline; gap: 8px; }
+  .card-route .main-num { font-size: 96px; font-weight: 700; color: #fff; line-height: 1; letter-spacing: -4px; }
+  .card-route .main-unit { font-size: 26px; color: #666; padding-bottom: 8px; }
+  .card-route .divider { height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(252,76,2,0.15) 50%, transparent 100%); margin-bottom: 10px; }
+  .card-route .stat-col { display: flex; flex-direction: column; gap: 10px; }
+  .card-route .stat-item { display: flex; flex-direction: column; gap: 2px; }
+  .card-route .stat-val { font-size: 18px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+  .card-route .stat-lbl { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.1em; }
+  .card-route .app-brand { font-size: 11px; color: #2a2a2a; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700; }
+  .card-route .meta { font-size: 11px; color: #333; margin-top: 4px; }
+  .card-route .route-area {
+    width: 300px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .card-route .route-area svg { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+  .card-route .route-area::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 80px;
+    background: linear-gradient(90deg, #111 0%, transparent 100%);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* ══════════════════════════════════════════
+     확정 B — 경로 없을 때 (풀수영·실내·트레드밀)
+  ══════════════════════════════════════════ */
+  .card-noroute {
+    background: linear-gradient(140deg, #111111 0%, #1a0e08 60%, #0f0f0f 100%);
+    display: flex;
+  }
+  .card-noroute .sidebar { width: 6px; background: linear-gradient(180deg, #FC4C02 0%, #e03a00 100%); flex-shrink: 0; }
+  .card-noroute .body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 36px 44px 36px 42px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card-noroute .deco-circle {
+    position: absolute; right: -60px; bottom: -60px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    border: 1px solid rgba(252,76,2,0.08);
+    pointer-events: none;
+  }
+  .card-noroute .deco-circle2 {
+    position: absolute; right: -30px; bottom: -30px;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    border: 1px solid rgba(252,76,2,0.05);
+    pointer-events: none;
+  }
+  .card-noroute .top-row { display: flex; justify-content: space-between; align-items: flex-start; position: relative; }
+  .card-noroute .activity-type { font-size: 16px; font-weight: 400; color: #ccc; }
+  .card-noroute .strava-badge { display: flex; align-items: center; gap: 6px; }
+  .card-noroute .strava-badge img { width: 13px; height: 13px; opacity: 0.5; }
+  .card-noroute .strava-badge span { font-size: 12px; color: #555; letter-spacing: 0.04em; }
+  .card-noroute .mid-row { display: flex; align-items: flex-end; justify-content: space-between; position: relative; }
+  .card-noroute .main-value { display: flex; align-items: baseline; gap: 10px; }
+  .card-noroute .main-num { font-size: 108px; font-weight: 700; color: #fff; line-height: 1; letter-spacing: -4px; }
+  .card-noroute .main-unit { font-size: 28px; color: #666; padding-bottom: 8px; }
+  .card-noroute .stat-col { display: flex; flex-direction: column; align-items: flex-end; gap: 18px; padding-bottom: 4px; }
+  .card-noroute .stat-item { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .card-noroute .stat-val { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .card-noroute .stat-lbl { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 0.1em; }
+  .card-noroute .divider { height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(252,76,2,0.15) 40%, transparent 100%); }
+  .card-noroute .bottom-row { display: flex; justify-content: space-between; align-items: center; position: relative; }
+  .card-noroute .app-brand { font-size: 12px; color: #2a2a2a; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700; }
+  .card-noroute .meta { font-size: 12px; color: #3a3a3a; text-align: right; }
+
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════
+     ✅ 확정안
+════════════════════════════════════ -->
+<div class="section-title confirmed">✅ 확정 — 경로 있을 때 (실외 달리기 · 사이클 · 오픈워터 등)</div>
+
+<div class="label">달리기 · 러닝 예시</div>
+<div class="card card-route">
+  <div class="sidebar"></div>
+  <div class="body">
+    <div class="left">
+      <div>
+        <div class="activity-type">🏃 달리기 · 러닝</div>
+        <div class="strava-badge">
+          <img src="https://cdn.simpleicons.org/strava/FC4C02" />
+          <span>Recorded by Strava</span>
+        </div>
+      </div>
+      <div class="main-value">
+        <span class="main-num">10.5</span>
+        <span class="main-unit">km</span>
+      </div>
+      <div>
+        <div class="divider"></div>
+        <div class="stat-col">
+          <div class="stat-item">
+            <div class="stat-val">58'12"</div>
+            <div class="stat-lbl">Moving Time</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val">5'32"/km</div>
+            <div class="stat-lbl">Pace</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val">148 bpm</div>
+            <div class="stat-lbl">Avg HR</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="app-brand">cardio</div>
+        <div class="meta">2026.05.30 · Garmin fēnix 8</div>
+      </div>
+    </div>
+    <div class="route-area">
+      <svg viewBox="0 0 300 420" xmlns="http://www.w3.org/2000/svg">
+        <path d="M150 390 C130 370,90 360,80 340 C70 320,85 295,75 275 C65 255,40 248,38 228 C36 208,55 195,60 178 C65 160,55 142,65 125 C75 108,100 105,115 90 C130 75,135 55,155 42 C175 30,200 35,215 50 C230 65,228 88,240 102 C252 116,268 118,272 135 C276 152,262 166,258 183 C254 200,262 218,255 234 C248 250,230 255,222 270 C214 285,218 305,208 318 C198 331,180 333,170 345 C160 357,162 375,150 390 Z"
+          fill="none" stroke="rgba(252,76,2,0.15)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M150 390 C130 370,90 360,80 340 C70 320,85 295,75 275 C65 255,40 248,38 228 C36 208,55 195,60 178 C65 160,55 142,65 125 C75 108,100 105,115 90 C130 75,135 55,155 42 C175 30,200 35,215 50 C230 65,228 88,240 102 C252 116,268 118,272 135 C276 152,262 166,258 183 C254 200,262 218,255 234 C248 250,230 255,222 270 C214 285,218 305,208 318 C198 331,180 333,170 345 C160 357,162 375,150 390 Z"
+          fill="none" stroke="rgba(252,76,2,0.7)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="150" cy="390" r="5" fill="#FC4C02" opacity="0.9"/>
+        <circle cx="150" cy="390" r="9" fill="none" stroke="#FC4C02" stroke-width="1.5" opacity="0.4"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<div class="sep"></div>
+
+<div class="section-title confirmed">✅ 확정 — 경로 없을 때 (풀수영 · 트레드밀 · 실내 등)</div>
+
+<div class="label">수영 · 풀수영 예시</div>
+<div class="card card-noroute">
+  <div class="sidebar"></div>
+  <div class="body">
+    <div class="deco-circle"></div>
+    <div class="deco-circle2"></div>
+    <div class="top-row">
+      <div class="activity-type">🏊 수영 · 풀수영</div>
+      <div class="strava-badge">
+        <img src="https://cdn.simpleicons.org/strava/FC4C02" />
+        <span>Recorded by Strava</span>
+      </div>
+    </div>
+    <div class="mid-row">
+      <div class="main-value">
+        <span class="main-num">675</span>
+        <span class="main-unit">m</span>
+      </div>
+      <div class="stat-col">
+        <div class="stat-item">
+          <div class="stat-val">15'56"</div>
+          <div class="stat-lbl">Moving Time</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val">2'22"/100m</div>
+          <div class="stat-lbl">Pace</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val">135 bpm</div>
+          <div class="stat-lbl">Avg HR</div>
+        </div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="bottom-row">
+      <div class="app-brand">cardio</div>
+      <div class="meta">2026.05.30 · Garmin fēnix 8</div>
+    </div>
+  </div>
+</div>
+
+<div class="label">달리기 · 트레드밀 예시</div>
+<div class="card card-noroute">
+  <div class="sidebar"></div>
+  <div class="body">
+    <div class="deco-circle"></div>
+    <div class="deco-circle2"></div>
+    <div class="top-row">
+      <div class="activity-type">🏃 달리기 · 트레드밀</div>
+      <div class="strava-badge">
+        <img src="https://cdn.simpleicons.org/strava/FC4C02" />
+        <span>Recorded by Strava</span>
+      </div>
+    </div>
+    <div class="mid-row">
+      <div class="main-value">
+        <span class="main-num">8.2</span>
+        <span class="main-unit">km</span>
+      </div>
+      <div class="stat-col">
+        <div class="stat-item">
+          <div class="stat-val">46'30"</div>
+          <div class="stat-lbl">Moving Time</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val">5'40"/km</div>
+          <div class="stat-lbl">Pace</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val">152 bpm</div>
+          <div class="stat-lbl">Avg HR</div>
+        </div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="bottom-row">
+      <div class="app-brand">cardio</div>
+      <div class="meta">2026.05.30 · Garmin fēnix 8</div>
+    </div>
+  </div>
+</div>
+
+<div class="sep"></div>
+
+<!-- ════════════════════════════════════
+     참고 — 검토했던 이전 안들
+════════════════════════════════════ -->
+<div class="section-title reference">참고 — 이전 검토안</div>
+
+<div class="label">v3 — 라이트 (탈락)</div>
+<div class="card card-noroute" style="background: linear-gradient(140deg,#fff 0%,#fff5f0 60%,#ffe8db 100%);">
+  <div class="sidebar"></div>
+  <div class="body">
+    <div class="top-row">
+      <div class="activity-type" style="color:#666;">🏊 수영 · 풀수영</div>
+      <div class="strava-badge">
+        <img src="https://cdn.simpleicons.org/strava/FC4C02" style="opacity:0.4;" />
+        <span style="color:#aaa;">Recorded by Strava</span>
+      </div>
+    </div>
+    <div class="mid-row">
+      <div class="main-value">
+        <span class="main-num" style="color:#111;">675</span>
+        <span class="main-unit" style="color:#aaa;">m</span>
+      </div>
+      <div class="stat-col">
+        <div class="stat-item">
+          <div class="stat-val" style="color:#111;">15'56"</div>
+          <div class="stat-lbl">Moving Time</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val" style="color:#111;">2'22"/100m</div>
+          <div class="stat-lbl">Pace</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val" style="color:#111;">135 bpm</div>
+          <div class="stat-lbl">Avg HR</div>
+        </div>
+      </div>
+    </div>
+    <div class="divider" style="background: linear-gradient(90deg,rgba(0,0,0,0.06) 0%,rgba(252,76,2,0.2) 40%,transparent 100%);"></div>
+    <div class="bottom-row">
+      <div class="app-brand" style="color:#ccc;">cardio</div>
+      <div class="meta" style="color:#bbb;">2026.05.30 · Garmin fēnix 8</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

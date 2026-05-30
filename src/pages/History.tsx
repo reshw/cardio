@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { WorkoutDetail } from './WorkoutDetail';
 import workoutService from '../services/workoutService';
 import { getThumbnail } from '../utils/r2Storage';
 import type { Workout } from '../services/workoutService';
@@ -42,7 +42,6 @@ const getCatGroup = (category: string) => CATEGORY_GROUPS[category] || category;
 
 export const History = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('stats');
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,6 +52,7 @@ export const History = () => {
   const [showAddRace, setShowAddRace] = useState(false);
   const [editingRace, setEditingRace] = useState<RaceRecord | undefined>();
   const [viewingRace, setViewingRace] = useState<RaceRecord | null>(null);
+  const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
 
   // 운동 기록 불러오기
   const loadWorkouts = async () => {
@@ -246,13 +246,6 @@ export const History = () => {
 
   return (
     <div className="container">
-      <div className="header">
-        <h1>기록</h1>
-        <button className="add-button" onClick={() => navigate('/add-workout')}>
-          + 기록 추가
-        </button>
-      </div>
-
       {/* 탭 */}
       <div className="tabs">
         <button
@@ -340,7 +333,7 @@ export const History = () => {
                     <div
                       key={workout.id}
                       className="workout-item clickable"
-                      onClick={() => navigate(`/workout/${workout.id}`, { state: { workout } })}
+                      onClick={() => setSelectedWorkout(workout)}
                     >
                       <div className="workout-item-content">
                         <div className="workout-item-left">
@@ -348,12 +341,14 @@ export const History = () => {
                             {getWorkoutLabel(workout)}
                           </div>
                           <div className="workout-distance">
-                            {workout.value}
-                            {workout.unit}
+                            {workout.value}{workout.unit}
                           </div>
                         </div>
                         <div className="workout-item-right">
-                          <div className="workout-date">
+                          <div className="workout-date" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            {workout.source === 'strava' && (
+                              <img src="https://cdn.simpleicons.org/strava/FC4C02" alt="Strava" style={{ width: 12, height: 12 }} />
+                            )}
                             {formatDate(workout.workout_time)}
                           </div>
                         </div>
@@ -391,7 +386,7 @@ export const History = () => {
                 <div
                   key={workout.id}
                   className="workout-item clickable"
-                  onClick={() => navigate(`/workout/${workout.id}`, { state: { workout } })}
+                  onClick={() => setSelectedWorkout(workout)}
                 >
                   <div className="workout-item-content">
                     <div className="workout-item-left">
@@ -399,12 +394,14 @@ export const History = () => {
                         {getWorkoutLabel(workout)}
                       </div>
                       <div className="workout-distance">
-                        {workout.value}
-                        {workout.unit}
+                        {workout.value}{workout.unit}
                       </div>
                     </div>
                     <div className="workout-item-right">
-                      <div className="workout-date">
+                      <div className="workout-date" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        {workout.source === 'strava' && (
+                          <img src="https://cdn.simpleicons.org/strava/FC4C02" alt="Strava" style={{ width: 12, height: 12 }} />
+                        )}
                         {formatDate(workout.workout_time)}
                       </div>
                     </div>
@@ -780,6 +777,16 @@ export const History = () => {
           record={editingRace}
           onClose={() => setShowAddRace(false)}
           onSaved={() => { setShowAddRace(false); loadRaceRecords(); }}
+        />
+      )}
+
+      {selectedWorkout && (
+        <WorkoutDetail
+          workoutData={selectedWorkout}
+          onClose={(changed) => {
+            setSelectedWorkout(null);
+            if (changed) loadWorkouts();
+          }}
         />
       )}
     </div>

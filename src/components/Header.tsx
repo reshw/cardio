@@ -17,7 +17,7 @@ export const Header = () => {
 
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/' || path.startsWith('/history')) return '기록';
+    if (path === '/' || path.startsWith('/history') || path.startsWith('/add-workout')) return '기록';
     if (path.startsWith('/club')) return '클럽';
     if (path.startsWith('/join')) return '클럽 가입';
     if (path.startsWith('/more')) return '더보기';
@@ -57,6 +57,14 @@ export const Header = () => {
 
         {user && (
           <div className="header-notification">
+            {(location.pathname === '/') && (
+              <button
+                className="add-button"
+                onClick={() => navigate('/add-workout')}
+              >
+                + 기록 추가
+              </button>
+            )}
             {location.pathname.startsWith('/club') && !location.pathname.includes('/settings') && !location.pathname.includes('/members') && !location.pathname.includes('/member/') && !location.pathname.includes('/my-settings') && (
               <button
                 className="header-action-button"

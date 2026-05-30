@@ -11,16 +11,22 @@ import { IntegratedCommentSection } from '../components/IntegratedCommentSection
 import { LikeStatsModal } from '../components/LikeStatsModal';
 import { useAuth } from '../contexts/AuthContext';
 
-export const WorkoutDetail = () => {
+interface WorkoutDetailProps {
+  workoutData?: Workout;
+  onClose?: (changed?: boolean) => void;
+}
+
+export const WorkoutDetail = ({ workoutData: propWorkout, onClose }: WorkoutDetailProps = {}) => {
+  const isModal = !!onClose;
   const location = useLocation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const highlightCommentId = searchParams.get('commentId');
-  const clubIdParam = searchParams.get('clubId');
+  const highlightCommentId = isModal ? null : searchParams.get('commentId');
+  const clubIdParam = isModal ? null : searchParams.get('clubId');
   const { user, loading: authLoading } = useAuth();
 
-  const [workout, setWorkout] = useState<Workout | null>(location.state?.workout || null);
+  const [workout, setWorkout] = useState<Workout | null>(propWorkout || location.state?.workout || null);
   const [loading, setLoading] = useState(!workout);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -50,9 +56,14 @@ export const WorkoutDetail = () => {
   // 댓글 관련 state
   const [totalComments, setTotalComments] = useState(0);
 
+  const goBack = (changed = false) => {
+    if (onClose) { onClose(changed); return; }
+    window.history.length > 1 ? navigate(-1) : navigate('/');
+  };
+
   // 초기 로드: clubIdParam이 있으면 멤버십 체크 후 워크아웃 로드, 없으면 바로 로드
   useEffect(() => {
-    if (!id) return;
+    if (isModal || !id) return;
 
     if (clubIdParam) {
       // auth 로딩 완료 대기 (로딩 중이거나 user 없으면 건너뜀)
@@ -166,6 +177,15 @@ export const WorkoutDetail = () => {
       .padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   };
 
+  const formatMovingTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}시간 ${m}분`;
+    if (m > 0) return `${m}분 ${s}초`;
+    return `${s}초`;
+  };
+
   const getWorkoutLabel = () => {
     if (workout.category === '복싱') {
       return `${workout.category}-혼합`;
@@ -261,7 +281,7 @@ export const WorkoutDetail = () => {
       });
 
       alert('운동 기록이 수정되었습니다.');
-      navigate(-1);
+      goBack(true);
     } catch (error) {
       console.error('운동 기록 수정 실패:', error);
       alert('운동 기록 수정에 실패했습니다.');
@@ -280,7 +300,7 @@ export const WorkoutDetail = () => {
     try {
       await workoutService.deleteWorkout(workout.id);
       alert('운동 기록이 삭제되었습니다.');
-      navigate(-1);
+      goBack(true);
     } catch (error) {
       console.error('운동 기록 삭제 실패:', error);
       alert('운동 기록 삭제에 실패했습니다.');
@@ -289,14 +309,23 @@ export const WorkoutDetail = () => {
     }
   };
 
-  return (
-    <div className="container workout-detail-page">
-      <div className="detail-header">
-        <button className="back-button" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/club')}>
-          <ChevronLeft size={24} />
-        </button>
-        <h1>운동 상세</h1>
-      </div>
+  const detailContent = (
+    <div className={isModal ? 'workout-detail-modal-content' : 'container workout-detail-page'}>
+      {isModal ? (
+        <div className="detail-header-modal">
+          <h1>운동 상세</h1>
+          <button className="detail-modal-close" onClick={() => goBack()}>
+            <X size={22} />
+          </button>
+        </div>
+      ) : (
+        <div className="detail-header">
+          <button className="back-button" onClick={() => goBack()}>
+            <ChevronLeft size={24} />
+          </button>
+          <h1>운동 상세</h1>
+        </div>
+      )}
       {ownerName && (
         <div className="workout-owner-banner">
           {ownerName}님의 기록
@@ -330,6 +359,26 @@ export const WorkoutDetail = () => {
               <div className="detail-label">날짜</div>
               <div className="detail-value">{formatDate(workout.workout_time)}</div>
             </div>
+
+            {workout.source === 'strava' && (
+              <div className="strava-source-card">
+                <div className="strava-source-title">
+                  <img src="https://cdn.simpleicons.org/strava/FC4C02" alt="Strava" width={14} height={14} />
+                  Strava 연동 기록
+                </div>
+                <div className="strava-source-metrics">
+                  {workout.moving_seconds != null && (
+                    <span>이동 {formatMovingTime(workout.moving_seconds)}</span>
+                  )}
+                  {workout.average_speed != null && (
+                    <span>평균 {(workout.average_speed * 3.6).toFixed(1)} km/h</span>
+                  )}
+                  {workout.average_heartrate != null && (
+                    <span>심박 {Math.round(workout.average_heartrate)} bpm</span>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="detail-section">
               <div className="detail-label">체감 난이도</div>
@@ -541,7 +590,7 @@ export const WorkoutDetail = () => {
           <>
             {user?.id === workout.user_id && (
               <>
-                <button className="action-button-full" onClick={() => setIsEditing(true)}>
+                <button className="action-button-full" onClick={() => navigate('/add-workout', { state: { editWorkout: workout } })}>
                   <Edit2 size={18} />
                   수정
                 </button>
@@ -597,4 +646,16 @@ export const WorkoutDetail = () => {
       />
     </div>
   );
+
+  if (isModal) {
+    return (
+      <div className="workout-sheet-overlay" onClick={() => goBack()}>
+        <div className="workout-sheet" onClick={e => e.stopPropagation()}>
+          <div className="workout-sheet-handle" />
+          {detailContent}
+        </div>
+      </div>
+    );
+  }
+  return detailContent;
 };

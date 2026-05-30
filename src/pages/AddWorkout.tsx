@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import workoutService from '../services/workoutService';
@@ -13,31 +13,54 @@ import type { MyClubWithOrder } from '../services/clubService';
 
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
 
+const DIFF_LEVELS = [
+  { emoji: '😌', label: '편안',   min: 1, max: 2,  base: 2  },
+  { emoji: '🚶', label: '경쾌',   min: 3, max: 4,  base: 4  },
+  { emoji: '🏃', label: '자극',   min: 5, max: 6,  base: 6  },
+  { emoji: '🔥', label: '고강도', min: 7, max: 8,  base: 8  },
+  { emoji: '💀', label: '한계',   min: 9, max: 10, base: 10 },
+];
+
 export const AddWorkout = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1); // 1: 카테고리, 2: 세부타입, 3: 입력, 4: 카톡공유
+  const location = useLocation();
+  const editWorkout = (location.state as any)?.editWorkout as Workout | undefined;
+
+  const toLocalDatetime = (utcString: string) => {
+    const d = new Date(utcString);
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+  };
+
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(editWorkout ? 3 : 1);
   const [savedWorkout, setSavedWorkout] = useState<Workout | null>(null);
   const [myClubs, setMyClubs] = useState<MyClubWithOrder[]>([]);
   const [shareClubId, setShareClubId] = useState<string>('');
   const [shareNickname, setShareNickname] = useState<string | null>(null);
   const [shareWorkoutNumber, setShareWorkoutNumber] = useState<number | undefined>(undefined);
-  const [category, setCategory] = useState<WorkoutCategory | null>(null);
-  const [subType, setSubType] = useState<WorkoutSubType>(null);
+  const [category, setCategory] = useState<WorkoutCategory | null>(editWorkout?.category ?? null);
+  const [subType, setSubType] = useState<WorkoutSubType>(editWorkout?.sub_type ?? null);
   const [subTypeRatio, setSubTypeRatio] = useState(50); // 0-100, 요가/복싱용 비율 슬라이더
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(editWorkout ? editWorkout.value.toString() : '');
   const [workoutDate, setWorkoutDate] = useState(() => {
-    // 현재 시간을 기본값으로 설정 (datetime-local 형식)
+    if (editWorkout) return toLocalDatetime(editWorkout.workout_time);
     const now = new Date();
     const offset = now.getTimezoneOffset() * 60000;
-    const localTime = new Date(now.getTime() - offset);
-    return localTime.toISOString().slice(0, 16);
+    return new Date(now.getTime() - offset).toISOString().slice(0, 16);
   });
   const [proofImage, setProofImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const stepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stepIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [cursorExp, setCursorExp] = useState(0); // 0=ones, 1=tens, 2=hundreds, -1=tenths
+  const cursorExpRef = useRef(0);
+  const [showDirectInput, setShowDirectInput] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [intensity, setIntensity] = useState(4); // 기본값 4
-  const [memo, setMemo] = useState('');
+  const [intensity, setIntensity] = useState(editWorkout?.intensity ?? 4);
+  const [memo, setMemo] = useState(editWorkout?.memo ?? '');
 
   // 동적 운동 종목 로딩
   const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
@@ -92,16 +115,38 @@ export const AddWorkout = () => {
   const getUnitForSubType = (): string => {
     if (subType && category) {
       const subTypes = SUB_TYPES[category];
-      const selectedSubType = subTypes.find((st) => st.name === subType);
+      const selectedSubType = subTypes?.find((st) => st.name === subType);
       if (selectedSubType) {
         return selectedSubType.unit;
       }
     }
-    // 기본값: 메인 운동의 unit
-    return selectedWorkoutType?.unit || '값';
+    return selectedWorkoutType?.unit || editWorkout?.unit || '값';
   };
 
   const displayUnit = getUnitForSubType();
+
+  // 자릿수 네비게이터 — 동적 범위
+  const maxCursorExp = displayUnit === 'm' ? 3 : 2;        // 최대: 백/천 자리
+  const minCursorExp = displayUnit === 'km' ? -1 : 0;      // 최소: km=소수점, 나머지=정수
+  const clampedExp   = Math.max(minCursorExp, Math.min(maxCursorExp, cursorExp));
+  cursorExpRef.current = clampedExp;
+
+  const numVal = parseFloat(value) || 0;
+  // 현재 값의 최고 자리 exponent
+  const hiFromVal = numVal >= 1 ? Math.floor(Math.log10(numVal)) : 0;
+  // 현재 문자열의 최저 자리 exponent (소수점 아래)
+  const loFromStr = (() => {
+    const dot = (value || '').indexOf('.');
+    return dot === -1 ? 0 : -(value.length - dot - 1);
+  })();
+  const hiExp = Math.max(clampedExp > 0 ? clampedExp : 0, hiFromVal);
+  const loExp = Math.min(clampedExp < 0 ? clampedExp : 0, loFromStr);
+  // 표시할 exponent 배열 (높은 → 낮은 순)
+  const displayExps = Array.from({ length: hiExp - loExp + 1 }, (_, i) => hiExp - i);
+  const getDigitAtExp = (exp: number): number =>
+    exp >= 0
+      ? Math.floor(numVal / Math.pow(10, exp)) % 10
+      : Math.floor(numVal * Math.pow(10, -exp)) % 10;
 
   // 카테고리 선택
   const handleCategorySelect = (cat: WorkoutCategory) => {
@@ -143,7 +188,37 @@ export const AddWorkout = () => {
       return;
     }
 
+    if (!editWorkout && !proofImage) {
+      alert('증빙 사진을 추가해주세요. (필수)');
+      fileInputRef.current?.click();
+      return;
+    }
+
     setUploading(true);
+
+    // 수정 모드
+    if (editWorkout) {
+      try {
+        let imageUrl: string | undefined;
+        if (proofImage) {
+          imageUrl = await uploadToR2(proofImage);
+        }
+        await workoutService.updateWorkout(editWorkout.id, {
+          value: parseFloat(value),
+          workout_time: new Date(workoutDate).toISOString(),
+          intensity,
+          memo: memo.trim() || undefined,
+          proof_image: imageUrl ?? editWorkout.proof_image,
+        });
+        navigate(-1);
+      } catch (error) {
+        console.error('운동 기록 수정 실패:', error);
+        alert('운동 기록 수정에 실패했습니다.');
+      } finally {
+        setUploading(false);
+      }
+      return;
+    }
 
     let workout: Workout | null = null;
     try {
@@ -158,7 +233,6 @@ export const AddWorkout = () => {
         } catch (uploadError) {
           console.error('❌ R2 업로드 실패:', uploadError);
           alert('이미지 업로드에 실패했습니다. 이미지 없이 저장하시겠습니까?');
-          // 이미지 업로드 실패해도 계속 진행
         }
       }
 
@@ -214,8 +288,36 @@ export const AddWorkout = () => {
     }
   };
 
+  // 자릿수 조정 (long-press repeat 지원)
+  const adjustAtExp = (exp: number, delta: 1 | -1) => {
+    const pv = Math.pow(10, exp);
+    const maxVal = displayUnit === 'm' ? 9999 : displayUnit === 'km' ? 999.9 : 999;
+    setValue(prev => {
+      const str = prev || '0';
+      const dot = str.indexOf('.');
+      const currentDecimals = dot === -1 ? 0 : str.length - dot - 1;
+      const resultDecimals = Math.max(currentDecimals, exp < 0 ? -exp : 0);
+      const n = Math.min(maxVal, Math.max(0, (parseFloat(str) || 0) + delta * pv));
+      return n.toFixed(resultDecimals);
+    });
+  };
+
+  const startDigitStep = (delta: 1 | -1) => {
+    const doAdjust = () => adjustAtExp(cursorExpRef.current, delta);
+    doAdjust();
+    stepTimerRef.current = setTimeout(() => {
+      stepIntervalRef.current = setInterval(doAdjust, 120);
+    }, 380);
+  };
+
+  const stopStep = () => {
+    if (stepTimerRef.current) clearTimeout(stepTimerRef.current);
+    if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
+  };
+
   // 뒤로 가기
   const handleBack = () => {
+    if (editWorkout) { navigate(-1); return; }
     if (step === 3) {
       const subTypes = category ? SUB_TYPES[category] : [];
       if (subTypes.length > 0) {
@@ -248,7 +350,7 @@ export const AddWorkout = () => {
         <button className="back-button" onClick={handleBack}>
           <ChevronLeft size={24} />
         </button>
-        <h1>운동 기록 추가</h1>
+        <h1>{editWorkout ? '운동 기록 수정' : '운동 기록 추가'}</h1>
       </div>
 
       <div className="add-workout-content">
@@ -417,182 +519,217 @@ export const AddWorkout = () => {
           </div>
         )}
 
-        {/* Step 3: 값 입력 */}
-        {step === 3 && category && (
-          <form onSubmit={handleSubmit} className="workout-form-page">
-            <div className="input-section">
-              <h3>
-                {selectedCategory?.label}
-                {/* 비율이 있는 경우 (복합형 혼합) */}
-                {isMixedMode && subTypeRatio > 0 && subTypeRatio < 100 ? (
-                  <span style={{ fontSize: '14px', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
-                    <br />
-                    {SUB_TYPES[category][0].name} {100 - subTypeRatio}% / {SUB_TYPES[category][1].name} {subTypeRatio}%
-                  </span>
-                ) : (
-                  subType && ` - ${subType}`
-                )}
-              </h3>
+        {/* Step 3: 값 입력 — 전면 재설계 */}
+        {step === 3 && category && (() => {
+          const d = new Date(workoutDate);
+          const WDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+          const h = d.getHours();
+          const dateStr = `${d.getMonth() + 1}월 ${d.getDate()}일 (${WDAYS[d.getDay()]})`;
+          const timeStr = `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}`;
+          const activeIdx = DIFF_LEVELS.findIndex(l => intensity >= l.min && intensity <= l.max);
 
-              <div className="form-group">
-                <label htmlFor="value">{displayUnit}</label>
-                <div className="input-with-unit">
-                  <input
-                    id="value"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    placeholder="예: 5.25"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    className="value-input"
-                    required
-                  />
-                  <span className="unit-label">{displayUnit}</span>
+          return (
+            <form onSubmit={handleSubmit} className="step3-form">
+
+              {/* ① 날짜 카드 — 최상단, 컨텍스트 헤더 역할 */}
+              <div
+                className="step3-date-card"
+                onClick={() => {
+                  const el = dateInputRef.current;
+                  if (!el) return;
+                  if (typeof (el as any).showPicker === 'function') {
+                    (el as any).showPicker();
+                  } else {
+                    el.focus();
+                    el.click();
+                  }
+                }}
+              >
+                <div className="step3-date-inner">
+                  <div className="step3-date-workout-name">
+                    {selectedCategory?.label}
+                    {isMixedMode && subTypeRatio > 0 && subTypeRatio < 100
+                      ? <span className="step3-date-subtype"> · {SUB_TYPES[category][0].name} {100-subTypeRatio}% / {SUB_TYPES[category][1].name} {subTypeRatio}%</span>
+                      : subType && <span className="step3-date-subtype"> · {subType}</span>
+                    }
+                  </div>
+                  <div className="step3-date-main-row">
+                    <div className="step3-date-datetime">
+                      <span className="step3-date-big">{dateStr}</span>
+                      <span className="step3-date-sep">·</span>
+                      <span className="step3-date-time">{timeStr}</span>
+                    </div>
+                    <div className="step3-date-edit-chip">✎ 변경</div>
+                  </div>
                 </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="workout-date">운동 날짜 및 시간</label>
                 <input
-                  id="workout-date"
+                  ref={dateInputRef}
                   type="datetime-local"
                   value={workoutDate}
                   onChange={(e) => setWorkoutDate(e.target.value)}
-                  className="value-input"
+                  className="step3-date-hidden-input"
                   required
                 />
               </div>
 
-              <div className="form-group">
-                <label>체감 난이도</label>
+              {/* ② 수치 입력 — 자릿수 네비게이터 */}
+              <div className="step3-value-card">
+                <div className="step3-value-hint">{displayUnit}</div>
 
-                {/* 스펙트럼 바 */}
-                <div className="difficulty-spectrum-bar">
-                  <div className="spectrum-gradient"></div>
-                  <div
-                    className="spectrum-indicator"
-                    style={{ left: `${(intensity * 10) - 5}%` }}
-                  ></div>
-                </div>
-
-                {/* 5단계 버튼 */}
-                <div className="difficulty-levels">
-                  <button
-                    type="button"
-                    className={`difficulty-level-btn ${intensity <= 2 ? 'active' : ''}`}
-                    onClick={() => setIntensity(2)}
-                  >
-                    <div className="difficulty-number">1</div>
-                    <div className="difficulty-label">편안</div>
-                  </button>
-                  <button
-                    type="button"
-                    className={`difficulty-level-btn ${intensity >= 3 && intensity <= 4 ? 'active' : ''}`}
-                    onClick={() => setIntensity(4)}
-                  >
-                    <div className="difficulty-number">2</div>
-                    <div className="difficulty-label">경쾌</div>
-                  </button>
-                  <button
-                    type="button"
-                    className={`difficulty-level-btn ${intensity >= 5 && intensity <= 6 ? 'active' : ''}`}
-                    onClick={() => setIntensity(6)}
-                  >
-                    <div className="difficulty-number">3</div>
-                    <div className="difficulty-label">자극</div>
-                  </button>
-                  <button
-                    type="button"
-                    className={`difficulty-level-btn ${intensity >= 7 && intensity <= 8 ? 'active' : ''}`}
-                    onClick={() => setIntensity(8)}
-                  >
-                    <div className="difficulty-number">4</div>
-                    <div className="difficulty-label">고강도</div>
-                  </button>
-                  <button
-                    type="button"
-                    className={`difficulty-level-btn ${intensity >= 9 ? 'active' : ''}`}
-                    onClick={() => setIntensity(10)}
-                  >
-                    <div className="difficulty-number">5</div>
-                    <div className="difficulty-label">한계돌파</div>
-                  </button>
-                </div>
-
-                {/* 세부 조정 */}
-                {intensity > 0 && (
-                  <div className="difficulty-fine-tune">
-                    <button
-                      type="button"
-                      className="fine-tune-adjust-btn"
-                      onClick={() => {
-                        const min = intensity <= 2 ? 1 : intensity <= 4 ? 3 : intensity <= 6 ? 5 : intensity <= 8 ? 7 : 9;
-                        if (intensity > min) setIntensity(intensity - 1);
-                      }}
-                      disabled={
-                        intensity === 1 || intensity === 3 || intensity === 5 || intensity === 7 || intensity === 9
-                      }
-                    >
-                      ◀ 조금 더 낮게
-                    </button>
-                    <button
-                      type="button"
-                      className="fine-tune-adjust-btn"
-                      onClick={() => {
-                        const max = intensity <= 2 ? 2 : intensity <= 4 ? 4 : intensity <= 6 ? 6 : intensity <= 8 ? 8 : 10;
-                        if (intensity < max) setIntensity(intensity + 1);
-                      }}
-                      disabled={
-                        intensity === 2 || intensity === 4 || intensity === 6 || intensity === 8 || intensity === 10
-                      }
-                    >
-                      조금 더 높게 ▶
-                    </button>
+                {showDirectInput ? (
+                  /* 직접 입력 모드 */
+                  <div className="step3-direct-row">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      onBlur={() => setShowDirectInput(false)}
+                      className="step3-direct-input"
+                      autoFocus
+                      required
+                    />
+                    <span className="step3-direct-unit">{displayUnit}</span>
                   </div>
+                ) : (
+                  <>
+                    {/* [−] ‹ 자릿수 › [+] — 한 줄 통합 */}
+                    <div className="step3-value-row">
+                      <button type="button" className="step3-adj-btn step3-adj-minus"
+                        onMouseDown={() => startDigitStep(-1)} onMouseUp={stopStep} onMouseLeave={stopStep}
+                        onTouchStart={(e) => { e.preventDefault(); startDigitStep(-1); }} onTouchEnd={stopStep}
+                      >−</button>
+                      <button type="button" className="step3-nav-arrow"
+                        onClick={() => setCursorExp(e => Math.min(maxCursorExp, e + 1))}>‹</button>
+                      <div className="step3-digit-display">
+                        {displayExps.map(exp => {
+                          const d = getDigitAtExp(exp);
+                          const isSelected = clampedExp === exp;
+                          const isLeadingZero = !isSelected && exp >= 0 && d === 0
+                            && displayExps.filter(e => e > exp).every(e => getDigitAtExp(e) === 0);
+                          return (
+                            <span key={exp} className="step3-digit-slot">
+                              {exp === -1 && <span className="step3-digit-dot">.</span>}
+                              <button
+                                type="button"
+                                className={`step3-digit-box${isSelected ? ' selected' : ''}${isLeadingZero ? ' dim' : ''}`}
+                                onClick={() => setCursorExp(exp)}
+                              >{d}</button>
+                            </span>
+                          );
+                        })}
+                        <span className="step3-digit-unit-label">{displayUnit}</span>
+                      </div>
+                      <button type="button" className="step3-nav-arrow"
+                        onClick={() => setCursorExp(e => Math.max(minCursorExp, e - 1))}>›</button>
+                      <button type="button" className="step3-adj-btn step3-adj-plus"
+                        onMouseDown={() => startDigitStep(1)} onMouseUp={stopStep} onMouseLeave={stopStep}
+                        onTouchStart={(e) => { e.preventDefault(); startDigitStep(1); }} onTouchEnd={stopStep}
+                      >+</button>
+                    </div>
+                    <button type="button" className="step3-type-direct-btn"
+                      onClick={() => setShowDirectInput(true)}>⌨️ 직접 입력</button>
+                  </>
                 )}
+
+                <div className="step3-value-bar" />
               </div>
 
-              <div className="form-group">
-                <label htmlFor="memo">메모 (선택)</label>
+              {/* ③ 인증사진 카드 — 필수, 컴팩트 */}
+              <div className="step3-section-card step3-photo-card">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="file-input-hidden"
+                />
+                <div className="step3-photo-header">
+                  <div className="step3-photo-header-left">
+                    <span className="step3-section-title">📸 인증사진</span>
+                    <span className={`step3-pill ${editWorkout ? 'step3-pill-optional' : 'step3-pill-required'}`}>
+                    {editWorkout ? '선택' : '필수'}
+                  </span>
+                  </div>
+                  {(imagePreview || editWorkout?.proof_image) ? (
+                    <div className="step3-photo-thumb" onClick={() => fileInputRef.current?.click()}>
+                      <img src={imagePreview ?? editWorkout?.proof_image} alt="미리보기" />
+                      <div className="step3-photo-thumb-overlay">변경</div>
+                    </div>
+                  ) : (
+                    <button type="button" className="step3-photo-add-btn" onClick={() => fileInputRef.current?.click()}>
+                      📷 추가
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* ④ 메모 카드 */}
+              <div className="step3-section-card step3-memo-card">
+                <div className="step3-section-header">
+                  <span className="step3-section-title">✏️ 메모</span>
+                  <span className="step3-pill step3-pill-optional">선택</span>
+                </div>
                 <textarea
-                  id="memo"
                   value={memo}
                   onChange={(e) => setMemo(e.target.value)}
-                  placeholder="날씨, 컨디션, 느낀점 등..."
-                  className="race-textarea"
+                  placeholder="오늘의 날씨, 컨디션, 느낀점..."
+                  className="step3-memo-textarea"
                   rows={3}
                 />
               </div>
 
-              <div className="form-group">
-                <label htmlFor="proof">증빙 이미지 (선택)</label>
-                <input
-                  id="proof"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="file-input"
-                />
-                {imagePreview && (
-                  <div className="image-preview">
-                    <img src={imagePreview} alt="미리보기" />
+              {/* ⑤ 난이도 카드 */}
+              <div className="step3-section-card step3-diff-card">
+                <div className="step3-section-header">
+                  <span className="step3-section-title">체감 난이도</span>
+                  {activeIdx >= 0 && (
+                    <span className="step3-diff-current-label">
+                      {DIFF_LEVELS[activeIdx].emoji} {DIFF_LEVELS[activeIdx].label}
+                      <span className="step3-diff-intensity-num"> {intensity}</span>
+                    </span>
+                  )}
+                </div>
+                {/* 이모지 시각화 */}
+                <div className="step3-diff-emoji-row">
+                  {DIFF_LEVELS.map((lv, idx) => (
+                    <div key={idx} className={`step3-diff-emoji-item${activeIdx === idx ? ' active' : ''}`}>
+                      <span className="step3-diff-emoji-icon">{lv.emoji}</span>
+                      <span className="step3-diff-emoji-name">{lv.label}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* 슬라이더 1-10 */}
+                <div className="step3-diff-slider-wrap">
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value={intensity}
+                    onChange={(e) => setIntensity(Number(e.target.value))}
+                    className="step3-diff-slider"
+                    style={{
+                      background: `linear-gradient(to right, #4FC3F7 0%, #4FC3F7 ${((intensity - 1) / 9) * 100}%, #E1E8ED ${((intensity - 1) / 9) * 100}%, #E1E8ED 100%)`
+                    }}
+                  />
+                  <div className="step3-diff-ticks">
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
+                      <span key={n} className={`step3-diff-tick${n === intensity ? ' active' : ''}`}>{n}</span>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
 
               <div className="form-actions-fixed">
-                <button
-                  type="submit"
-                  className="primary-button-full"
-                  disabled={uploading}
-                >
-                  {uploading ? '저장 중...' : '저장'}
+                <button type="submit" className="primary-button-full" disabled={uploading}>
+                  {uploading ? '저장 중...' : '저장하기'}
                 </button>
               </div>
-            </div>
-          </form>
-        )}
+            </form>
+          );
+        })()}
 
         {/* Step 4: 카톡 공유 */}
         {step === 4 && savedWorkout && (
