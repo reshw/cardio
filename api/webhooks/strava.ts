@@ -8,8 +8,8 @@ const supabase = createClient(
 
 // Strava 운동 타입 → Cardio 카테고리 매핑
 const STRAVA_TYPE_MAP: Record<string, { category: string; sub_type: string | null; unit: string } | null> = {
-  Run:            { category: '달리기', sub_type: '실외',     unit: 'km' },
-  TrailRun:       { category: '달리기', sub_type: '실외',     unit: 'km' },
+  Run:            { category: '달리기', sub_type: '러닝',     unit: 'km' },
+  TrailRun:       { category: '달리기', sub_type: '러닝',     unit: 'km' },
   VirtualRun:     { category: '달리기', sub_type: '트레드밀', unit: 'km' },
   Ride:           { category: '사이클', sub_type: '실외',     unit: 'km' },
   VirtualRide:    { category: '사이클', sub_type: '실내',     unit: 'km' },
