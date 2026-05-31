@@ -80,6 +80,14 @@ const KakaoCallback = () => {
       navigate(redirectTo, { replace: true });
     };
 
+    // URL에 에러 파라미터가 있으면 즉시 로그인 페이지로
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('error')) {
+      console.error('[KakaoCallback] OAuth error:', params.get('error_description'));
+      navigate('/login', { replace: true });
+      return;
+    }
+
     // Case 1: 코드 교환이 이미 완료된 경우
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) handleSession(session);

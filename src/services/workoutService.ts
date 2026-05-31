@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 
 // 주 카테고리
-export type WorkoutCategory = '달리기' | '사이클' | '수영' | '계단' | '복싱' | '요가';
+export type WorkoutCategory = '달리기' | '사이클' | '수영' | '계단' | '복싱' | '요가' | '로잉';
 
 // 세부 카테고리
 export type RunningSubType = '트레드밀' | '러닝';
@@ -30,6 +30,15 @@ export interface Workout {
   upload_os?: string;
   created_at: string; // 기록을 올린 시점 (스냅샷, 순서 결정용, 수정 불가)
   workout_time: string; // 실제 운동한 시간 (사용자 수정 가능)
+  source?: string; // 'manual' | 'strava'
+  source_activity_id?: string;
+  elapsed_seconds?: number | null;
+  moving_seconds?: number | null;
+  average_speed?: number | null; // m/s
+  average_heartrate?: number | null; // bpm
+  device_name?: string | null;
+  timezone?: string | null;
+  utc_offset?: number | null; // 초 단위 (32400 = +9h)
 }
 
 export interface CreateWorkoutData {

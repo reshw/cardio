@@ -81,6 +81,10 @@ export const ClubMileageSettings = () => {
   const [loading, setLoading] = useState(true);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+  // 마일리지 탭 숨김 기간
+  const [hideFromDay, setHideFromDay] = useState<string>('');
+  const [hideToDay, setHideToDay] = useState<string>('');
+
   // 동적 운동 종목
   const [workoutCategories, setWorkoutCategories] = useState<WorkoutCategory[]>([]);
   const [showOtherWorkouts, setShowOtherWorkouts] = useState(false);
@@ -109,7 +113,10 @@ export const ClubMileageSettings = () => {
 
     setLoading(true);
     try {
-      const rows = await clubService.getClubMileageConfigs(clubId);
+      const [rows, club] = await Promise.all([
+        clubService.getClubMileageConfigs(clubId),
+        clubService.getClubById(clubId),
+      ]);
 
       if (rows.length > 0) {
         const config: MileageConfig = {};
@@ -127,6 +134,9 @@ export const ClubMileageSettings = () => {
         setMileageConfig(defaultConfig);
         setEnabledCategories(clubService.getDefaultEnabledCategories());
       }
+
+      setHideFromDay(club.mileage_hide_from_day != null ? String(club.mileage_hide_from_day) : '');
+      setHideToDay(club.mileage_hide_to_day != null ? String(club.mileage_hide_to_day) : '');
     } catch (error) {
       console.error('클럽 정보 불러오기 실패:', error);
       alert('클럽 정보를 불러올 수 없습니다.');
@@ -180,7 +190,15 @@ export const ClubMileageSettings = () => {
       });
       await clubService.updateClubMileageConfigs(clubId, configs);
 
-      // 2. 현재 월의 모든 운동 기록 마일리지 재계산
+      // 2. 마일리지 탭 숨김 기간 저장
+      const fromDay = hideFromDay ? parseInt(hideFromDay) : null;
+      const toDay = hideToDay ? parseInt(hideToDay) : null;
+      await clubService.updateClub(clubId, {
+        mileage_hide_from_day: fromDay,
+        mileage_hide_to_day: toDay,
+      });
+
+      // 3. 현재 월의 모든 운동 기록 마일리지 재계산
       await clubService.recalculateCurrentMonthMileage(clubId, mileageConfig);
 
       alert(
@@ -334,7 +352,52 @@ export const ClubMileageSettings = () => {
           })}
         </div>
 
-        <button type="submit" className="primary-button-full" disabled={updating}>
+        <div className="settings-section" style={{ marginTop: '32px' }}>
+          <h3>마일리지 탭 숨김 기간</h3>
+          <p className="form-hint" style={{ marginBottom: '16px' }}>
+            매월 특정 기간 동안 일반 회원에게 🏆 마일리지 탭을 숨깁니다.<br />
+            관리자(방장·부방장)는 항상 탭을 볼 수 있습니다.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <label style={{ fontSize: '14px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>매월</label>
+            <input
+              type="number"
+              min={1}
+              max={31}
+              placeholder="시작일"
+              value={hideFromDay}
+              onChange={(e) => setHideFromDay(e.target.value)}
+              style={{ width: '72px', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--input-bg)', color: 'var(--text-color)', fontSize: '14px', textAlign: 'center' }}
+            />
+            <label style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>일 ~</label>
+            <input
+              type="number"
+              min={1}
+              max={31}
+              placeholder="종료일"
+              value={hideToDay}
+              onChange={(e) => setHideToDay(e.target.value)}
+              style={{ width: '72px', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--input-bg)', color: 'var(--text-color)', fontSize: '14px', textAlign: 'center' }}
+            />
+            <label style={{ fontSize: '14px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>일 동안 숨김</label>
+          </div>
+          {hideFromDay && hideToDay && (
+            <p style={{ marginTop: '8px', fontSize: '13px', color: 'var(--primary-color)' }}>
+              현재 설정: 매월 {hideFromDay}일 ~ {hideToDay}일 숨김
+            </p>
+          )}
+          {(hideFromDay || hideToDay) && (
+            <button
+              type="button"
+              onClick={() => { setHideFromDay(''); setHideToDay(''); }}
+              style={{ marginTop: '8px', fontSize: '13px', color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+            >
+              숨김 해제
+            </button>
+          )}
+        </div>
+
+        <button type="submit" className="primary-button-full" disabled={updating} style={{ marginTop: '32px' }}>
           {updating ? '저장 중...' : '저장하기'}
         </button>
       </form>

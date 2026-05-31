@@ -420,6 +420,18 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     });
   }, [selectedClub?.id]);
 
+  // 마일리지 탭 숨김 기간에 ranking 탭에 있으면 feed로 전환
+  useEffect(() => {
+    if (!selectedClub || activeTab !== 'ranking') return;
+    const isAdmin = selectedClub.role === 'manager' || selectedClub.role === 'vice-manager';
+    if (isAdmin) return;
+    const today = new Date().getDate();
+    const { mileage_hide_from_day: hf, mileage_hide_to_day: ht } = selectedClub;
+    if (hf && ht && today >= hf && today <= ht) {
+      setActiveTab('feed');
+    }
+  }, [selectedClub, activeTab]);
+
   // 피드 탭 활성화 시 피드 로드
   useEffect(() => {
     if (activeTab === 'feed' && selectedClub) {
@@ -634,22 +646,31 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
       )}
 
       {/* 탭 */}
-      {selectedClub && (
-        <div className="tabs">
-          <button
-            className={`tab ${activeTab === 'ranking' ? 'active' : ''}`}
-            onClick={() => setActiveTab('ranking')}
-          >
-            🏆 마일리지
-          </button>
-          <button
-            className={`tab ${activeTab === 'feed' ? 'active' : ''}`}
-            onClick={() => setActiveTab('feed')}
-          >
-            🏃 오늘의 운동
-          </button>
-        </div>
-      )}
+      {selectedClub && (() => {
+        const isAdmin = selectedClub.role === 'manager' || selectedClub.role === 'vice-manager';
+        const today = new Date().getDate();
+        const hideFrom = selectedClub.mileage_hide_from_day;
+        const hideTo = selectedClub.mileage_hide_to_day;
+        const isMileageHidden = !isAdmin && !!hideFrom && !!hideTo && today >= hideFrom && today <= hideTo;
+        return (
+          <div className="tabs">
+            {!isMileageHidden && (
+              <button
+                className={`tab ${activeTab === 'ranking' ? 'active' : ''}`}
+                onClick={() => setActiveTab('ranking')}
+              >
+                🏆 마일리지
+              </button>
+            )}
+            <button
+              className={`tab ${activeTab === 'feed' ? 'active' : ''}`}
+              onClick={() => setActiveTab('feed')}
+            >
+              🏃 오늘의 운동
+            </button>
+          </div>
+        );
+      })()}
 
       {/* 마일리지 랭킹 */}
       {activeTab === 'ranking' && (

@@ -119,7 +119,7 @@ export const WorkoutFeedCard = ({
     const workoutDate = new Date(workout.workout_time);
     const dateStr = `${workoutDate.getFullYear()}.${String(workoutDate.getMonth() + 1).padStart(2, '0')}.${String(workoutDate.getDate()).padStart(2, '0')}`;
 
-    const shareTitle = `[${clubName}] ${item.user_display_name}님 (${dateStr})`;
+    const shareTitle = `[${clubName}] ${item.club_nickname ?? '회원'}님 (${dateStr})`;
 
     // 피드 로드 시 계산된 운동 번호 사용 (비동기 호출 없음)
     const numberText = item.workout_number ? `\n오늘 클럽 ${item.workout_number}번째` : '';
@@ -171,7 +171,7 @@ export const WorkoutFeedCard = ({
     const dateStr = `${workoutDate.getFullYear()}.${String(workoutDate.getMonth() + 1).padStart(2, '0')}.${String(workoutDate.getDate()).padStart(2, '0')}`;
 
     // 피드 로드 시 계산된 운동 번호 사용
-    let shareText = `[${clubName}] ${item.user_display_name}님 (${dateStr})\n`;
+    let shareText = `[${clubName}] ${item.club_nickname ?? '회원'}님 (${dateStr})\n`;
     shareText += `${workoutLabel}: ${workout.value}${workout.unit}\n`;
     if (item.workout_number) {
       shareText += `오늘 클럽 ${item.workout_number}번째\n`;
@@ -293,6 +293,41 @@ export const WorkoutFeedCard = ({
     if (intensity <= 8) return '#f97316'; // orange
     if (intensity === 9) return '#ef4444'; // red
     return '#dc2626'; // dark red
+  };
+
+  const formatDuration = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}시간 ${m}분 ${String(s).padStart(2, '0')}초`;
+    return `${m}분 ${String(s).padStart(2, '0')}초`;
+  };
+
+  const getStravaSpeedLabel = () => {
+    if (workout.category === '달리기') return '페이스';
+    if (workout.category === '수영') return '페이스';
+    return '속도';
+  };
+
+  const formatStravaSpeed = () => {
+    const mv = workout.moving_seconds;
+    const val = workout.value;
+    if (workout.category === '달리기' && mv && val > 0) {
+      const secPerKm = mv / val;
+      const m = Math.floor(secPerKm / 60);
+      const s = Math.round(secPerKm % 60);
+      return `${m}'${String(s).padStart(2, '0')}"/km`;
+    }
+    if (workout.category === '수영' && mv && val > 0) {
+      const secPer100m = mv / (val / 100);
+      const m = Math.floor(secPer100m / 60);
+      const s = Math.round(secPer100m % 60);
+      return `${m}'${String(s).padStart(2, '0')}"/100m`;
+    }
+    if ((workout.category === '사이클' || workout.category === '로잉') && workout.average_speed) {
+      return `${(workout.average_speed * 3.6).toFixed(1)} km/h`;
+    }
+    return null;
   };
 
   const handleLikeToggle = async () => {
@@ -553,6 +588,41 @@ export const WorkoutFeedCard = ({
                   </div>
                 </div>
               </div>
+
+              {workout.source === 'strava' && (workout.moving_seconds || workout.average_heartrate || workout.device_name) && (
+                <div className="workout-detail-section">
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <img src="https://cdn.simpleicons.org/strava/FC4C02" alt="Strava" style={{ width: 14, height: 14 }} />
+                    Strava 데이터
+                  </h3>
+                  <div className="workout-detail-info">
+                    {workout.moving_seconds ? (
+                      <div className="workout-detail-row">
+                        <span className="label">이동 시간</span>
+                        <span className="value">{formatDuration(workout.moving_seconds)}</span>
+                      </div>
+                    ) : null}
+                    {formatStravaSpeed() && (
+                      <div className="workout-detail-row">
+                        <span className="label">{getStravaSpeedLabel()}</span>
+                        <span className="value">{formatStravaSpeed()}</span>
+                      </div>
+                    )}
+                    {workout.average_heartrate ? (
+                      <div className="workout-detail-row">
+                        <span className="label">평균 심박수</span>
+                        <span className="value">{Math.round(workout.average_heartrate)} bpm</span>
+                      </div>
+                    ) : null}
+                    {workout.device_name ? (
+                      <div className="workout-detail-row">
+                        <span className="label">기록 기기</span>
+                        <span className="value">{workout.device_name}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
 
               {workout.memo && (
                 <div className="workout-detail-section">

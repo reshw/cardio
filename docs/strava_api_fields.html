@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<style>
+  @font-face { font-family: 'LineSeed'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Th.woff2') format('woff2'); font-weight: 100; }
+  @font-face { font-family: 'LineSeed'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Rg.woff2') format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'LineSeed'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Bd.woff2') format('woff2'); font-weight: 700; }
+  body { background: #ffffff; color: #111; font-family: 'LineSeed', sans-serif; max-width: 760px; margin: 40px auto; padding: 0 20px; line-height: 1.9; }
+  h1 { font-size: 20px; font-weight: bold; color: #569cd6; }
+  h2 { font-size: 17px; font-weight: bold; color: #569cd6; margin-top: 32px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  h3 { font-size: 14px; font-weight: bold; color: #333; margin-top: 18px; margin-bottom: 2px; }
+  p { color: #111; margin: 5px 0; }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 14px; }
+  th { background: #f0f4f8; text-align: left; padding: 7px 12px; border: 1px solid #ddd; color: #333; font-weight: bold; }
+  td { padding: 6px 12px; border: 1px solid #ddd; vertical-align: top; }
+  td.field { font-family: monospace; font-size: 13px; color: #c0392b; white-space: nowrap; }
+  td.val  { font-family: monospace; font-size: 13px; color: #2c3e50; }
+  tr.used { background: #f0fdf4; }
+  tr.available { background: #fffbeb; }
+  tr.skip { background: #fafafa; color: #aaa; }
+  .badge { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: bold; margin-left: 6px; }
+  .badge-used { background: #d1fae5; color: #065f46; }
+  .badge-avail { background: #fef3c7; color: #92400e; }
+  .badge-skip { background: #f3f4f6; color: #9ca3af; }
+  .note { background: #f0f4ff; border-left: 3px solid #569cd6; padding: 8px 14px; margin: 12px 0; font-size: 14px; }
+  hr { border: none; border-top: 1px solid #eee; margin: 24px 0; }
+  code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; font-size: 13px; font-family: monospace; }
+</style>
+</head>
+<body>
+
+<h1>Strava API — 제공 필드 정리</h1>
+<p>기준 엔드포인트: <code>GET /api/v3/activities/{id}</code> &nbsp;|&nbsp; 실제 응답 기반 (2026.05.30)</p>
+<p>
+  <span class="badge badge-used">현재 사용 중</span>
+  <span class="badge badge-avail">사용 가능 (미적용)</span>
+  <span class="badge badge-skip">불필요</span>
+</p>
+
+<hr>
+
+<h2>기본 정보</h2>
+<table>
+  <tr><th>필드</th><th>예시 값</th><th>설명</th></tr>
+  <tr class="used"><td class="field">id</td><td class="val">18710222495</td><td>Strava 활동 고유 ID <span class="badge badge-used">사용 중</span> — source_activity_id로 저장</td></tr>
+  <tr class="used"><td class="field">type / sport_type</td><td class="val">"Swim"</td><td>운동 종목 <span class="badge badge-used">사용 중</span> — 카테고리 매핑에 사용 (type은 deprecated, sport_type 권장)</td></tr>
+  <tr class="available"><td class="field">name</td><td class="val">"Afternoon Swim"</td><td>활동 이름 <span class="badge badge-avail">미사용</span> — 사용자가 직접 입력한 제목</td></tr>
+  <tr class="available"><td class="field">description</td><td class="val">null</td><td>활동 메모 <span class="badge badge-avail">미사용</span> — workout.memo로 연결 가능</td></tr>
+  <tr class="available"><td class="field">device_name</td><td class="val">"Garmin fēnix 8"</td><td>기록 기기명 <span class="badge badge-avail">미사용</span> — 어떤 기기로 기록했는지</td></tr>
+  <tr class="available"><td class="field">external_id</td><td class="val">"garmin_ping_578066180474"</td><td>연동 기기의 원본 ID <span class="badge badge-avail">미사용</span></td></tr>
+</table>
+
+<h2>수동 입력 여부</h2>
+<div class="note">
+  <b>manual</b> 필드로 구분 가능. Strava 앱에서 직접 수동 입력한 활동은 <code>manual: true</code>, 기기(Garmin, Apple Watch 등)에서 자동 연동된 활동은 <code>manual: false</code>.
+</div>
+<table>
+  <tr><th>필드</th><th>예시 값</th><th>설명</th></tr>
+  <tr class="available"><td class="field">manual</td><td class="val">false</td><td>수동 입력 여부 <span class="badge badge-avail">미사용</span> — true면 기기 없이 직접 입력한 기록</td></tr>
+  <tr class="available"><td class="field">trainer</td><td class="val">true</td><td>실내 트레이너(롤러 등) 사용 여부 <span class="badge badge-avail">미사용</span></td></tr>
+  <tr class="skip"><td class="field">commute</td><td class="val">false</td><td>출퇴근 이동 여부 <span class="badge badge-skip">불필요</span></td></tr>
+  <tr class="skip"><td class="field">flagged</td><td class="val">false</td><td>Strava에서 의심 활동으로 플래그 처리 여부 <span class="badge badge-skip">불필요</span></td></tr>
+</table>
+
+<h2>시간</h2>
+<table>
+  <tr><th>필드</th><th>예시 값</th><th>설명</th></tr>
+  <tr class="used"><td class="field">start_date</td><td class="val">"2026-05-30T05:08:10Z"</td><td>시작 시간 (UTC) <span class="badge badge-used">사용 중</span> — workout_time으로 저장</td></tr>
+  <tr class="skip"><td class="field">start_date_local</td><td class="val">"2026-05-30T14:08:10Z"</td><td>로컬 시간 (Z가 붙지만 UTC 아님 — 주의!) <span class="badge badge-skip">사용 안 함</span> — timezone 없이 쓰면 9시간 오차 발생</td></tr>
+  <tr class="available"><td class="field">timezone</td><td class="val">"(GMT+09:00) Asia/Chita"</td><td>기록된 시간대 <span class="badge badge-avail">미사용</span></td></tr>
+  <tr class="available"><td class="field">utc_offset</td><td class="val">32400.0</td><td>UTC 오프셋 (초 단위, 32400 = +9시간) <span class="badge badge-avail">미사용</span></td></tr>
+  <tr class="used"><td class="field">elapsed_time</td><td class="val">1812</td><td>총 경과 시간 (초) — 정지 포함 <span class="badge badge-used">사용 중</span> — elapsed_seconds로 저장</td></tr>
+  <tr class="used"><td class="field">moving_time</td><td class="val">956</td><td>실제 이동 시간 (초) — 정지 제외 <span class="badge badge-used">사용 중</span> — moving_seconds로 저장</td></tr>
+</table>
+
+<h2>거리 / 속도</h2>
+<table>
+  <tr><th>필드</th><th>예시 값</th><th>설명</th></tr>
+  <tr class="used"><td class="field">distance</td><td class="val">675.0</td><td>거리 (미터) <span class="badge badge-used">사용 중</span> — value 계산에 사용 (km 또는 m로 변환)</td></tr>
+  <tr class="used"><td class="field">average_speed</td><td class="val">0.706</td><td>평균 속도 (m/s) <span class="badge badge-used">사용 중</span> — average_speed로 저장</td></tr>
+  <tr class="available"><td class="field">max_speed</td><td class="val">1.94</td><td>최고 속도 (m/s) <span class="badge badge-avail">미사용</span></td></tr>
+  <tr class="available"><td class="field">total_elevation_gain</td><td class="val">0</td><td>획득 고도 (미터) <span class="badge badge-avail">미사용</span> — 달리기·사이클에서 유의미</td></tr>
+  <tr class="skip"><td class="field">average_cadence</td><td class="val">(수영엔 없음)</td><td>평균 케이던스 <span class="badge badge-skip">불필요</span> — 사이클·달리기에서 제공</td></tr>
+</table>
+
+<h2>심박수 / 파워</h2>
+<table>
+  <tr><th>필드</th><th>예시 값</th><th>설명</th></tr>
+  <tr class="used"><td class="field">average_heartrate</td><td class="val">135.0</td><td>평균 심박수 (bpm) <span class="badge badge-used">사용 중</span></td></tr>
+  <tr class="available"><td class="field">max_heartrate</td><td class="val">169.0</td><td>최고 심박수 (bpm) <span class="badge badge-avail">미사용</span></td></tr>
+  <tr class="available"><td class="field">has_heartrate</td><td class="val">true</td><td>심박수 데이터 존재 여부 <span class="badge badge-avail">미사용</span> — false면 average_heartrate도 없음</td></tr>
+  <tr class="skip"><td class="field">average_watts</td><td class="val">(사이클만)</td><td>평균 파워 (W) <span class="badge badge-skip">불필요</span></td></tr>
+  <tr class="skip"><td class="field">kilojoules</td><td class="val">(사이클만)</td><td>에너지 출력 <span class="badge badge-skip">불필요</span></td></tr>
+</table>
+
+<h2>칼로리 / 체감</h2>
+<table>
+  <tr><th>필드</th><th>예시 값</th><th>설명</th></tr>
+  <tr class="available"><td class="field">calories</td><td class="val">310.0</td><td>소모 칼로리 (kcal) <span class="badge badge-avail">미사용</span></td></tr>
+  <tr class="available"><td class="field">perceived_exertion</td><td class="val">null</td><td>주관적 운동 강도 (1~10) <span class="badge badge-avail">미사용</span> — 사용자가 입력한 경우만 값 있음</td></tr>
+  <tr class="skip"><td class="field">suffer_score</td><td class="val">(구독자만)</td><td>Strava 상대 운동 강도 점수 <span class="badge badge-skip">불필요</span> — 유료 구독자만 제공</td></tr>
+</table>
+
+<h2>랩 / 구간</h2>
+<table>
+  <tr><th>필드</th><th>예시 값</th><th>설명</th></tr>
+  <tr class="available"><td class="field">laps</td><td class="val">배열 (44개)</td><td>랩별 상세 데이터 <span class="badge badge-avail">미사용</span> — 각 랩의 거리·시간·심박수 포함. 수영에선 왕복 단위</td></tr>
+  <tr class="available"><td class="field">splits_metric</td><td class="val">배열</td><td>km 단위 구간 기록 <span class="badge badge-avail">미사용</span> — 달리기 페이스 분석에 유용</td></tr>
+  <tr class="skip"><td class="field">splits_standard</td><td class="val">배열</td><td>마일 단위 구간 기록 <span class="badge badge-skip">불필요</span></td></tr>
+  <tr class="skip"><td class="field">segment_efforts</td><td class="val">배열</td><td>Strava 세그먼트 기록 <span class="badge badge-skip">불필요</span></td></tr>
+  <tr class="skip"><td class="field">best_efforts</td><td class="val">배열</td><td>거리별 최고 기록 (400m, 1km 등) <span class="badge badge-skip">불필요</span></td></tr>
+</table>
+
+<h2>기타</h2>
+<table>
+  <tr><th>필드</th><th>예시 값</th><th>설명</th></tr>
+  <tr class="skip"><td class="field">map (polyline)</td><td class="val">문자열</td><td>GPS 경로 <span class="badge badge-skip">불필요</span> — 지도 표시 시 사용 가능하나 수영·실내는 없음</td></tr>
+  <tr class="skip"><td class="field">photos</td><td class="val">null</td><td>활동에 첨부된 사진 <span class="badge badge-skip">불필요</span></td></tr>
+  <tr class="skip"><td class="field">gear_id</td><td class="val">null</td><td>사용한 장비 ID <span class="badge badge-skip">불필요</span></td></tr>
+  <tr class="skip"><td class="field">achievement_count / pr_count</td><td class="val">0</td><td>Strava 내 달성/기록 수 <span class="badge badge-skip">불필요</span></td></tr>
+  <tr class="skip"><td class="field">kudos_count / comment_count</td><td class="val">0</td><td>Strava 소셜 지표 <span class="badge badge-skip">불필요</span></td></tr>
+  <tr class="skip"><td class="field">visibility / private</td><td class="val">"everyone"</td><td>Strava 공개 설정 <span class="badge badge-skip">불필요</span></td></tr>
+</table>
+
+<hr>
+
+<h2>향후 적용 검토 가능한 것들</h2>
+<table>
+  <tr><th>필드</th><th>활용 아이디어</th></tr>
+  <tr><td class="field">manual</td><td>수동 입력 활동은 아이콘 다르게 표시하거나 필터링 가능</td></tr>
+  <tr><td class="field">max_heartrate</td><td>상세 모달에 최고 심박수 추가</td></tr>
+  <tr><td class="field">calories</td><td>상세 모달에 소모 칼로리 표시</td></tr>
+  <tr><td class="field">description</td><td>Strava 메모 → workout.memo 자동 연결</td></tr>
+  <tr><td class="field">laps</td><td>수영 랩별 기록 상세 표시 (고급 기능)</td></tr>
+  <tr><td class="field">splits_metric</td><td>달리기 km별 페이스 차트 (고급 기능)</td></tr>
+</table>
+
+</body>
+</html>
