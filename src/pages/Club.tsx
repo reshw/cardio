@@ -663,11 +663,11 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         const activePeriods = periods.filter(p => today >= p.from && today <= p.to);
         return (
           <div className="tabs" onClick={(e) => { if (showLockTooltip) { e.stopPropagation(); setShowLockTooltip(false); } }}>
-            <div style={{ position: 'relative', display: 'inline-block' }}>
+            <div style={{ position: 'relative', flex: 1 }}>
               <button
                 className={`tab ${activeTab === 'ranking' ? 'active' : ''}${isMileageHidden ? ' tab--locked' : ''}`}
                 onClick={() => isMileageHidden ? setShowLockTooltip(v => !v) : setActiveTab('ranking')}
-                style={isMileageHidden ? { cursor: 'pointer', opacity: 0.5 } : undefined}
+                style={isMileageHidden ? { cursor: 'pointer', opacity: 0.5, width: '100%' } : { width: '100%' }}
               >
                 🏆 마일리지{isMileageHidden && <Lock size={12} style={{ marginLeft: 4, verticalAlign: 'middle' }} />}
               </button>
