@@ -13,7 +13,7 @@ import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, BarChart2, Star } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, BarChart2, Star, EyeOff } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
 
 // 순서 변경 버튼이 있는 클럽 아이템
@@ -1527,6 +1527,14 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                         <div className="cmenu-row-text">
                           <div className="cmenu-row-title">리그 제도 운영</div>
                           <div className="cmenu-row-desc">루키리그 기준 설정</div>
+                        </div>
+                        <ChevronRight size={16} className="cmenu-arrow" />
+                      </button>
+                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/mileage-hide`); }}>
+                        <EyeOff size={16} className="cmenu-row-icon" />
+                        <div className="cmenu-row-text">
+                          <div className="cmenu-row-title">탭 숨김 기간</div>
+                          <div className="cmenu-row-desc">특정 기간 마일리지 탭 숨기기</div>
                         </div>
                         <ChevronRight size={16} className="cmenu-arrow" />
                       </button>

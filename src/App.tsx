@@ -8,6 +8,7 @@ import { Club } from './pages/Club';
 import { ClubSettings } from './pages/ClubSettings';
 import { ClubGeneralSettings } from './pages/ClubGeneralSettings';
 import { ClubMileageSettings } from './pages/ClubMileageSettings';
+import { ClubMileageHideSettings } from './pages/ClubMileageHideSettings';
 import { ClubRookieLeagueSettings } from './pages/ClubRookieLeagueSettings';
 import { ClubStatsPage } from './pages/ClubStatsPage';
 import { ClubGrowthDashboard } from './components/ClubGrowthDashboard';
@@ -74,6 +75,11 @@ function ProtectedRoutes() {
           <Route path="/club/settings/:clubId/rookie-league" element={
             <ProtectedClubRoute requireAdmin>
               <ClubRookieLeagueSettings />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId/mileage-hide" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubMileageHideSettings />
             </ProtectedClubRoute>
           } />
           <Route path="/club/settings/:clubId/transfer" element={
