@@ -750,7 +750,7 @@ export const AddWorkout = () => {
                   ))}
                 </select>
                 <div className="kakao-share-info">
-                  <p className="kakao-share-info-name">{shareNickname ?? user?.display_name}</p>
+                  <p className="kakao-share-info-name">{shareNickname ?? '회원'}</p>
                   {shareWorkoutNumber && <p className="kakao-share-info-number">오늘 클럽 {shareWorkoutNumber}번째 🏅</p>}
                 </div>
               </>
@@ -766,15 +766,18 @@ export const AddWorkout = () => {
                     if (!window.Kakao?.isInitialized()) { navigate('/'); return; }
                     const club = myClubs.find(c => c.id === shareClubId);
                     const appUrl = `${window.location.origin}/workout/${savedWorkout.id}?clubId=${shareClubId}`;
-                    const displayName = shareNickname ?? user?.display_name ?? '';
+                    const displayName = shareNickname ?? '회원';
                     const numberText = shareWorkoutNumber ? `\n오늘 클럽 ${shareWorkoutNumber}번째` : '';
                     const workoutDate = new Date(savedWorkout.workout_time);
                     const dateStr = `${workoutDate.getFullYear()}.${String(workoutDate.getMonth() + 1).padStart(2, '0')}.${String(workoutDate.getDate()).padStart(2, '0')}`;
+                    const workoutLabel = savedWorkout.sub_type
+                      ? `${savedWorkout.category}-${savedWorkout.sub_type}`
+                      : savedWorkout.category;
                     const shareData: any = {
                       objectType: 'feed',
                       content: {
                         title: `[${club?.name ?? ''}] ${displayName}님 (${dateStr})`,
-                        description: `${savedWorkout.category}: ${savedWorkout.value}${savedWorkout.unit}${numberText}`,
+                        description: `${workoutLabel}: ${savedWorkout.value}${savedWorkout.unit}${numberText}`,
                         link: { mobileWebUrl: appUrl, webUrl: appUrl },
                       },
                       buttons: [{ title: '나도 기록하기', link: { mobileWebUrl: appUrl, webUrl: appUrl } }],

@@ -119,7 +119,7 @@ export const WorkoutFeedCard = ({
     const workoutDate = new Date(workout.workout_time);
     const dateStr = `${workoutDate.getFullYear()}.${String(workoutDate.getMonth() + 1).padStart(2, '0')}.${String(workoutDate.getDate()).padStart(2, '0')}`;
 
-    const shareTitle = `[${clubName}] ${item.user_display_name}님 (${dateStr})`;
+    const shareTitle = `[${clubName}] ${item.club_nickname ?? '회원'}님 (${dateStr})`;
 
     // 피드 로드 시 계산된 운동 번호 사용 (비동기 호출 없음)
     const numberText = item.workout_number ? `\n오늘 클럽 ${item.workout_number}번째` : '';
@@ -171,7 +171,7 @@ export const WorkoutFeedCard = ({
     const dateStr = `${workoutDate.getFullYear()}.${String(workoutDate.getMonth() + 1).padStart(2, '0')}.${String(workoutDate.getDate()).padStart(2, '0')}`;
 
     // 피드 로드 시 계산된 운동 번호 사용
-    let shareText = `[${clubName}] ${item.user_display_name}님 (${dateStr})\n`;
+    let shareText = `[${clubName}] ${item.club_nickname ?? '회원'}님 (${dateStr})\n`;
     shareText += `${workoutLabel}: ${workout.value}${workout.unit}\n`;
     if (item.workout_number) {
       shareText += `오늘 클럽 ${item.workout_number}번째\n`;
