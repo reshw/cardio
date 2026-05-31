@@ -425,7 +425,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   useEffect(() => {
     if (!selectedClub) return;
     const isAdmin = selectedClub.role === 'manager' || selectedClub.role === 'vice-manager';
-    if (isAdmin) return;
+    if (isAdmin) return; // 운영진은 잠금 기간에도 자유롭게 이동
     const today = new Date().getDate();
     const periods = selectedClub.mileage_hide_periods || [];
     if (periods.some(p => today >= p.from && today <= p.to)) {
@@ -659,19 +659,20 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         const isAdmin = selectedClub.role === 'manager' || selectedClub.role === 'vice-manager';
         const today = new Date().getDate();
         const periods = selectedClub.mileage_hide_periods || [];
-        const isMileageHidden = !isAdmin && periods.some(p => today >= p.from && today <= p.to);
         const activePeriods = periods.filter(p => today >= p.from && today <= p.to);
+        const isLockPeriod = activePeriods.length > 0; // 잠금 기간 여부 (역할 무관)
+        const isMileageBlocked = isLockPeriod && !isAdmin; // 일반회원만 실제 차단
         return (
           <div className="tabs" onClick={(e) => { if (showLockTooltip) { e.stopPropagation(); setShowLockTooltip(false); } }}>
             <div style={{ position: 'relative', flex: 1 }}>
               <button
-                className={`tab ${activeTab === 'ranking' ? 'active' : ''}${isMileageHidden ? ' tab--locked' : ''}`}
-                onClick={() => isMileageHidden ? setShowLockTooltip(v => !v) : setActiveTab('ranking')}
-                style={isMileageHidden ? { cursor: 'pointer', opacity: 0.5, width: '100%' } : { width: '100%' }}
+                className={`tab ${activeTab === 'ranking' ? 'active' : ''}${isLockPeriod ? ' tab--locked' : ''}`}
+                onClick={() => isMileageBlocked ? setShowLockTooltip(v => !v) : setActiveTab('ranking')}
+                style={isMileageBlocked ? { cursor: 'pointer', opacity: 0.5, width: '100%' } : { width: '100%' }}
               >
-                🏆 마일리지{isMileageHidden && <Lock size={12} style={{ marginLeft: 4, verticalAlign: 'middle' }} />}
+                🏆 마일리지{isLockPeriod && <Lock size={12} style={{ marginLeft: 4, verticalAlign: 'middle' }} />}
               </button>
-              {isMileageHidden && showLockTooltip && (
+              {isMileageBlocked && showLockTooltip && (
                 <div style={{
                   position: 'absolute', top: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
                   background: 'var(--card-bg)', border: '1px solid var(--border-color)',
