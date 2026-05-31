@@ -426,8 +426,8 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const isAdmin = selectedClub.role === 'manager' || selectedClub.role === 'vice-manager';
     if (isAdmin) return;
     const today = new Date().getDate();
-    const { mileage_hide_from_day: hf, mileage_hide_to_day: ht } = selectedClub;
-    if (hf && ht && today >= hf && today <= ht) {
+    const periods = selectedClub.mileage_hide_periods || [];
+    if (periods.some(p => today >= p.from && today <= p.to)) {
       setActiveTab('feed');
     }
   }, [selectedClub, activeTab]);
@@ -649,9 +649,8 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
       {selectedClub && (() => {
         const isAdmin = selectedClub.role === 'manager' || selectedClub.role === 'vice-manager';
         const today = new Date().getDate();
-        const hideFrom = selectedClub.mileage_hide_from_day;
-        const hideTo = selectedClub.mileage_hide_to_day;
-        const isMileageHidden = !isAdmin && !!hideFrom && !!hideTo && today >= hideFrom && today <= hideTo;
+        const periods = selectedClub.mileage_hide_periods || [];
+        const isMileageHidden = !isAdmin && periods.some(p => today >= p.from && today <= p.to);
         return (
           <div className="tabs">
             {!isMileageHidden && (
