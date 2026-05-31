@@ -75,6 +75,7 @@ export const Club = () => {
   const [showChallengeCreate, setShowChallengeCreate] = useState(false);
   const [showChallengeArchive, setShowChallengeArchive] = useState(false);
   const [challengeRefreshKey, setChallengeRefreshKey] = useState(0);
+  const [showLockTooltip, setShowLockTooltip] = useState(false);
 
   // 멤버 상세 모달
   const [selectedMember, setSelectedMember] = useState<{
@@ -432,6 +433,14 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     }
   }, [selectedClub?.id]);
 
+  // 잠금 툴팁 외부 클릭 시 닫기
+  useEffect(() => {
+    if (!showLockTooltip) return;
+    const close = () => setShowLockTooltip(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [showLockTooltip]);
+
   // 피드 탭 활성화 시 피드 로드
   useEffect(() => {
     if (activeTab === 'feed' && selectedClub) {
@@ -651,15 +660,35 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         const today = new Date().getDate();
         const periods = selectedClub.mileage_hide_periods || [];
         const isMileageHidden = !isAdmin && periods.some(p => today >= p.from && today <= p.to);
+        const activePeriods = periods.filter(p => today >= p.from && today <= p.to);
         return (
-          <div className="tabs">
-            <button
-              className={`tab ${activeTab === 'ranking' ? 'active' : ''}${isMileageHidden ? ' tab--locked' : ''}`}
-              onClick={() => isMileageHidden ? null : setActiveTab('ranking')}
-              style={isMileageHidden ? { cursor: 'default', opacity: 0.5 } : undefined}
-            >
-              🏆 마일리지{isMileageHidden && <Lock size={12} style={{ marginLeft: 4, verticalAlign: 'middle' }} />}
-            </button>
+          <div className="tabs" onClick={(e) => { if (showLockTooltip) { e.stopPropagation(); setShowLockTooltip(false); } }}>
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <button
+                className={`tab ${activeTab === 'ranking' ? 'active' : ''}${isMileageHidden ? ' tab--locked' : ''}`}
+                onClick={() => isMileageHidden ? setShowLockTooltip(v => !v) : setActiveTab('ranking')}
+                style={isMileageHidden ? { cursor: 'pointer', opacity: 0.5 } : undefined}
+              >
+                🏆 마일리지{isMileageHidden && <Lock size={12} style={{ marginLeft: 4, verticalAlign: 'middle' }} />}
+              </button>
+              {isMileageHidden && showLockTooltip && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
+                  background: 'var(--card-bg)', border: '1px solid var(--border-color)',
+                  borderRadius: '10px', padding: '8px 12px', whiteSpace: 'nowrap',
+                  fontSize: '13px', color: 'var(--text-color)', zIndex: 100,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                }}>
+                  <div style={{ position: 'absolute', top: -6, left: '50%', transform: 'translateX(-50%)', width: 10, height: 10, background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderBottom: 'none', borderRight: 'none', rotate: '45deg' }} />
+                  🔒 잠금기간
+                  {activePeriods.map((p, i) => (
+                    <span key={i} style={{ display: 'block', marginTop: 2, color: 'var(--text-secondary)' }}>
+                      매월 {p.from}일 ~ {p.to}일
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               className={`tab ${activeTab === 'feed' ? 'active' : ''}`}
               onClick={() => setActiveTab('feed')}
