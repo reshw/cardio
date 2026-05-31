@@ -433,13 +433,6 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     }
   }, [selectedClub?.id]);
 
-  // 잠금 툴팁 외부 클릭 시 닫기
-  useEffect(() => {
-    if (!showLockTooltip) return;
-    const close = () => setShowLockTooltip(false);
-    document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
-  }, [showLockTooltip]);
 
   // 피드 탭 활성화 시 피드 로드
   useEffect(() => {
@@ -663,7 +656,14 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         const isLockPeriod = activePeriods.length > 0; // 잠금 기간 여부 (역할 무관)
         const isMileageBlocked = isLockPeriod && !isAdmin; // 일반회원만 실제 차단
         return (
-          <div className="tabs" onClick={(e) => { if (showLockTooltip) { e.stopPropagation(); setShowLockTooltip(false); } }}>
+          <>
+          {isMileageBlocked && showLockTooltip && (
+            <div
+              style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+              onClick={() => setShowLockTooltip(false)}
+            />
+          )}
+          <div className="tabs">
             <div style={{ position: 'relative', flex: 1 }}>
               <button
                 className={`tab ${activeTab === 'ranking' ? 'active' : ''}${isLockPeriod ? ' tab--locked' : ''}`}
@@ -697,6 +697,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               🏃 오늘의 운동
             </button>
           </div>
+          </>
         );
       })()}
 
