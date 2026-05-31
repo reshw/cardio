@@ -20,6 +20,8 @@ export interface Club {
   approved_by?: string;
   count_excluded_workouts_in_days?: boolean; // 미산입 운동도 운동일수에 포함할지 여부
   rookie_league_enabled?: boolean; // 루키리그 기능 활성화 여부
+  mileage_hide_from_day?: number; // 마일리지 탭 숨김 시작일 (1~31)
+  mileage_hide_to_day?: number;   // 마일리지 탭 숨김 종료일 (1~31)
 }
 
 // 동적 마일리지 설정 (모든 운동 종목 지원)
@@ -394,7 +396,7 @@ class ClubService {
   // 클럽 정보 수정
   async updateClub(
     clubId: string,
-    data: { name?: string; description?: string; mileage_config?: MileageConfig; logo_url?: string; enabled_categories?: string[] }
+    data: { name?: string; description?: string; mileage_config?: MileageConfig; logo_url?: string; enabled_categories?: string[]; mileage_hide_from_day?: number | null; mileage_hide_to_day?: number | null }
   ): Promise<Club> {
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
@@ -402,6 +404,8 @@ class ClubService {
     if (data.mileage_config !== undefined) updateData.mileage_config = data.mileage_config;
     if (data.logo_url !== undefined) updateData.logo_url = data.logo_url;
     if (data.enabled_categories !== undefined) updateData.enabled_categories = data.enabled_categories;
+    if (data.mileage_hide_from_day !== undefined) updateData.mileage_hide_from_day = data.mileage_hide_from_day;
+    if (data.mileage_hide_to_day !== undefined) updateData.mileage_hide_to_day = data.mileage_hide_to_day;
 
     const { data: club, error } = await supabase
       .from('clubs')
