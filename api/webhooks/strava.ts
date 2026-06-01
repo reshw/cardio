@@ -335,8 +335,8 @@ async function fetchActivity(activityId: number, integration: {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  if (res.status === 401) {
-    console.warn(`Activity fetch 401 for ${activityId} — forcing token refresh`);
+  if (res.status === 401 || res.status === 500) {
+    console.warn(`Activity fetch ${res.status} for ${activityId} — forcing token refresh`);
     const newToken = await refreshToken(integration);
     if (!newToken) return null;
     const retry = await fetch(`https://www.strava.com/api/v3/activities/${activityId}`, {
