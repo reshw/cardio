@@ -32,13 +32,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   };
 
   // /athlete 호출로 토큰 유효성 확인
-  const athleteRes = await fetch('https://www.api-v3.strava.com/athlete', {
+  const athleteRes = await fetch('https://www.strava.com/api/v3/athlete', {
     headers: { Authorization: `Bearer ${integration.access_token}` },
   });
   const athleteBody = await athleteRes.text();
 
   // 최근 활동 1개 가져오기 시도
-  const activitiesRes = await fetch('https://www.api-v3.strava.com/athlete/activities?per_page=1', {
+  const activitiesRes = await fetch('https://www.strava.com/api/v3/athlete/activities?per_page=1', {
     headers: { Authorization: `Bearer ${integration.access_token}` },
   });
   const activitiesBody = await activitiesRes.text();
