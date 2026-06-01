@@ -32,6 +32,8 @@ const STRAVA_TYPE_MAP: Record<string, StravaMapping | null> = {
   Rowing:            { category: '로잉',   sub_type: '실외',       unit: 'km', value_source: 'distance_km' },
   VirtualRow:        { category: '로잉',   sub_type: '실내',       unit: 'km', value_source: 'distance_km' },
   Yoga:              { category: '요가',   sub_type: '하타',       unit: '분', value_source: 'elapsed_min' },
+  WeightTraining:    { category: '헬스',   sub_type: null,          unit: '분', value_source: 'elapsed_min' },
+  Crossfit:          { category: '헬스',   sub_type: null,          unit: '분', value_source: 'elapsed_min' },
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -75,7 +77,7 @@ function formatDate(iso: string): string {
   return `${d.getUTCFullYear()}.${String(d.getUTCMonth() + 1).padStart(2, '0')}.${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 
-const CAT_EN: Record<string, string> = { '달리기': 'Run', '수영': 'Swim', '사이클': 'Cycle', '로잉': 'Row', '요가': 'Yoga' };
+const CAT_EN: Record<string, string> = { '달리기': 'Run', '수영': 'Swim', '사이클': 'Cycle', '로잉': 'Row', '요가': 'Yoga', '헬스': 'Weights' };
 const SUB_EN: Record<string, string> = {
   '러닝': 'Road', '트레드밀': 'Treadmill', '실내': 'Indoor', '실외': 'Outdoor',
   '풀수영': 'Pool', '오픈워터': 'Open Water', '전기자전거': 'E-Bike',
