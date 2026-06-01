@@ -350,7 +350,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const accessToken = await getValidToken(integration);
     if (!accessToken) return res.status(200).end();
 
-    const activityRes = await fetch(`https://www.strava.com/api/v3/activities/${object_id}`, {
+    const activityRes = await fetch(`https://www.api-v3.strava.com/activities/${object_id}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (!activityRes.ok) {
