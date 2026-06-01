@@ -395,73 +395,74 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (aspect_type !== 'create' && aspect_type !== 'update') return res.status(200).end();
 
-    // Strava는 2초 내 응답 요구 — 먼저 200 반환 후 전체 처리를 백그라운드로
+    const activity = await fetchActivity(object_id, integration);
+    if (!activity) return res.status(200).end();
+
+    const mapping = STRAVA_TYPE_MAP[activity.type as string];
+    if (!mapping) { console.log('No mapping for type:', activity.type); return res.status(200).end(); }
+
+    let value: number;
+    if (mapping.value_source === 'distance_km') value = Math.round((activity.distance / 1000) * 100) / 100;
+    else if (mapping.value_source === 'distance_m') value = Math.round(activity.distance);
+    else value = Math.round(activity.elapsed_time / 60);
+    if (value <= 0) return res.status(200).end();
+
+    const stravaMetrics = {
+      elapsed_seconds: activity.elapsed_time ?? null,
+      moving_seconds: activity.moving_time ?? null,
+      average_speed: activity.average_speed ?? null,
+      average_heartrate: activity.average_heartrate ?? null,
+      device_name: activity.device_name ?? null,
+      timezone: activity.timezone ?? null,
+      utc_offset: activity.utc_offset != null ? Math.round(activity.utc_offset) : null,
+    };
+
+    const workoutData = {
+      user_id: integration.user_id,
+      category: mapping.category,
+      sub_type: mapping.sub_type,
+      value,
+      unit: mapping.unit,
+      intensity: 5,
+      workout_time: activity.start_date,
+      source: 'strava',
+      source_activity_id: String(object_id),
+      ...stravaMetrics,
+    };
+
+    let workoutId: string | null = null;
+
+    if (aspect_type === 'create') {
+      const { data, error } = await supabase.from('workouts').insert(workoutData).select('id').single();
+      if (error) console.error('Workout insert error:', error);
+      else console.log('Workout inserted:', data?.id, mapping.category, value, mapping.unit);
+      workoutId = data?.id ?? null;
+    } else {
+      const { data, error } = await supabase
+        .from('workouts')
+        .update({ value, workout_time: activity.start_date, ...stravaMetrics })
+        .eq('user_id', integration.user_id)
+        .eq('source', 'strava')
+        .eq('source_activity_id', String(object_id))
+        .select('id')
+        .single();
+      if (error) console.error('Workout update error:', error);
+      else console.log('Workout updated:', data?.id);
+      workoutId = data?.id ?? null;
+    }
+
+    // 200 응답 후 카드 이미지 생성만 백그라운드 처리
     res.status(200).end();
 
-    (async () => {
-      const activity = await fetchActivity(object_id, integration);
-      if (!activity) return;
-      const mapping = STRAVA_TYPE_MAP[activity.type as string];
-      if (!mapping) return;
-
-      let value: number;
-      if (mapping.value_source === 'distance_km') value = Math.round((activity.distance / 1000) * 100) / 100;
-      else if (mapping.value_source === 'distance_m') value = Math.round(activity.distance);
-      else value = Math.round(activity.elapsed_time / 60);
-      if (value <= 0) return;
-
-      const stravaMetrics = {
-        elapsed_seconds: activity.elapsed_time ?? null,
-        moving_seconds: activity.moving_time ?? null,
-        average_speed: activity.average_speed ?? null,
-        average_heartrate: activity.average_heartrate ?? null,
-        device_name: activity.device_name ?? null,
-        timezone: activity.timezone ?? null,
-        utc_offset: activity.utc_offset != null ? Math.round(activity.utc_offset) : null,
-      };
-
-      const workoutData = {
-        user_id: integration.user_id,
-        category: mapping.category,
-        sub_type: mapping.sub_type,
-        value,
-        unit: mapping.unit,
-        intensity: 5,
-        workout_time: activity.start_date,
-        source: 'strava',
-        source_activity_id: String(object_id),
-        ...stravaMetrics,
-      };
-
-      let workoutId: string | null = null;
-
-      if (aspect_type === 'create') {
-        const { data, error } = await supabase.from('workouts').insert(workoutData).select('id').single();
-        if (error) console.error('Workout insert error:', error);
-        workoutId = data?.id ?? null;
-      } else {
-        const { data, error } = await supabase
-          .from('workouts')
-          .update({ value, workout_time: activity.start_date, ...stravaMetrics })
-          .eq('user_id', integration.user_id)
-          .eq('source', 'strava')
-          .eq('source_activity_id', String(object_id))
-          .select('id')
-          .single();
-        if (error) console.error('Workout update error:', error);
-        workoutId = data?.id ?? null;
-      }
-
-      if (workoutId) {
-        const wid = workoutId;
-        generateStravaCard(activity, mapping, value, String(object_id))
-          .then(async (imageUrl) => {
-            if (imageUrl) {
-              await supabase.from('workouts').update({ proof_image: imageUrl }).eq('id', wid);
-            }
-          })
-          .catch(console.error);
-      }
-    })().catch(console.error);
+    if (workoutId) {
+      const wid = workoutId;
+      generateStravaCard(activity, mapping, value, String(object_id))
+        .then(async (imageUrl) => {
+          if (imageUrl) {
+            await supabase.from('workouts').update({ proof_image: imageUrl }).eq('id', wid);
+          }
+        })
+        .catch(console.error);
+    }
   }
 }
