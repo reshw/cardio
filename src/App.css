@@ -244,6 +244,27 @@ html {
   font-size: 20px;
 }
 
+.demo-login-button {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px 20px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin: 12px auto 0;
+  display: block;
+  transition: color 0.2s, border-color 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+.demo-login-button:hover {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+
 /* Bottom Navigation */
 .bottom-nav {
   position: fixed;
@@ -11466,4 +11487,76 @@ body.workout-detail-open .bottom-nav {
     height: 30px;
     line-height: 30px;
   }
+}
+
+/* ============================================
+   소셜 탭
+   ============================================ */
+.social-tab-container {
+  padding: 0 0 80px;
+}
+
+.social-summary-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 12px 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.social-gather-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 16px 8px;
+  padding: 10px 16px;
+  background: var(--primary-bg);
+  color: var(--primary-color);
+  border: 1.5px dashed var(--primary-color);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: calc(100% - 32px);
+  justify-content: center;
+}
+
+.social-history-list {
+  padding: 0 16px;
+}
+
+.social-history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.social-history-icon {
+  font-size: 20px;
+  width: 32px;
+  text-align: center;
+}
+
+.social-history-label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.social-history-pts {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary-color);
+  text-align: right;
+}
+
+.social-history-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: right;
 }

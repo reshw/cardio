@@ -19,6 +19,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   logout: () => void;
+  loginAsDemo: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -68,8 +69,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     sessionStorage.clear();
   };
 
+  const loginAsDemo = async () => {
+    const demoId = import.meta.env.VITE_DEMO_USER_ID;
+    if (!demoId) return;
+    const { data } = await supabase
+      .from('users')
+      .select('id, username, display_name, email, kakao_id, provider, profile_image, is_admin, is_super_admin, is_sub_admin')
+      .eq('id', demoId)
+      .single();
+    if (data) setUser(data);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider value={{ user, loading, logout, loginAsDemo }}>
       {children}
     </AuthContext.Provider>
   );
