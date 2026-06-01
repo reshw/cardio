@@ -282,15 +282,10 @@ async function generateStravaCard(
 // Token refresh
 // ═══════════════════════════════════════════════════════════
 
-async function getValidToken(integration: {
+async function refreshToken(integration: {
   id: string;
-  access_token: string;
   refresh_token: string;
-  token_expires_at: string;
 }): Promise<string | null> {
-  if (new Date(integration.token_expires_at) > new Date(Date.now() + 60_000)) {
-    return integration.access_token;
-  }
   const res = await fetch('https://www.strava.com/oauth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -301,7 +296,10 @@ async function getValidToken(integration: {
       grant_type: 'refresh_token',
     }),
   });
-  if (!res.ok) { console.error('Token refresh failed:', await res.text()); return null; }
+  if (!res.ok) {
+    console.error('Token refresh failed:', res.status, await res.text());
+    return null;
+  }
   const data = await res.json();
   await supabase.from('user_integrations').update({
     access_token: data.access_token,
@@ -310,6 +308,53 @@ async function getValidToken(integration: {
     updated_at: new Date().toISOString(),
   }).eq('id', integration.id);
   return data.access_token;
+}
+
+async function getValidToken(integration: {
+  id: string;
+  access_token: string;
+  refresh_token: string;
+  token_expires_at: string;
+}): Promise<string | null> {
+  if (new Date(integration.token_expires_at) > new Date(Date.now() + 60_000)) {
+    return integration.access_token;
+  }
+  return refreshToken(integration);
+}
+
+async function fetchActivity(activityId: number, integration: {
+  id: string;
+  access_token: string;
+  refresh_token: string;
+  token_expires_at: string;
+}): Promise<any | null> {
+  const token = await getValidToken(integration);
+  if (!token) return null;
+
+  const res = await fetch(`https://www.strava.com/api/v3/activities/${activityId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (res.status === 401) {
+    console.warn(`Activity fetch 401 for ${activityId} — forcing token refresh`);
+    const newToken = await refreshToken(integration);
+    if (!newToken) return null;
+    const retry = await fetch(`https://www.strava.com/api/v3/activities/${activityId}`, {
+      headers: { Authorization: `Bearer ${newToken}` },
+    });
+    if (!retry.ok) {
+      console.error('Activity fetch failed after refresh:', activityId, retry.status, await retry.text());
+      return null;
+    }
+    return retry.json();
+  }
+
+  if (!res.ok) {
+    console.error('Activity fetch failed:', activityId, res.status, await res.text());
+    return null;
+  }
+
+  return res.json();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -347,18 +392,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (aspect_type !== 'create' && aspect_type !== 'update') return res.status(200).end();
 
-    const accessToken = await getValidToken(integration);
-    if (!accessToken) return res.status(200).end();
-
-    const activityRes = await fetch(`https://www.strava.com/api/v3/activities/${object_id}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!activityRes.ok) {
-      console.error('Strava activity fetch failed:', object_id, await activityRes.text());
-      return res.status(200).end();
-    }
-
-    const activity = await activityRes.json();
+    const activity = await fetchActivity(object_id, integration);
+    if (!activity) return res.status(200).end();
     const mapping = STRAVA_TYPE_MAP[activity.type as string];
     if (!mapping) return res.status(200).end();
 
