@@ -286,6 +286,7 @@ async function refreshToken(integration: {
   id: string;
   refresh_token: string;
 }): Promise<string | null> {
+  console.log('Refreshing token for integration:', integration.id, '| client_id set:', !!process.env.STRAVA_CLIENT_ID);
   const res = await fetch('https://www.strava.com/oauth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -301,6 +302,7 @@ async function refreshToken(integration: {
     return null;
   }
   const data = await res.json();
+  console.log('Token refresh OK — new expires_at:', new Date(data.expires_at * 1000).toISOString(), '| has access_token:', !!data.access_token);
   await supabase.from('user_integrations').update({
     access_token: data.access_token,
     refresh_token: data.refresh_token,
@@ -316,9 +318,9 @@ async function getValidToken(integration: {
   refresh_token: string;
   token_expires_at: string;
 }): Promise<string | null> {
-  if (new Date(integration.token_expires_at) > new Date(Date.now() + 60_000)) {
-    return integration.access_token;
-  }
+  const expired = new Date(integration.token_expires_at) <= new Date(Date.now() + 60_000);
+  console.log('getValidToken — expires_at:', integration.token_expires_at, '| expired:', expired);
+  if (!expired) return integration.access_token;
   return refreshToken(integration);
 }
 
