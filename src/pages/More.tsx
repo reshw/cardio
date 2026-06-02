@@ -19,17 +19,23 @@ export const More = () => {
     () => localStorage.getItem(KAKAO_SHARE_KEY) !== 'false'
   );
   const [stravaConnected, setStravaConnected] = useState<boolean | null>(null);
+  const [stravaInfo, setStravaInfo] = useState<{ name: string; profile: string | null } | null>(null);
   const [stravaToast, setStravaToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from('user_integrations')
-      .select('id')
+      .select('id, athlete_name, athlete_profile')
       .eq('user_id', user.id)
       .eq('provider', 'strava')
       .maybeSingle()
-      .then(({ data }) => setStravaConnected(!!data));
+      .then(({ data }) => {
+        setStravaConnected(!!data);
+        if (data?.athlete_name) {
+          setStravaInfo({ name: data.athlete_name, profile: data.athlete_profile ?? null });
+        }
+      });
   }, [user]);
 
   useEffect(() => {
@@ -135,15 +141,22 @@ export const More = () => {
               <img
                 src="https://cdn.simpleicons.org/strava/FC4C02"
                 alt="Strava"
-                style={{ width: 20, height: 20, objectFit: 'contain' }}
+                style={{ width: 20, height: 20, objectFit: 'contain', flexShrink: 0 }}
               />
+              {stravaConnected && stravaInfo?.profile && (
+                <img
+                  src={stravaInfo.profile}
+                  alt={stravaInfo.name}
+                  style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                />
+              )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span>Strava</span>
                 <span style={{ fontSize: 11, color: '#888' }}>
                   {stravaConnected === null
                     ? '확인 중...'
                     : stravaConnected
-                    ? '연동됨 — 러닝/사이클/수영 자동 기록'
+                    ? (stravaInfo?.name ?? '연동됨')
                     : '연동하면 운동이 자동으로 기록됩니다'}
                 </span>
               </div>
