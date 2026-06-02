@@ -159,6 +159,17 @@ export const ClubSettings = () => {
               </div>
               <ChevronRight size={20} />
             </button>
+
+            <button
+              className="settings-menu-item"
+              onClick={() => navigate(`/club/settings/${clubId}/social`)}
+            >
+              <div className="menu-item-left">
+                <Users size={20} />
+                <span>소셜 포인트 관리</span>
+              </div>
+              <ChevronRight size={20} />
+            </button>
           </div>
         )}
 

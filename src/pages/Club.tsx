@@ -13,6 +13,7 @@ import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
+import { SocialTab } from '../components/SocialTab';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, BarChart2, Star, EyeOff, Lock } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
 
@@ -86,7 +87,7 @@ export const Club = () => {
   } | null>(null);
 
   // 피드 관련 state
-  type TabType = 'ranking' | 'feed';
+  type TabType = 'ranking' | 'feed' | 'social';
   const [activeTab, setActiveTab] = useState<TabType>((location.state as { tab?: TabType } | null)?.tab ?? 'feed');
 
   // 마일리지 표현 state
@@ -696,6 +697,12 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             >
               🏃 오늘의 운동
             </button>
+            <button
+              className={`tab ${activeTab === 'social' ? 'active' : ''}`}
+              onClick={() => setActiveTab('social')}
+            >
+              🤝 소셜
+            </button>
           </div>
           </>
         );
@@ -1110,6 +1117,16 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           <p>클럽을 만들거나 초대 코드로 가입해보세요!</p>
         </div>
       ))}
+
+      {/* 소셜 탭 */}
+      {activeTab === 'social' && selectedClub && user && (
+        <SocialTab
+          clubId={selectedClub.id}
+          userId={user.id}
+          isAdmin={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
+          selectedMonth={selectedMonth}
+        />
+      )}
 
       {/* 오늘의 운동 피드 */}
       {activeTab === 'feed' && selectedClub && (
