@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import sharp from 'sharp';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const supabase = createClient(
@@ -77,17 +76,14 @@ function formatDate(iso: string): string {
   return `${d.getUTCFullYear()}.${String(d.getUTCMonth() + 1).padStart(2, '0')}.${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 
-const CAT_EN: Record<string, string> = { '달리기': 'Run', '수영': 'Swim', '사이클': 'Cycle', '로잉': 'Row', '요가': 'Yoga' };
-const SUB_EN: Record<string, string> = {
-  '러닝': 'Road', '트레드밀': 'Treadmill', '실내': 'Indoor', '실외': 'Outdoor',
-  '풀수영': 'Pool', '오픈워터': 'Open Water', '전기자전거': 'E-Bike',
-  '하타': 'Hatha', '아쉬탕가': 'Ashtanga', '빈야사': 'Vinyasa', '인요가': 'Yin',
+const CAT_EMOJI: Record<string, string> = {
+  '달리기': '🏃', '수영': '🏊', '사이클': '🚴', '로잉': '🚣', '요가': '🧘', '헬스': '💪',
 };
 
 function activityLabel(category: string, subType: string | null): string {
-  const cat = CAT_EN[category] || category;
-  const sub = subType ? (SUB_EN[subType] || subType) : null;
-  return sub ? `${cat} · ${sub}` : cat;
+  const emoji = CAT_EMOJI[category] || '';
+  const label = subType ? `${category} · ${subType}` : category;
+  return emoji ? `${emoji} ${label}` : label;
 }
 
 function decodePolyline(encoded: string): [number, number][] {
@@ -262,15 +258,13 @@ async function generateStravaCard(
       ? buildRouteCardSvg({ label, value: valueStr, unit, stats, meta, polyline: polyline! })
       : buildNoRouteCardSvg({ label, value: valueStr, unit, stats, meta });
 
-    const webpBuf = await sharp(Buffer.from(svg)).webp({ quality: 88 }).toBuffer();
-
     const s3 = new S3Client({
       region: 'auto',
       endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
       credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
     });
-    const key = `strava-cards/${activityId}.webp`;
-    await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: webpBuf, ContentType: 'image/webp' }));
+    const key = `strava-cards/${activityId}.svg`;
+    await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: Buffer.from(svg), ContentType: 'image/svg+xml' }));
     return `${publicUrl}/${key}`;
   } catch (err) {
     console.error('Strava card generation failed:', err);
