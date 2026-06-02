@@ -13,7 +13,6 @@ import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
-import { SocialTab } from '../components/SocialTab';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, BarChart2, Star, EyeOff, Lock } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
 
@@ -697,12 +696,6 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             >
               🏃 오늘의 운동
             </button>
-            <button
-              className={`tab ${activeTab === 'social' ? 'active' : ''}`}
-              onClick={() => setActiveTab('social')}
-            >
-              🤝 소셜
-            </button>
           </div>
           </>
         );
@@ -1118,15 +1111,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         </div>
       ))}
 
-      {/* 소셜 탭 */}
-      {activeTab === 'social' && selectedClub && user && (
-        <SocialTab
-          clubId={selectedClub.id}
-          userId={user.id}
-          isAdmin={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
-          selectedMonth={selectedMonth}
-        />
-      )}
+      {/* 소셜 탭 — 미출시, 비활성화 */}
 
       {/* 오늘의 운동 피드 */}
       {activeTab === 'feed' && selectedClub && (
