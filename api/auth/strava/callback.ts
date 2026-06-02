@@ -45,6 +45,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.redirect(`${frontendUrl}/more?strava=error&reason=invalid_user`);
     }
 
+    const athleteName = [athlete.firstname, athlete.lastname].filter(Boolean).join(' ') || null;
+    const athleteProfile: string | null = athlete.profile_medium || athlete.profile || null;
+
     const { error: upsertError } = await supabase
       .from('user_integrations')
       .upsert(
@@ -56,6 +59,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           refresh_token,
           token_expires_at: new Date(expires_at * 1000).toISOString(),
           scope: 'activity:read_all',
+          athlete_name: athleteName,
+          athlete_profile: athleteProfile,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id,provider' }
