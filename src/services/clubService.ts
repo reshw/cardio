@@ -1972,6 +1972,25 @@ class ClubService {
     console.log(`✅ 클럽 ${clubId} ${year}년 ${month}월 마일리지 재계산 완료`);
   }
 
+  async recalculateClubMonthMileageCustom(
+    clubId: string,
+    year: number,
+    month: number,
+    configs: Pick<ClubMileageConfigRow, 'category' | 'sub_type' | 'coefficient' | 'enabled'>[]
+  ): Promise<void> {
+    const { error } = await supabase.rpc('recalculate_club_mileage_custom', {
+      p_club_id: clubId,
+      p_year: year,
+      p_month: month,
+      p_configs: configs,
+    });
+
+    if (error) {
+      console.error('커스텀 마일리지 재계산 RPC 실패:', error);
+      throw error;
+    }
+  }
+
   async getClubGrowthStats(clubId: string, year: number, month: number): Promise<ClubGrowthRow[]> {
     const { data, error } = await supabase.rpc('get_club_growth_stats', {
       p_club_id: clubId,
