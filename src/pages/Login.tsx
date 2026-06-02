@@ -1,8 +1,15 @@
+import { useNavigate } from 'react-router-dom';
 import KakaoLogin from '../components/KakaoLogin';
 import { useAuth } from '../contexts/AuthContext';
 
 export const Login = () => {
   const { loginAsDemo } = useAuth();
+  const navigate = useNavigate();
+
+  const handleDemoLogin = async () => {
+    await loginAsDemo();
+    navigate('/club');
+  };
 
   return (
     <div className="container">
@@ -12,7 +19,7 @@ export const Login = () => {
 
         <KakaoLogin />
 
-        <button className="demo-login-button" onClick={loginAsDemo}>
+        <button className="demo-login-button" onClick={handleDemoLogin}>
           데모 체험하기
         </button>
       </div>
