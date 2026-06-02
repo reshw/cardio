@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useClubName } from '../hooks/useClubName';
 import { ChevronLeft, Check, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import socialPointService, { getActionIcon, type SocialActionType } from '../services/socialPointService';
@@ -15,6 +16,7 @@ const MANUAL_ACTION_TYPES: { type: SocialActionType; label: string; points: numb
 
 export const ClubSocialSettings: React.FC = () => {
   const { clubId } = useParams<{ clubId: string }>();
+  const clubName = useClubName(clubId);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -156,7 +158,10 @@ export const ClubSocialSettings: React.FC = () => {
     <div className="settings-page">
       <div className="settings-header">
         <button className="back-button" onClick={() => navigate(-1)}><ChevronLeft size={24} /></button>
-        <h1>소셜 포인트 관리</h1>
+        <div className="settings-header-title-group">
+          {clubName && <span className="settings-header-club-name">{clubName}</span>}
+          <h1>소셜 포인트 관리</h1>
+        </div>
       </div>
 
       {/* 소모임 승인 큐 */}

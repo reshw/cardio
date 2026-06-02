@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useClubName } from '../hooks/useClubName';
 import { ChevronLeft } from 'lucide-react';
 import clubService from '../services/clubService';
 
 export const ClubRookieLeagueSettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
+  const clubName = useClubName(clubId);
   const navigate = useNavigate();
 
   const [enabled, setEnabled] = useState(true);
@@ -60,7 +62,10 @@ export const ClubRookieLeagueSettings = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1>루키리그 설정</h1>
+        <div className="settings-header-title-group">
+          {clubName && <span className="settings-header-club-name">{clubName}</span>}
+          <h1>루키리그 설정</h1>
+        </div>
       </div>
 
       <div className="settings-form">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useClubName } from '../hooks/useClubName';
 import { ChevronLeft, Plus, Trash2 } from 'lucide-react';
 import clubService from '../services/clubService';
 
@@ -7,6 +8,7 @@ type Period = { from: number; to: number };
 
 export const ClubMileageHideSettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
+  const clubName = useClubName(clubId);
   const navigate = useNavigate();
 
   const [periods, setPeriods] = useState<Period[]>([]);
@@ -90,7 +92,10 @@ export const ClubMileageHideSettings = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1>마일리지 탭 숨김 기간</h1>
+        <div className="settings-header-title-group">
+          {clubName && <span className="settings-header-club-name">{clubName}</span>}
+          <h1>마일리지 탭 숨김 기간</h1>
+        </div>
       </div>
 
       <div className="settings-form">

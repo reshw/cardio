@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useClubName } from '../hooks/useClubName';
 import { ChevronLeft, RefreshCw, CheckCircle, AlertCircle, Download } from 'lucide-react';
 import clubService from '../services/clubService';
 import type { ClubMileageConfigRow } from '../services/clubService';
@@ -45,6 +46,7 @@ interface EditRow {
 
 export const ClubMileageRetroactive = () => {
   const { clubId } = useParams<{ clubId: string }>();
+  const clubName = useClubName(clubId);
   const navigate = useNavigate();
 
   const defaultFrom = CUR_MONTH === 1
@@ -173,7 +175,10 @@ export const ClubMileageRetroactive = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1>소급 재계산</h1>
+        <div className="settings-header-title-group">
+          {clubName && <span className="settings-header-club-name">{clubName}</span>}
+          <h1>소급 재계산</h1>
+        </div>
       </div>
 
       <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>

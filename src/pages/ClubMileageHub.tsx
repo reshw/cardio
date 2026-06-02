@@ -1,10 +1,12 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import { useClubName } from '../hooks/useClubName';
 import { ChevronLeft, ChevronRight, TrendingUp, Star, EyeOff, RefreshCw, Clock } from 'lucide-react';
 import { useState } from 'react';
 import clubService from '../services/clubService';
 
 export const ClubMileageHub = () => {
   const { clubId } = useParams<{ clubId: string }>();
+  const clubName = useClubName(clubId);
   const navigate = useNavigate();
   const [recalculating, setRecalculating] = useState(false);
 
@@ -29,7 +31,10 @@ export const ClubMileageHub = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1>마일리지</h1>
+        <div className="settings-header-title-group">
+          {clubName && <span className="settings-header-club-name">{clubName}</span>}
+          <h1>마일리지</h1>
+        </div>
       </div>
 
       <div className="settings-menu">
