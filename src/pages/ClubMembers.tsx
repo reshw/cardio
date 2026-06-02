@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useClubName } from '../hooks/useClubName';
 import { ChevronLeft, Search, Shield, User, UserX, Award } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
@@ -7,6 +8,7 @@ import type { ClubMember } from '../services/clubService';
 
 export const ClubMembers = () => {
   const { clubId } = useParams<{ clubId: string }>();
+  const clubName = useClubName(clubId);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -193,7 +195,10 @@ export const ClubMembers = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1>클럽원 목록</h1>
+        <div className="settings-header-title-group">
+          {clubName && <span className="settings-header-club-name">{clubName}</span>}
+          <h1>클럽원 목록</h1>
+        </div>
       </div>
 
       <div className="settings-form">

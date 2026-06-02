@@ -5624,6 +5624,32 @@ body.search-modal-open .bottom-nav {
   margin: 0;
 }
 
+.settings-header-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.settings-header-club-name {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.settings-header-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.settings-header-club-name {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
 .back-button {
   background: none;
   border: none;

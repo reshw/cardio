@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useClubName } from '../hooks/useClubName';
 import { ChevronLeft, Search, TrendingUp, Calendar } from 'lucide-react';
 import clubService from '../services/clubService';
 import type { ClubGrowthRow } from '../services/clubService';
@@ -8,24 +9,16 @@ type SortKey = 'growth_rate' | 'workout_days';
 
 export const ClubGrowthDashboard = () => {
   const { clubId } = useParams<{ clubId: string }>();
+  const clubName = useClubName(clubId);
   const navigate = useNavigate();
   const now = new Date();
 
-  const [clubName, setClubName] = useState('');
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [rows, setRows] = useState<ClubGrowthRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('growth_rate');
-
-  useEffect(() => {
-    if (clubId) {
-      clubService.getClubById(clubId).then(club => {
-        if (club) setClubName(club.name);
-      });
-    }
-  }, [clubId]);
 
   useEffect(() => {
     if (clubId) load();
@@ -89,9 +82,9 @@ export const ClubGrowthDashboard = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <div>
-          <h1 style={{ margin: 0 }}>이달의 성장</h1>
-          {clubName && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>{clubName}</div>}
+        <div className="settings-header-title-group">
+          {clubName && <span className="settings-header-club-name">{clubName}</span>}
+          <h1>이달의 성장</h1>
         </div>
       </div>
 

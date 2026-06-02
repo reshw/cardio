@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useClubName } from '../hooks/useClubName';
 import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
@@ -8,12 +9,12 @@ import { uploadToR2 } from '../utils/r2Storage';
 
 export const ClubMySettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
+  const clubName = useClubName(clubId);
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const [nickname, setNickname] = useState('');
   const [profileImage, setProfileImage] = useState<string | File | null>(null);
-  const [clubName, setClubName] = useState('');
   const [showInFeed, setShowInFeed] = useState(true);
   const [showMileage, setShowMileage] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -34,10 +35,6 @@ export const ClubMySettings = () => {
       const memberProfile = await clubService.getClubMemberProfile(clubId, user.id);
       setNickname(memberProfile.club_nickname || '');
       setProfileImage(memberProfile.club_profile_image || null);
-
-      // 클럽 이름도 조회
-      const club = await clubService.getClubById(clubId);
-      setClubName(club.name);
 
       // 개인 설정 조회
       const settings = await clubService.getMemberSettings(clubId, user.id);
@@ -115,7 +112,10 @@ export const ClubMySettings = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1>내 클럽 설정</h1>
+        <div className="settings-header-title-group">
+          {clubName && <span className="settings-header-club-name">{clubName}</span>}
+          <h1>내 클럽 설정</h1>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="settings-form">

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useClubName } from '../hooks/useClubName';
 import { ChevronLeft, Copy } from 'lucide-react';
 import clubService from '../services/clubService';
 import { uploadToR2 } from '../utils/r2Storage';
 
 export const ClubGeneralSettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
+  const clubName = useClubName(clubId);
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
@@ -130,7 +132,10 @@ export const ClubGeneralSettings = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1>일반정보 변경</h1>
+        <div className="settings-header-title-group">
+          {clubName && <span className="settings-header-club-name">{clubName}</span>}
+          <h1>일반정보 변경</h1>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="settings-form">

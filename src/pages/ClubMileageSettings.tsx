@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useClubName } from '../hooks/useClubName';
 import { ChevronLeft } from 'lucide-react';
 import clubService from '../services/clubService';
 import workoutTypeService from '../services/workoutTypeService';
@@ -73,6 +74,7 @@ const getExplanation = (coefficient: number, unit: string = 'km'): string => {
 
 export const ClubMileageSettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
+  const clubName = useClubName(clubId);
   const navigate = useNavigate();
 
   const [mileageConfig, setMileageConfig] = useState<MileageConfig>({});
@@ -215,7 +217,10 @@ export const ClubMileageSettings = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1>마일리지 계수 설정</h1>
+        <div className="settings-header-title-group">
+          {clubName && <span className="settings-header-club-name">{clubName}</span>}
+          <h1>마일리지 계수 설정</h1>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="settings-form">
