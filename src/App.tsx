@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Login } from './pages/Login';
 import { History } from './pages/History';
 import { AddWorkout } from './pages/AddWorkout';
@@ -9,6 +10,7 @@ import { ClubSettings } from './pages/ClubSettings';
 import { ClubGeneralSettings } from './pages/ClubGeneralSettings';
 import { ClubMileageSettings } from './pages/ClubMileageSettings';
 import { ClubMileageHideSettings } from './pages/ClubMileageHideSettings';
+import { ClubSocialSettings } from './pages/ClubSocialSettings';
 import { ClubRookieLeagueSettings } from './pages/ClubRookieLeagueSettings';
 import { ClubStatsPage } from './pages/ClubStatsPage';
 import { ClubGrowthDashboard } from './components/ClubGrowthDashboard';
@@ -97,6 +99,11 @@ function ProtectedRoutes() {
               <ClubGrowthDashboard />
             </ProtectedClubRoute>
           } />
+          <Route path="/club/settings/:clubId/social" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubSocialSettings />
+            </ProtectedClubRoute>
+          } />
           <Route path="/club/my-settings/:clubId" element={
             <ProtectedClubRoute>
               <ClubMySettings />
@@ -127,6 +134,7 @@ function ProtectedRoutes() {
 
 function App() {
   return (
+    <ErrorBoundary>
     <AuthProvider>
       <BrowserRouter>
         <Routes>
@@ -144,6 +152,7 @@ function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
