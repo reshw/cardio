@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { Resvg } from '@resvg/resvg-js';
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL!,
@@ -258,13 +259,20 @@ async function generateStravaCard(
       ? buildRouteCardSvg({ label, value: valueStr, unit, stats, meta, polyline: polyline! })
       : buildNoRouteCardSvg({ label, value: valueStr, unit, stats, meta });
 
+    const pngBuffer = new Resvg(svg, { fitTo: { mode: 'width', value: 800 } }).render().asPng();
+    const thumbBuffer = new Resvg(svg, { fitTo: { mode: 'width', value: 300 } }).render().asPng();
+
     const s3 = new S3Client({
       region: 'auto',
       endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
       credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
     });
-    const key = `strava-cards/${activityId}.svg`;
-    await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: Buffer.from(svg), ContentType: 'image/svg+xml' }));
+    const key = `strava-cards/${activityId}.png`;
+    const thumbKey = `strava-cards/${activityId}_thumb.png`;
+    await Promise.all([
+      s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: pngBuffer, ContentType: 'image/png' })),
+      s3.send(new PutObjectCommand({ Bucket: bucket, Key: thumbKey, Body: thumbBuffer, ContentType: 'image/png' })),
+    ]);
     return `${publicUrl}/${key}`;
   } catch (err) {
     console.error('Strava card generation failed:', err);
