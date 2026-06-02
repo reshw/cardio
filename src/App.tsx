@@ -8,8 +8,11 @@ import { WorkoutDetail } from './pages/WorkoutDetail';
 import { Club } from './pages/Club';
 import { ClubSettings } from './pages/ClubSettings';
 import { ClubGeneralSettings } from './pages/ClubGeneralSettings';
+import { ClubMileageHub } from './pages/ClubMileageHub';
 import { ClubMileageSettings } from './pages/ClubMileageSettings';
 import { ClubMileageHideSettings } from './pages/ClubMileageHideSettings';
+import { ClubMileageRetroactive } from './pages/ClubMileageRetroactive';
+import { ClubStatsHub } from './pages/ClubStatsHub';
 import { ClubSocialSettings } from './pages/ClubSocialSettings';
 import { ClubRookieLeagueSettings } from './pages/ClubRookieLeagueSettings';
 import { ClubStatsPage } from './pages/ClubStatsPage';
@@ -71,7 +74,17 @@ function ProtectedRoutes() {
           } />
           <Route path="/club/settings/:clubId/mileage" element={
             <ProtectedClubRoute requireAdmin>
+              <ClubMileageHub />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId/mileage-config" element={
+            <ProtectedClubRoute requireAdmin>
               <ClubMileageSettings />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId/mileage-retroactive" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubMileageRetroactive />
             </ProtectedClubRoute>
           } />
           <Route path="/club/settings/:clubId/rookie-league" element={
@@ -90,6 +103,11 @@ function ProtectedRoutes() {
             </ProtectedClubRoute>
           } />
           <Route path="/club/settings/:clubId/stats" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubStatsHub />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId/stats-chart" element={
             <ProtectedClubRoute requireAdmin>
               <ClubStatsPage />
             </ProtectedClubRoute>
