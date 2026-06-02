@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Info, TrendingUp, UserCog, User, Users, BarChart2, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, TrendingUp, UserCog, User, Users, BarChart2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
@@ -111,18 +111,18 @@ export const ClubSettings = () => {
             >
               <div className="menu-item-left">
                 <TrendingUp size={20} />
-                <span>마일리지 계수 설정</span>
+                <span>마일리지</span>
               </div>
               <ChevronRight size={20} />
             </button>
 
             <button
               className="settings-menu-item"
-              onClick={() => navigate(`/club/settings/${clubId}/rookie-league`)}
+              onClick={() => navigate(`/club/settings/${clubId}/stats`)}
             >
               <div className="menu-item-left">
-                <Star size={20} />
-                <span>루키리그 설정</span>
+                <BarChart2 size={20} />
+                <span>통계</span>
               </div>
               <ChevronRight size={20} />
             </button>
@@ -134,39 +134,6 @@ export const ClubSettings = () => {
               <div className="menu-item-left">
                 <Users size={20} />
                 <span>클럽원 관리</span>
-              </div>
-              <ChevronRight size={20} />
-            </button>
-
-            <button
-              className="settings-menu-item"
-              onClick={() => navigate(`/club/settings/${clubId}/stats`)}
-            >
-              <div className="menu-item-left">
-                <BarChart2 size={20} />
-                <span>클럽 통계</span>
-              </div>
-              <ChevronRight size={20} />
-            </button>
-
-            <button
-              className="settings-menu-item"
-              onClick={() => navigate(`/club/settings/${clubId}/growth`)}
-            >
-              <div className="menu-item-left">
-                <TrendingUp size={20} />
-                <span>이달의 성장</span>
-              </div>
-              <ChevronRight size={20} />
-            </button>
-
-            <button
-              className="settings-menu-item"
-              onClick={() => navigate(`/club/settings/${clubId}/social`)}
-            >
-              <div className="menu-item-left">
-                <Users size={20} />
-                <span>소셜 포인트 관리</span>
               </div>
               <ChevronRight size={20} />
             </button>

@@ -13,7 +13,7 @@ import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, BarChart2, Star, EyeOff, Lock } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, BarChart2, Lock } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
 
 // 순서 변경 버튼이 있는 클럽 아이템
@@ -69,9 +69,6 @@ export const Club = () => {
   const [showClubMenu, setShowClubMenu] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [challengeMenuOpen, setChallengeMenuOpen] = useState(false);
-  const [mileageMenuOpen, setMileageMenuOpen] = useState(false);
-  const [statsMenuOpen, setStatsMenuOpen] = useState(false);
-  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [showChallengeCreate, setShowChallengeCreate] = useState(false);
   const [showChallengeArchive, setShowChallengeArchive] = useState(false);
   const [challengeRefreshKey, setChallengeRefreshKey] = useState(0);
@@ -355,30 +352,6 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
       });
       return updated;
     });
-  };
-
-  // 마일리지 재계산
-  const handleRecalculateMileage = async () => {
-    if (!selectedClub) return;
-
-    if (!confirm('현재 월의 모든 운동 기록 마일리지를 재계산하시겠습니까?\n\n현재 클럽의 마일리지 계수로 전체 재계산됩니다.')) {
-      return;
-    }
-
-    try {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth() + 1;
-
-      await clubService.recalculateClubMonthMileage(selectedClub.id, year, month);
-      alert('마일리지 재계산이 완료되었습니다.');
-
-      // 랭킹 새로고침
-      loadClubRanking(selectedClub.id);
-    } catch (error) {
-      console.error('마일리지 재계산 실패:', error);
-      alert('마일리지 재계산에 실패했습니다.');
-    }
   };
 
   useEffect(() => {
@@ -1525,120 +1498,45 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                 )}
               </div>
 
-              {/* 마일리지 (관리자) */}
+              {/* 마일리지 (관리자) → 허브 페이지 */}
               {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
                 <div className="cmenu-group">
-                  <button type="button" className="cmenu-row" onClick={() => setMileageMenuOpen(v => !v)}>
+                  <button type="button" className="cmenu-row" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/mileage`); }}>
                     <TrendingUp size={18} className="cmenu-row-icon" />
                     <div className="cmenu-row-text">
                       <div className="cmenu-row-title">마일리지</div>
                     </div>
                     <span className="cmenu-badge">관리자</span>
-                    <ChevronDown size={16} className={`cmenu-caret${mileageMenuOpen ? ' cmenu-caret--open' : ''}`} />
+                    <ChevronRight size={16} className="cmenu-arrow" />
                   </button>
-                  {mileageMenuOpen && (
-                    <>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); handleRecalculateMileage(); }}>
-                        <RefreshCw size={16} className="cmenu-row-icon" />
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">마일리지 재계산</div>
-                          <div className="cmenu-row-desc">현재 월 전체 마일리지 새로고침</div>
-                        </div>
-                      </button>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/mileage`); }}>
-                        <TrendingUp size={16} className="cmenu-row-icon" />
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">마일리지 계수 설정</div>
-                          <div className="cmenu-row-desc">운동별 계수 조정</div>
-                        </div>
-                        <ChevronRight size={16} className="cmenu-arrow" />
-                      </button>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/rookie-league`); }}>
-                        <Star size={16} className="cmenu-row-icon" />
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">리그 제도 운영</div>
-                          <div className="cmenu-row-desc">루키리그 기준 설정</div>
-                        </div>
-                        <ChevronRight size={16} className="cmenu-arrow" />
-                      </button>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/mileage-hide`); }}>
-                        <EyeOff size={16} className="cmenu-row-icon" />
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">탭 숨김 기간</div>
-                          <div className="cmenu-row-desc">특정 기간 마일리지 탭 숨기기</div>
-                        </div>
-                        <ChevronRight size={16} className="cmenu-arrow" />
-                      </button>
-                    </>
-                  )}
                 </div>
               )}
 
-              {/* 통계 (관리자) */}
+              {/* 통계 (관리자) → 허브 페이지 */}
               {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
                 <div className="cmenu-group">
-                  <button type="button" className="cmenu-row" onClick={() => setStatsMenuOpen(v => !v)}>
+                  <button type="button" className="cmenu-row" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/stats`); }}>
                     <BarChart2 size={18} className="cmenu-row-icon" />
                     <div className="cmenu-row-text">
                       <div className="cmenu-row-title">통계</div>
                     </div>
                     <span className="cmenu-badge">관리자</span>
-                    <ChevronDown size={16} className={`cmenu-caret${statsMenuOpen ? ' cmenu-caret--open' : ''}`} />
+                    <ChevronRight size={16} className="cmenu-arrow" />
                   </button>
-                  {statsMenuOpen && (
-                    <>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/stats`); }}>
-                        <BarChart2 size={16} className="cmenu-row-icon" />
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">클럽 통계</div>
-                          <div className="cmenu-row-desc">월별 마일리지 · 멤버 · 종목 그래프</div>
-                        </div>
-                        <ChevronRight size={16} className="cmenu-arrow" />
-                      </button>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/growth`); }}>
-                        <TrendingUp size={16} className="cmenu-row-icon" />
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">이달의 성장</div>
-                          <div className="cmenu-row-desc">팀원별 전달 대비 성장 진척률</div>
-                        </div>
-                        <ChevronRight size={16} className="cmenu-arrow" />
-                      </button>
-                    </>
-                  )}
                 </div>
               )}
 
-              {/* 클럽 관리 (클럽장) */}
+              {/* 클럽 관리 (클럽장) → 설정 페이지 */}
               {user && selectedClub.created_by === user.id && (
                 <div className="cmenu-group">
-                  <button type="button" className="cmenu-row" onClick={() => setAdminMenuOpen(v => !v)}>
+                  <button type="button" className="cmenu-row" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}`); }}>
                     <Settings size={18} className="cmenu-row-icon" />
                     <div className="cmenu-row-text">
                       <div className="cmenu-row-title">클럽 관리</div>
                     </div>
                     <span className="cmenu-badge">클럽장</span>
-                    <ChevronDown size={16} className={`cmenu-caret${adminMenuOpen ? ' cmenu-caret--open' : ''}`} />
+                    <ChevronRight size={16} className="cmenu-arrow" />
                   </button>
-                  {adminMenuOpen && (
-                    <>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/general`); }}>
-                        <Info size={16} className="cmenu-row-icon" />
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">클럽 정보 변경</div>
-                          <div className="cmenu-row-desc">이름, 설명, 로고 수정</div>
-                        </div>
-                        <ChevronRight size={16} className="cmenu-arrow" />
-                      </button>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/transfer`); }}>
-                        <span style={{ fontSize: '16px', lineHeight: 1, flexShrink: 0 }}>👑</span>
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">클럽장 권한 넘기기</div>
-                          <div className="cmenu-row-desc">다른 멤버에게 클럽장 위임</div>
-                        </div>
-                        <ChevronRight size={16} className="cmenu-arrow" />
-                      </button>
-                    </>
-                  )}
                 </div>
               )}
 
@@ -1674,25 +1572,6 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         </div>
       )}
 
-      {/* 챌린지 만들기 모달 */}
-      {showChallengeCreate && selectedClub && user && (
-        <ChallengeCreateModal
-          club={selectedClub}
-          userId={user.id}
-          onClose={() => setShowChallengeCreate(false)}
-          onCreated={() => { setShowChallengeCreate(false); setChallengeRefreshKey(k => k + 1); }}
-        />
-      )}
-
-      {/* 지난 챌린지 아카이브 모달 */}
-      {showChallengeArchive && selectedClub && (
-        <ChallengeArchiveModal
-          clubId={selectedClub.id}
-          clubName={selectedClub.name}
-          isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
-          onClose={() => setShowChallengeArchive(false)}
-        />
-      )}
     </div>
   );
 };
