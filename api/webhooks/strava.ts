@@ -404,18 +404,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       workoutId = data?.id ?? null;
     }
 
-    // Respond to Strava immediately, then generate card in background
-    res.status(200).end();
-
+    // 카드 생성 후 응답 (res.end() 이후엔 Vercel이 함수를 종료하므로 먼저 처리)
     if (workoutId) {
-      const wid = workoutId;
-      generateStravaCard(activity, mapping, value, String(object_id))
-        .then(async (imageUrl) => {
-          if (imageUrl) {
-            await supabase.from('workouts').update({ proof_image: imageUrl }).eq('id', wid);
-          }
-        })
-        .catch(console.error);
+      const imageUrl = await generateStravaCard(activity, mapping, value, String(object_id));
+      if (imageUrl) {
+        await supabase.from('workouts').update({ proof_image: imageUrl }).eq('id', workoutId);
+      }
     }
+
+    return res.status(200).end();
   }
 }
