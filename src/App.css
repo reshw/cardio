@@ -5453,13 +5453,14 @@ body.search-modal-open .bottom-nav {
 
 .detail-proof-image img {
   width: 100%;
+  max-width: 100%;
   height: auto;
   display: block;
 }
 
 .detail-actions-fixed {
   position: fixed;
-  bottom: 80px;
+  bottom: 70px;
   left: 0;
   right: 0;
   background: rgba(255, 255, 255, 0.98);
@@ -7742,6 +7743,7 @@ body.workout-detail-open .bottom-nav {
 .workout-detail-modal-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   -webkit-overflow-scrolling: touch;
