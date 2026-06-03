@@ -2,10 +2,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Resvg } from '@resvg/resvg-js';
-import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const FONT_BUFFER = readFileSync(join(process.cwd(), 'api/fonts/DejaVuSans.ttf'));
+const FONTS_DIR = join(process.cwd(), 'api/fonts');
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL!,
@@ -263,8 +262,9 @@ async function generateStravaCard(
       ? buildRouteCardSvg({ label, value: valueStr, unit, stats, meta, polyline: polyline! })
       : buildNoRouteCardSvg({ label, value: valueStr, unit, stats, meta });
 
-    const resvgOpts = { fitTo: { mode: 'width' as const, value: 800 }, font: { fontBuffers: [FONT_BUFFER], loadSystemFonts: false } };
-    const thumbOpts = { fitTo: { mode: 'width' as const, value: 300 }, font: { fontBuffers: [FONT_BUFFER], loadSystemFonts: false } };
+    const fontOpts = { fontDirs: [FONTS_DIR], loadSystemFonts: false };
+    const resvgOpts = { fitTo: { mode: 'width' as const, value: 800 }, font: fontOpts };
+    const thumbOpts = { fitTo: { mode: 'width' as const, value: 300 }, font: fontOpts };
     const pngBuffer = new Resvg(svg, resvgOpts).render().asPng();
     const thumbBuffer = new Resvg(svg, thumbOpts).render().asPng();
 
