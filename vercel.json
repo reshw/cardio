@@ -4,6 +4,11 @@
   "devCommand": "vite --port 3000",
   "buildCommand": "tsc -b && vite build",
   "outputDirectory": "dist",
+  "functions": {
+    "api/webhooks/strava.ts": {
+      "includeFiles": "api/fonts/**"
+    }
+  },
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],

@@ -2,6 +2,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Resvg } from '@resvg/resvg-js';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+const FONT_BUFFER = readFileSync(join(process.cwd(), 'api/fonts/DejaVuSans.ttf'));
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL!,
@@ -240,7 +244,7 @@ async function generateStravaCard(
 
     const label = activityLabel(mapping.category, mapping.sub_type);
     const valueStr = String(value);
-    const { unit } = mapping;
+    const unit = mapping.unit === '분' ? 'min' : mapping.unit;
     const date = formatDate(activity.start_date);
     const device: string | null = activity.device_name ?? null;
     const meta = device ? `${date} · ${device}` : date;
@@ -259,8 +263,10 @@ async function generateStravaCard(
       ? buildRouteCardSvg({ label, value: valueStr, unit, stats, meta, polyline: polyline! })
       : buildNoRouteCardSvg({ label, value: valueStr, unit, stats, meta });
 
-    const pngBuffer = new Resvg(svg, { fitTo: { mode: 'width', value: 800 } }).render().asPng();
-    const thumbBuffer = new Resvg(svg, { fitTo: { mode: 'width', value: 300 } }).render().asPng();
+    const resvgOpts = { fitTo: { mode: 'width' as const, value: 800 }, font: { fontBuffers: [FONT_BUFFER], loadSystemFonts: false } };
+    const thumbOpts = { fitTo: { mode: 'width' as const, value: 300 }, font: { fontBuffers: [FONT_BUFFER], loadSystemFonts: false } };
+    const pngBuffer = new Resvg(svg, resvgOpts).render().asPng();
+    const thumbBuffer = new Resvg(svg, thumbOpts).render().asPng();
 
     const s3 = new S3Client({
       region: 'auto',
