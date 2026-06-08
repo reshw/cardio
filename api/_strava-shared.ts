@@ -1,0 +1,308 @@
+import { createClient } from '@supabase/supabase-js';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { Resvg } from '@resvg/resvg-js';
+import { join } from 'path';
+
+export const FONTS_DIR = join(process.cwd(), 'api/fonts');
+
+export type ValueSource = 'distance_km' | 'distance_m' | 'elapsed_min';
+
+export interface StravaMapping {
+  category: string;
+  sub_type: string | null;
+  unit: string;
+  value_source: ValueSource;
+}
+
+export const STRAVA_TYPE_MAP: Record<string, StravaMapping | null> = {
+  Run:               { category: '달리기', sub_type: '러닝',       unit: 'km', value_source: 'distance_km' },
+  TrailRun:          { category: '달리기', sub_type: '러닝',       unit: 'km', value_source: 'distance_km' },
+  VirtualRun:        { category: '달리기', sub_type: '트레드밀',   unit: 'km', value_source: 'distance_km' },
+  Ride:              { category: '사이클', sub_type: '실외',       unit: 'km', value_source: 'distance_km' },
+  VirtualRide:       { category: '사이클', sub_type: '실내',       unit: 'km', value_source: 'distance_km' },
+  MountainBikeRide:  { category: '사이클', sub_type: '실외',       unit: 'km', value_source: 'distance_km' },
+  GravelRide:        { category: '사이클', sub_type: '실외',       unit: 'km', value_source: 'distance_km' },
+  EBikeRide:         { category: '사이클', sub_type: '전기자전거', unit: 'km', value_source: 'distance_km' },
+  EMountainBikeRide: { category: '사이클', sub_type: '전기자전거', unit: 'km', value_source: 'distance_km' },
+  Swim:              { category: '수영',   sub_type: '풀수영',     unit: 'm',  value_source: 'distance_m'  },
+  OpenWaterSwim:     { category: '수영',   sub_type: '오픈워터',   unit: 'm',  value_source: 'distance_m'  },
+  Rowing:            { category: '로잉',   sub_type: '실외',       unit: 'km', value_source: 'distance_km' },
+  VirtualRow:        { category: '로잉',   sub_type: '실내',       unit: 'km', value_source: 'distance_km' },
+  Yoga:              { category: '요가',   sub_type: '하타',       unit: '분', value_source: 'elapsed_min' },
+  WeightTraining:    { category: '헬스',   sub_type: null,          unit: '분', value_source: 'elapsed_min' },
+  Crossfit:          { category: '헬스',   sub_type: null,          unit: '분', value_source: 'elapsed_min' },
+};
+
+export function xml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+export function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  const ss = String(s).padStart(2, '0');
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    return `${h}h ${m % 60}'${ss}"`;
+  }
+  return `${m}'${ss}"`;
+}
+
+export function formatPace(avgSpeedMs: number, unit: string): string | null {
+  if (!avgSpeedMs || avgSpeedMs <= 0) return null;
+  if (unit === 'km') {
+    const sPerKm = 1000 / avgSpeedMs;
+    const m = Math.floor(sPerKm / 60);
+    const s = Math.round(sPerKm % 60);
+    return `${m}'${String(s).padStart(2, '0')}"/km`;
+  }
+  if (unit === 'm') {
+    const sPer100m = 100 / avgSpeedMs;
+    const m = Math.floor(sPer100m / 60);
+    const s = Math.round(sPer100m % 60);
+    return `${m}'${String(s).padStart(2, '0')}"/100m`;
+  }
+  return null;
+}
+
+export function formatDateKST(iso: string): string {
+  const d = new Date(new Date(iso).getTime() + 9 * 3600_000);
+  return `${d.getUTCFullYear()}.${String(d.getUTCMonth() + 1).padStart(2, '0')}.${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
+const CAT_EMOJI: Record<string, string> = {
+  '달리기': '🏃', '수영': '🏊', '사이클': '🚴', '로잉': '🚣', '요가': '🧘', '헬스': '💪',
+};
+
+export function activityLabel(category: string, subType: string | null): string {
+  const emoji = CAT_EMOJI[category] || '';
+  const label = subType ? `${category} · ${subType}` : category;
+  return emoji ? `${emoji} ${label}` : label;
+}
+
+function decodePolyline(encoded: string): [number, number][] {
+  const coords: [number, number][] = [];
+  let i = 0, lat = 0, lng = 0;
+  while (i < encoded.length) {
+    let b = 0, shift = 0, result = 0;
+    do { b = encoded.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    coords.push([lat / 1e5, lng / 1e5]);
+  }
+  return coords;
+}
+
+function buildRouteData(encoded: string, aX: number, aY: number, aW: number, aH: number, pad = 30) {
+  const coords = decodePolyline(encoded);
+  if (coords.length < 2) return null;
+  const lats = coords.map(c => c[0]), lngs = coords.map(c => c[1]);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const latR = maxLat - minLat || 0.001, lngR = maxLng - minLng || 0.001;
+  const scale = Math.min((aW - pad * 2) / lngR, (aH - pad * 2) / latR);
+  const offX = aX + pad + (aW - pad * 2 - lngR * scale) / 2;
+  const offY = aY + pad + (aH - pad * 2 - latR * scale) / 2;
+  const pts = coords.map(([la, ln]) => `${((ln - minLng) * scale + offX).toFixed(1)},${((maxLat - la) * scale + offY).toFixed(1)}`);
+  const path = 'M ' + pts.join(' L ');
+  const last = coords[coords.length - 1];
+  return {
+    path,
+    endX: ((last[1] - minLng) * scale + offX),
+    endY: ((maxLat - last[0]) * scale + offY),
+  };
+}
+
+const STRAVA_PATH = 'M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169';
+const FONT = 'Black Han Sans';
+
+function buildRouteCardSvg(p: {
+  label: string; value: string; unit: string;
+  stats: { val: string; lbl: string }[];
+  meta: string; polyline: string;
+}): string {
+  const route = buildRouteData(p.polyline, 370, 0, 230, 600, 30);
+  const routeSvg = route ? `
+    <path d="${xml(route.path)}" fill="none" stroke="#FC4C02" stroke-opacity="0.15" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${xml(route.path)}" fill="none" stroke="#FC4C02" stroke-opacity="0.7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${route.endX.toFixed(1)}" cy="${route.endY.toFixed(1)}" r="5" fill="#FC4C02" opacity="0.9"/>
+    <circle cx="${route.endX.toFixed(1)}" cy="${route.endY.toFixed(1)}" r="9" fill="none" stroke="#FC4C02" stroke-width="1.5" opacity="0.4"/>
+  ` : '';
+
+  const statRows = p.stats.slice(0, 3).map((s, i) => {
+    const vy = 300 + i * 58;
+    return `<text x="42" y="${vy}" font-family="${FONT}" font-size="30" font-weight="bold" fill="#ffffff">${xml(s.val)}</text>
+    <text x="42" y="${vy + 16}" font-family="${FONT}" font-size="9" fill="#444444">${xml(s.lbl)}</text>`;
+  }).join('\n    ');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#111111"/><stop offset="60%" stop-color="#1a0e08"/><stop offset="100%" stop-color="#0f0f0f"/>
+    </linearGradient>
+    <linearGradient id="side" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#FC4C02"/><stop offset="100%" stop-color="#e03a00"/>
+    </linearGradient>
+    <linearGradient id="divl" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="50%" stop-color="#FC4C02" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="fade" gradientUnits="userSpaceOnUse" x1="370" y1="0" x2="440" y2="0">
+      <stop offset="0%" stop-color="#111111"/><stop offset="100%" stop-color="#111111" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="600" fill="url(#bg)"/>
+  <rect x="0" y="0" width="6" height="600" fill="url(#side)"/>
+  <text x="42" y="65" font-family="${FONT}" font-size="15" fill="#cccccc">${xml(p.label)}</text>
+  <g transform="translate(42,72) scale(0.5)"><path d="${STRAVA_PATH}" fill="#FC4C02" opacity="0.55"/></g>
+  <text x="58" y="83" font-family="${FONT}" font-size="10" fill="#555555">Recorded by Strava</text>
+  <text x="42" y="235" font-family="${FONT}"><tspan font-size="104" font-weight="bold" fill="#ffffff" letter-spacing="-4">${xml(p.value)}</tspan><tspan font-size="28" fill="#666666" dy="-8" dx="8">${xml(p.unit)}</tspan></text>
+  <rect x="42" y="250" width="280" height="1" fill="url(#divl)"/>
+  ${statRows}
+  <text x="42" y="548" font-family="${FONT}" font-size="10" font-weight="bold" fill="#2a2a2a" letter-spacing="2">CARDIO</text>
+  <text x="42" y="563" font-family="${FONT}" font-size="10" fill="#333333">${xml(p.meta)}</text>
+  ${routeSvg}
+  <rect x="370" y="0" width="70" height="600" fill="url(#fade)"/>
+</svg>`;
+}
+
+function buildNoRouteCardSvg(p: {
+  label: string; value: string; unit: string;
+  stats: { val: string; lbl: string }[];
+  meta: string;
+}): string {
+  const colX = [42, 233, 405];
+  const statCols = p.stats.slice(0, 3).map((s, i) => {
+    const vx = colX[i];
+    return `<text x="${vx}" y="431" font-family="${FONT}" font-size="30" font-weight="bold" fill="#ffffff">${xml(s.val)}</text>
+    <text x="${vx}" y="448" font-family="${FONT}" font-size="10" fill="#444444">${xml(s.lbl)}</text>`;
+  }).join('\n    ');
+
+  const sep1 = p.stats.length >= 2 ? `<rect x="213" y="401" width="1" height="56" fill="#ffffff" fill-opacity="0.05"/>` : '';
+  const sep2 = p.stats.length >= 3 ? `<rect x="385" y="401" width="1" height="56" fill="#ffffff" fill-opacity="0.05"/>` : '';
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#111111"/><stop offset="60%" stop-color="#1a0e08"/><stop offset="100%" stop-color="#0f0f0f"/>
+    </linearGradient>
+    <linearGradient id="side" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#FC4C02"/><stop offset="100%" stop-color="#e03a00"/>
+    </linearGradient>
+    <linearGradient id="divl" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="40%" stop-color="#FC4C02" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="600" fill="url(#bg)"/>
+  <rect x="0" y="0" width="6" height="600" fill="url(#side)"/>
+  <circle cx="540" cy="540" r="130" fill="none" stroke="#FC4C02" stroke-opacity="0.08"/>
+  <circle cx="553" cy="553" r="82" fill="none" stroke="#FC4C02" stroke-opacity="0.05"/>
+  <text x="42" y="68" font-family="${FONT}" font-size="16" fill="#cccccc">${xml(p.label)}</text>
+  <g transform="translate(415,56) scale(0.54)"><path d="${STRAVA_PATH}" fill="#FC4C02" opacity="0.55"/></g>
+  <text x="554" y="68" font-family="${FONT}" font-size="11" fill="#555555" text-anchor="end">Recorded by Strava</text>
+  <text x="42" y="274" font-family="${FONT}"><tspan font-size="140" font-weight="bold" fill="#ffffff" letter-spacing="-6">${xml(p.value)}</tspan><tspan font-size="34" fill="#666666" dy="-12" dx="10">${xml(p.unit)}</tspan></text>
+  <rect x="42" y="386" width="512" height="1" fill="url(#divl)"/>
+  ${sep1}
+  ${sep2}
+  ${statCols}
+  <text x="42" y="556" font-family="${FONT}" font-size="11" font-weight="bold" fill="#2a2a2a" letter-spacing="2">CARDIO</text>
+  <text x="554" y="556" font-family="${FONT}" font-size="11" fill="#3a3a3a" text-anchor="end">${xml(p.meta)}</text>
+</svg>`;
+}
+
+export async function generateStravaCard(
+  activity: any,
+  mapping: StravaMapping,
+  value: number,
+  activityId: string
+): Promise<string | null> {
+  try {
+    const accountId = process.env.R2_ACCOUNT_ID;
+    const accessKey = process.env.R2_ACCESS_KEY_ID;
+    const secretKey = process.env.R2_SECRET_ACCESS_KEY;
+    const bucket = process.env.R2_BUCKET_NAME;
+    const publicUrl = process.env.R2_PUBLIC_URL;
+    if (!accountId || !accessKey || !secretKey || !bucket || !publicUrl) {
+      console.warn('R2 not configured, skipping card generation');
+      return null;
+    }
+
+    const label = activityLabel(mapping.category, mapping.sub_type);
+    const valueStr = String(value);
+    const unit = mapping.unit === '분' ? 'min' : mapping.unit;
+    const date = formatDateKST(activity.start_date);
+    const device: string | null = activity.device_name ?? null;
+    const meta = device ? `${date} · ${device}` : date;
+
+    const stats: { val: string; lbl: string }[] = [];
+    if (activity.moving_time) stats.push({ val: formatDuration(activity.moving_time), lbl: 'MOVING TIME' });
+    const pace = (activity.average_speed && (unit === 'km' || unit === 'm'))
+      ? formatPace(activity.average_speed, unit) : null;
+    if (pace) stats.push({ val: pace, lbl: 'PACE' });
+    if (activity.average_heartrate) stats.push({ val: `${Math.round(activity.average_heartrate)} bpm`, lbl: 'AVG HEARTRATE' });
+
+    const polyline: string | null = activity.map?.summary_polyline ?? null;
+    const hasRoute = !!(polyline && polyline.length > 10);
+
+    const svg = hasRoute
+      ? buildRouteCardSvg({ label, value: valueStr, unit, stats, meta, polyline: polyline! })
+      : buildNoRouteCardSvg({ label, value: valueStr, unit, stats, meta });
+
+    const fontOpts = { fontDirs: [FONTS_DIR], loadSystemFonts: false };
+    const resvgOpts = { fitTo: { mode: 'width' as const, value: 600 }, font: fontOpts };
+    const thumbOpts = { fitTo: { mode: 'width' as const, value: 300 }, font: fontOpts };
+    const pngBuffer = new Resvg(svg, resvgOpts).render().asPng();
+    const thumbBuffer = new Resvg(svg, thumbOpts).render().asPng();
+
+    const s3 = new S3Client({
+      region: 'auto',
+      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+      credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
+    });
+    const key = `strava-cards/${activityId}.png`;
+    const thumbKey = `strava-cards/${activityId}_thumb.png`;
+    await Promise.all([
+      s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: pngBuffer, ContentType: 'image/png' })),
+      s3.send(new PutObjectCommand({ Bucket: bucket, Key: thumbKey, Body: thumbBuffer, ContentType: 'image/png' })),
+    ]);
+    return `${publicUrl}/${key}`;
+  } catch (err) {
+    console.error('Strava card generation failed:', err);
+    return null;
+  }
+}
+
+export async function getValidToken(
+  supabaseClient: ReturnType<typeof createClient>,
+  integration: { id: string; access_token: string; refresh_token: string; token_expires_at: string }
+): Promise<string | null> {
+  if (new Date(integration.token_expires_at) > new Date(Date.now() + 60_000)) {
+    return integration.access_token;
+  }
+  const res = await fetch('https://www.strava.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_id: process.env.STRAVA_CLIENT_ID,
+      client_secret: process.env.STRAVA_CLIENT_SECRET,
+      refresh_token: integration.refresh_token,
+      grant_type: 'refresh_token',
+    }),
+  });
+  if (!res.ok) { console.error('Token refresh failed:', await res.text()); return null; }
+  const data = await res.json();
+  await supabaseClient.from('user_integrations').update({
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+    token_expires_at: new Date(data.expires_at * 1000).toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq('id', integration.id);
+  return data.access_token;
+}
