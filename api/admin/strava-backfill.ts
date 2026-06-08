@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { STRAVA_TYPE_MAP, getValidToken } from '../_strava-shared';
+import { STRAVA_TYPE_MAP, getValidToken } from '../_strava-shared.js';
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL!,

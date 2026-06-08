@@ -4,7 +4,7 @@ import {
   STRAVA_TYPE_MAP,
   generateStravaCard,
   getValidToken,
-} from '../_strava-shared';
+} from '../_strava-shared.js';
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL!,
