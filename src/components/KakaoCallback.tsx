@@ -75,6 +75,10 @@ const KakaoCallback = () => {
         console.error('link_or_create_user 실패:', err);
       }
 
+      // RPC 완료 후 세션 갱신 → AuthContext가 public.users를 다시 조회하도록 트리거
+      // (SIGNED_IN 시점에 레이스 컨디션으로 user=null이 된 경우 복구)
+      await supabase.auth.refreshSession();
+
       const redirectTo = sessionStorage.getItem('redirect_after_login') || '/';
       sessionStorage.removeItem('redirect_after_login');
       navigate(redirectTo, { replace: true });

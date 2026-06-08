@@ -109,7 +109,7 @@ export const AdminStravaIntegrations = () => {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.detail ? `${data.error}: ${data.detail}` : (data.error || '동기화에 실패했습니다.'));
       setSyncResult(data);
     } catch (err: any) {
       setSyncError(err.message || '동기화에 실패했습니다.');

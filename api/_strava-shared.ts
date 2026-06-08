@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { Resvg } from '@resvg/resvg-js';
 import { join } from 'path';
 
 export const FONTS_DIR = join(process.cwd(), 'api/fonts');
@@ -255,6 +254,7 @@ export async function generateStravaCard(
       ? buildRouteCardSvg({ label, value: valueStr, unit, stats, meta, polyline: polyline! })
       : buildNoRouteCardSvg({ label, value: valueStr, unit, stats, meta });
 
+    const { Resvg } = await import('@resvg/resvg-js');
     const fontOpts = { fontDirs: [FONTS_DIR], loadSystemFonts: false };
     const resvgOpts = { fitTo: { mode: 'width' as const, value: 600 }, font: fontOpts };
     const thumbOpts = { fitTo: { mode: 'width' as const, value: 300 }, font: fontOpts };

@@ -3516,11 +3516,10 @@ body.search-modal-open .bottom-nav {
   position: absolute;
   inset: 0;
   opacity: 0;
-  cursor: pointer;
+  pointer-events: none;
   width: 100%;
   height: 100%;
   border: none;
-  z-index: 2;
 }
 
 /* ② 수치 입력 히어로 카드 */
@@ -3542,49 +3541,60 @@ body.search-modal-open .bottom-nav {
   opacity: 0.7;
 }
 
-/* 수치 입력 한 줄 통합 레이아웃 */
+/* 수치 입력 휠피커 레이아웃 */
 .step3-value-row {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin: 6px 0 8px;
+  margin: 16px 0 8px;
 }
 
-.step3-adj-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+/* 자릿수 컬럼 — +/숫자/- 세로 배치 */
+.step3-digit-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 자릿수별 증감 버튼 — 비활성 시 숨김 */
+.step3-digit-adj-btn {
+  width: 36px;
+  height: 30px;
+  border-radius: 8px;
   border: none;
-  font-size: 22px;
-  font-weight: 300;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.12s;
   font-family: inherit;
-  line-height: 1;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.1s;
+  color: var(--primary-color);
 }
 
-.step3-adj-minus {
-  background: var(--input-bg);
-  color: var(--text-secondary);
-  border: 1.5px solid var(--border-color) !important;
+.step3-digit-col.active .step3-digit-adj-btn {
+  opacity: 1;
+  pointer-events: auto;
 }
 
-.step3-adj-plus {
-  background: var(--gradient-primary);
-  color: white;
-  box-shadow: 0 3px 10px rgba(79, 195, 247, 0.3);
+.step3-digit-adj-plus {
+  background: rgba(79, 195, 247, 0.12);
 }
 
-.step3-adj-btn:active {
-  transform: scale(0.88);
-  box-shadow: none;
-  opacity: 0.75;
+.step3-digit-adj-minus {
+  background: rgba(79, 195, 247, 0.08);
+}
+
+.step3-digit-adj-btn:active {
+  transform: scale(0.85);
+  opacity: 0.7;
 }
 
 /* 자릿수 네비게이터 */
@@ -11607,4 +11617,127 @@ body.workout-detail-open .bottom-nav {
   font-size: 12px;
   color: var(--text-secondary);
   text-align: right;
+}
+
+/* ── 커스텀 날짜 피커 시트 ── */
+.date-picker-sheet {
+  padding: 0 20px calc(24px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.date-picker-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.date-picker-day-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 20px 0 24px;
+}
+
+.date-picker-day-btn {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 12px;
+  border: 1.5px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.date-picker-day-btn.active {
+  border-color: var(--primary-color);
+  background: rgba(79, 195, 247, 0.1);
+  color: var(--primary-color);
+}
+
+.date-picker-day-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.date-picker-time-section {
+  margin-bottom: 28px;
+}
+
+.date-picker-time-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.date-picker-colon {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  opacity: 0.5;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.date-picker-spin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.date-picker-spin-btn {
+  width: 52px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.date-picker-spin-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.date-picker-spin-btn:not(:disabled):active {
+  background: rgba(79, 195, 247, 0.1);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.date-picker-spin-val {
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -1px;
+  line-height: 1;
+  min-width: 52px;
+  text-align: center;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px;
+}
+
+.date-picker-spin-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0;
+}
+
+.date-picker-footer {
+  margin-top: 4px;
 }
