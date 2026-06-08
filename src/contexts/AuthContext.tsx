@@ -53,6 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // 세션 변경 감지 (로그인·로그아웃·토큰 갱신)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
+        setLoading(true); // fetchPublicUser 완료 전까지 로딩 유지
         fetchPublicUser(session.user.id);
       } else {
         setUser(null);

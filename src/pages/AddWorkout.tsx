@@ -10,6 +10,7 @@ import { getDeviceInfo } from '../utils/deviceInfo';
 import type { WorkoutCategory, WorkoutSubType, WorkoutUnit, Workout } from '../services/workoutService';
 import clubService from '../services/clubService';
 import type { MyClubWithOrder } from '../services/clubService';
+import DatePickerSheet from '../components/DatePickerSheet';
 
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
 
@@ -55,8 +56,10 @@ export const AddWorkout = () => {
   const dateInputRef = useRef<HTMLInputElement>(null);
   const stepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stepIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [cursorExp, setCursorExp] = useState(0); // 0=ones, 1=tens, 2=hundreds, -1=tenths
-  const cursorExpRef = useRef(0);
+  const [cursorExp, setCursorExp] = useState(1); // 0=ones, 1=tens, 2=hundreds, -1=tenths
+  const cursorExpRef = useRef(1);
+  const touchActive = useRef(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDirectInput, setShowDirectInput] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [intensity, setIntensity] = useState(editWorkout?.intensity ?? 4);
@@ -319,8 +322,8 @@ export const AddWorkout = () => {
     const doAdjust = () => adjustAtExp(cursorExpRef.current, delta);
     doAdjust();
     stepTimerRef.current = setTimeout(() => {
-      stepIntervalRef.current = setInterval(doAdjust, 120);
-    }, 380);
+      stepIntervalRef.current = setInterval(doAdjust, 100);
+    }, 1000);
   };
 
   const stopStep = () => {
@@ -540,16 +543,18 @@ export const AddWorkout = () => {
           const dateStr = `${d.getMonth() + 1}월 ${d.getDate()}일 (${WDAYS[d.getDay()]})`;
           const timeStr = `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}`;
           const activeIdx = DIFF_LEVELS.findIndex(l => intensity >= l.min && intensity <= l.max);
-          const nowTs = new Date();
-          const toInputLocal = (ts: Date) => new Date(ts.getTime() - ts.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-          const maxDateInput = toInputLocal(nowTs);
-          const minDateInput = toInputLocal(new Date(nowTs.getTime() - 48 * 60 * 60 * 1000));
 
           return (
             <form onSubmit={handleSubmit} className="step3-form">
 
               {/* ① 날짜 카드 — 최상단, 컨텍스트 헤더 역할 */}
-              <div className="step3-date-card">
+              <div
+                className="step3-date-card"
+                onClick={() => editWorkout
+                  ? dateInputRef.current?.showPicker?.()
+                  : setShowDatePicker(true)
+                }
+              >
                 <div className="step3-date-inner">
                   <div className="step3-date-workout-name">
                     {selectedCategory?.label}
@@ -567,17 +572,24 @@ export const AddWorkout = () => {
                     <div className="step3-date-edit-chip">✎ 변경</div>
                   </div>
                 </div>
-                <input
-                  ref={dateInputRef}
-                  type="datetime-local"
-                  value={workoutDate}
-                  onChange={(e) => setWorkoutDate(e.target.value)}
-                  className="step3-date-hidden-input"
-                  max={editWorkout ? undefined : maxDateInput}
-                  min={editWorkout ? undefined : minDateInput}
-                  required
-                />
+                {editWorkout && (
+                  <input
+                    ref={dateInputRef}
+                    type="datetime-local"
+                    value={workoutDate}
+                    onChange={(e) => setWorkoutDate(e.target.value)}
+                    className="step3-date-hidden-input"
+                    required
+                  />
+                )}
               </div>
+              {showDatePicker && (
+                <DatePickerSheet
+                  value={workoutDate}
+                  onChange={setWorkoutDate}
+                  onClose={() => setShowDatePicker(false)}
+                />
+              )}
 
               {/* ② 수치 입력 — 자릿수 네비게이터 */}
               <div className="step3-value-card">
@@ -601,28 +613,44 @@ export const AddWorkout = () => {
                   </div>
                 ) : (
                   <>
-                    {/* [−] ‹ 자릿수 › [+] — 한 줄 통합 */}
+                    {/* 휠피커: ‹ [자릿수별 +/숫자/-] › */}
                     <div className="step3-value-row">
-                      <button type="button" className="step3-adj-btn step3-adj-minus"
-                        onMouseDown={() => startDigitStep(-1)} onMouseUp={stopStep} onMouseLeave={stopStep}
-                        onTouchStart={(e) => { e.preventDefault(); startDigitStep(-1); }} onTouchEnd={stopStep}
-                      >−</button>
                       <button type="button" className="step3-nav-arrow"
                         onClick={() => setCursorExp(e => Math.min(maxCursorExp, e + 1))}>‹</button>
                       <div className="step3-digit-display">
                         {displayExps.map(exp => {
                           const d = getDigitAtExp(exp);
-                          const isSelected = clampedExp === exp;
-                          const isLeadingZero = !isSelected && exp >= 0 && d === 0
+                          const isActive = clampedExp === exp;
+                          const isLeadingZero = !isActive && exp >= 0 && d === 0
                             && displayExps.filter(e => e > exp).every(e => getDigitAtExp(e) === 0);
                           return (
                             <span key={exp} className="step3-digit-slot">
                               {exp === -1 && <span className="step3-digit-dot">.</span>}
-                              <button
-                                type="button"
-                                className={`step3-digit-box${isSelected ? ' selected' : ''}${isLeadingZero ? ' dim' : ''}`}
-                                onClick={() => setCursorExp(exp)}
-                              >{d}</button>
+                              <div className={`step3-digit-col${isActive ? ' active' : ''}`}>
+                                <button
+                                  type="button"
+                                  className="step3-digit-adj-btn step3-digit-adj-plus"
+                                  onMouseDown={() => { if (touchActive.current) return; startDigitStep(1); }}
+                                  onMouseUp={stopStep}
+                                  onMouseLeave={stopStep}
+                                  onTouchStart={(e) => { e.preventDefault(); touchActive.current = true; startDigitStep(1); }}
+                                  onTouchEnd={() => { stopStep(); setTimeout(() => { touchActive.current = false; }, 300); }}
+                                >+</button>
+                                <button
+                                  type="button"
+                                  className={`step3-digit-box${isActive ? ' selected' : ''}${isLeadingZero ? ' dim' : ''}`}
+                                  onClick={() => setCursorExp(exp)}
+                                >{d}</button>
+                                <button
+                                  type="button"
+                                  className="step3-digit-adj-btn step3-digit-adj-minus"
+                                  onMouseDown={() => { if (touchActive.current) return; startDigitStep(-1); }}
+                                  onMouseUp={stopStep}
+                                  onMouseLeave={stopStep}
+                                  onTouchStart={(e) => { e.preventDefault(); touchActive.current = true; startDigitStep(-1); }}
+                                  onTouchEnd={() => { stopStep(); setTimeout(() => { touchActive.current = false; }, 300); }}
+                                >−</button>
+                              </div>
                             </span>
                           );
                         })}
@@ -630,10 +658,6 @@ export const AddWorkout = () => {
                       </div>
                       <button type="button" className="step3-nav-arrow"
                         onClick={() => setCursorExp(e => Math.max(minCursorExp, e - 1))}>›</button>
-                      <button type="button" className="step3-adj-btn step3-adj-plus"
-                        onMouseDown={() => startDigitStep(1)} onMouseUp={stopStep} onMouseLeave={stopStep}
-                        onTouchStart={(e) => { e.preventDefault(); startDigitStep(1); }} onTouchEnd={stopStep}
-                      >+</button>
                     </div>
                     <button type="button" className="step3-type-direct-btn"
                       onClick={() => setShowDirectInput(true)}>⌨️ 직접 입력</button>
