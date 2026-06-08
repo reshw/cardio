@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<style>
+  @font-face { font-family: 'LineSeed'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Th.woff2') format('woff2'); font-weight: 100; }
+  @font-face { font-family: 'LineSeed'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Rg.woff2') format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'LineSeed'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Bd.woff2') format('woff2'); font-weight: 700; }
+  body { background: #ffffff; color: #000000; font-family: 'LineSeed', sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; line-height: 1.8; }
+  h1 { font-size: 20px; font-weight: bold; color: #569cd6; }
+  h2 { font-size: 17px; font-weight: bold; color: #569cd6; margin-top: 28px; }
+  h3 { font-size: 15px; font-weight: bold; color: #569cd6; margin-top: 16px; margin-bottom: 4px; }
+  p { color: #000000; margin: 6px 0; font-weight: normal; }
+  li { color: #000000; font-weight: normal; }
+  hr { border: none; border-top: 1px solid #cccccc; margin: 20px 0; }
+</style>
+</head>
+<body>
+
+<h1>업데이트 안내 (2026.06.08)</h1>
+<p>안녕하세요! 운동 기록 등록 관련 불편 사항 두 가지를 수정했습니다.</p>
+
+<hr>
+
+<h2>🔧 오류 수정</h2>
+
+<h3>사진 업로드 실패 오류 수정</h3>
+<p>일부 환경에서 사진을 첨부하면 업로드가 실패하는 문제가 있었습니다.<br>
+특히 <b>고화질 카메라로 찍은 원본 사진</b>(용량이 큰 경우)에서 주로 발생했습니다.</p>
+<p><b>(종전)</b> 용량이 큰 사진 선택 시 업로드 실패</p>
+<p><b>(변경)</b> 업로드 전 사진을 자동으로 최적화하여 전송 — 화질 차이는 거의 없습니다</p>
+
+<h3>아이폰에서 사진 선택 후 입력 내용이 사라지는 문제 수정</h3>
+<p>아이폰에서 사진첩을 열었다 돌아오면 운동 종류, 거리, 날짜 등 입력했던 내용이 전부 사라지는 문제가 있었습니다.<br>
+특히 <b>홈 화면에 추가해서 앱처럼 사용하시는 분</b>들께 자주 발생했습니다.</p>
+<p><b>(종전)</b> 사진 선택 후 돌아오면 입력 내용 전부 초기화</p>
+<p><b>(변경)</b> 사진 선택 후 돌아오는 과정에서 입력 내용을 잃어버리는 문제를 수정했습니다</p>
+
+<h3>사진 선택 시 종목 선택 화면으로 튀거나 불필요한 경고창이 뜨는 문제 수정</h3>
+<p>운동 정보를 다 입력한 뒤 사진을 첨부하려고 하면, 갑자기 맨 처음 종목 선택 화면으로 돌아가거나<br>
+"증빙 사진을 추가해주세요" 경고창이 뜨는 문제가 있었습니다.<br>
+아이폰뿐 아니라 <b>갤럭시(안드로이드) 환경에서도 동일하게 발생</b>했습니다.</p>
+<p><b>(종전)</b> 사진 선택 버튼을 누르면 입력 내용이 초기화되거나 불필요한 경고창 발생</p>
+<p><b>(변경)</b> 사진 선택 중 화면이 튀거나 경고창이 뜨는 문제를 수정했습니다</p>
+
+<hr>
+
+<p>불편한 점이 있으시면 더보기 → 수정 요청 / 버그 제보로 알려주세요. 감사합니다!</p>
+
+<hr>
+<details>
+<summary style="font-size:13px; color:#888; cursor:pointer;">🔩 기술 메모 (내부 아카이빙용 — 대외 비공개)</summary>
+<div style="margin-top:12px; background:#f5f5f5; border-radius:8px; padding:16px; font-size:13px; line-height:1.9; color:#333;">
+
+<b>발생 커밋:</b> <code>2c1328c</code> — iOS WebView discard 대응을 위해 sessionStorage draft 저장/복원 로직을 추가한 시점부터 발생<br><br>
+
+<b>버그 1 — "증빙사진첨부 필수" alert이 사진 선택 직후에 뜨는 현상</b><br>
+Android WebView 일부 버전은 <code>&lt;form&gt;</code> 내부에 있는 file input의 <code>onChange</code>가 발생할 때 form의 <code>submit</code> 이벤트를 함께 spurious하게 발생시킨다. 이 시점에 <code>proofImage</code> React state는 아직 null(setState는 비동기 배치)이므로 <code>handleSubmit</code>의 검증 분기에서 "사진 미첨부"로 잘못 판단하여 alert가 발생했다. 이 alert 핸들러 안에서 <code>fileInputRef.current?.click()</code>을 다시 호출하던 로직도 있어서, 파일 픽커가 재오픈 → 유저가 back → popstate 발생 → 컴포넌트 재마운트로 이어지는 사이클을 만들기도 했다.<br><br>
+
+<b>버그 2 — 사진 선택 후 종목 선택 화면(step 1)으로 돌아가는 현상</b><br>
+Android Chrome은 파일 픽커 Activity가 열릴 때 브라우저 히스토리에 내부 엔트리를 추가하고, 파일 선택 완료 또는 취소 시 이를 pop하며 <code>popstate</code> 이벤트를 발생시킨다. BrowserRouter(React Router)가 이를 받아 컴포넌트를 재마운트할 수 있다. 재마운트 시 sessionStorage draft를 읽어 step을 복원하는데, draft 저장이 비동기 useEffect 기반이라 파일 픽커가 열리기 직전 상태가 sessionStorage에 아직 반영되지 않은 경우 stale한 step 값(최악의 경우 step: 1)이 복원되는 타이밍 문제가 발생했다.<br><br>
+
+<b>수정 방법 (4가지)</b><br>
+① <b>file input을 <code>&lt;form&gt;</code> 밖으로 이동</b> — form과의 연관을 끊어 spurious submit 이벤트 자체를 차단. 핵심 수정.<br>
+② <b><code>proofImageRef</code>(useRef) 추가</b> — <code>handleImageChange</code>에서 ref를 동기적으로 업데이트. submit 검증 시 state 대신 ref를 사용하여 React 배치 업데이트 딜레이를 우회.<br>
+③ <b><code>openFilePicker()</code> 헬퍼 추가</b> — 파일 픽커 오픈 직전에 <code>saveDraftNow()</code>로 sessionStorage에 현재 상태를 동기적으로 즉시 저장. popstate로 인한 재마운트 시에도 최신 step이 보장됨.<br>
+④ <b><code>handleSubmit</code>에서 <code>fileInputRef.current?.click()</code> 제거</b> — 사진 미첨부 alert 후 자동 파일 픽커 재오픈을 제거하여 back 버튼→popstate→재마운트 사이클 차단.
+
+</div>
+</details>
+
+</body>
+</html>
