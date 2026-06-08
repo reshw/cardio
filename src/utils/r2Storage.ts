@@ -6,12 +6,45 @@ interface UploadResponse {
   thumbnailUrl: string;
 }
 
+// Vercel Functions payload 제한 대비 — 모바일 원본(5~15MB)을 1MB 이하로 줄여서 전송
+const compressImageForUpload = (file: File): Promise<File> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 1280;
+      let { width, height } = img;
+      if (width > MAX) { height = Math.round((height * MAX) / width); width = MAX; }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const out = new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), { type: 'image/webp' });
+            console.log(`🗜️ 압축: ${(file.size / 1024 / 1024).toFixed(1)}MB → ${(out.size / 1024 / 1024).toFixed(1)}MB`);
+            resolve(out);
+          } else {
+            resolve(file);
+          }
+        },
+        'image/webp',
+        0.75,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+
 /**
  * R2에 이미지 업로드 (원본 + 썸네일)
  * @param file 업로드할 파일
  * @returns 원본 URL과 썸네일 URL
  */
 export const uploadToR2 = async (file: File): Promise<string> => {
+  file = await compressImageForUpload(file);
   console.log('📤 R2 업로드 시작:', file.name);
 
   const formData = new FormData();
