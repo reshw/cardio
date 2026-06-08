@@ -63,6 +63,7 @@ export const AddWorkout = () => {
   const [proofImage, setProofImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const proofImageRef = useRef<File | null>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const stepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stepIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -117,7 +118,9 @@ export const AddWorkout = () => {
       const binary = atob(data);
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      setProofImage(new File([new Blob([bytes], { type: mime })], 'restored.jpg', { type: mime }));
+      const restored = new File([new Blob([bytes], { type: mime })], 'restored.jpg', { type: mime });
+      proofImageRef.current = restored;
+      setProofImage(restored);
     } catch { /* 이미지 복원 실패 시 사용자가 재선택 */ }
   }, []);
 
@@ -209,6 +212,7 @@ export const AddWorkout = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      proofImageRef.current = file;
       setProofImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -216,6 +220,23 @@ export const AddWorkout = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // 파일 픽커 열기 전 현재 상태를 sessionStorage에 동기적으로 저장
+  // (Android Chrome: 파일 픽커가 popstate를 발생시켜 컴포넌트가 재마운트될 경우 대비)
+  const saveDraftNow = () => {
+    if (editWorkout || step === 4) return;
+    const draft = { step, category, subType, subTypeRatio, value, workoutDate, intensity, memo, showOtherWorkouts };
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ ...draft, imagePreview }));
+    } catch {
+      try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(draft)); } catch {}
+    }
+  };
+
+  const openFilePicker = () => {
+    saveDraftNow();
+    fileInputRef.current?.click();
   };
 
   // 저장
@@ -240,9 +261,8 @@ export const AddWorkout = () => {
       }
     }
 
-    if (!editWorkout && !proofImage) {
+    if (!editWorkout && !proofImageRef.current) {
       alert('증빙 사진을 추가해주세요. (필수)');
-      fileInputRef.current?.click();
       return;
     }
 
@@ -584,6 +604,16 @@ export const AddWorkout = () => {
           const activeIdx = DIFF_LEVELS.findIndex(l => intensity >= l.min && intensity <= l.max);
 
           return (
+            <>
+            {/* 파일 인풋: form 외부에 배치 — Android WebView에서 form 내부 file input이
+                onChange 시 spurious submit 이벤트를 발생시키는 버그 방지 */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="file-input-hidden"
+            />
             <form onSubmit={handleSubmit} className="step3-form">
 
               {/* ① 날짜 카드 — 최상단, 컨텍스트 헤더 역할 */}
@@ -708,13 +738,6 @@ export const AddWorkout = () => {
 
               {/* ③ 인증사진 카드 — 필수, 컴팩트 */}
               <div className="step3-section-card step3-photo-card">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="file-input-hidden"
-                />
                 <div className="step3-photo-header">
                   <div className="step3-photo-header-left">
                     <span className="step3-section-title">📸 인증사진</span>
@@ -723,12 +746,12 @@ export const AddWorkout = () => {
                   </span>
                   </div>
                   {(imagePreview || editWorkout?.proof_image) ? (
-                    <div className="step3-photo-thumb" onClick={() => fileInputRef.current?.click()}>
+                    <div className="step3-photo-thumb" onClick={openFilePicker}>
                       <img src={imagePreview ?? editWorkout?.proof_image} alt="미리보기" />
                       <div className="step3-photo-thumb-overlay">변경</div>
                     </div>
                   ) : (
-                    <button type="button" className="step3-photo-add-btn" onClick={() => fileInputRef.current?.click()}>
+                    <button type="button" className="step3-photo-add-btn" onClick={openFilePicker}>
                       📷 추가
                     </button>
                   )}
@@ -798,6 +821,7 @@ export const AddWorkout = () => {
                 </button>
               </div>
             </form>
+            </>
           );
         })()}
 
