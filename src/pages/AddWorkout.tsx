@@ -188,6 +188,19 @@ export const AddWorkout = () => {
       return;
     }
 
+    if (!editWorkout) {
+      const selectedTime = new Date(workoutDate);
+      const nowCheck = new Date();
+      if (selectedTime > nowCheck) {
+        alert('미래 날짜는 기록할 수 없습니다.');
+        return;
+      }
+      if (nowCheck.getTime() - selectedTime.getTime() > 48 * 60 * 60 * 1000) {
+        alert('48시간 이전 기록은 추가할 수 없습니다.\n(최대 2일 전까지만 가능)');
+        return;
+      }
+    }
+
     if (!editWorkout && !proofImage) {
       alert('증빙 사진을 추가해주세요. (필수)');
       fileInputRef.current?.click();
@@ -527,24 +540,16 @@ export const AddWorkout = () => {
           const dateStr = `${d.getMonth() + 1}월 ${d.getDate()}일 (${WDAYS[d.getDay()]})`;
           const timeStr = `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}`;
           const activeIdx = DIFF_LEVELS.findIndex(l => intensity >= l.min && intensity <= l.max);
+          const nowTs = new Date();
+          const toInputLocal = (ts: Date) => new Date(ts.getTime() - ts.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+          const maxDateInput = toInputLocal(nowTs);
+          const minDateInput = toInputLocal(new Date(nowTs.getTime() - 48 * 60 * 60 * 1000));
 
           return (
             <form onSubmit={handleSubmit} className="step3-form">
 
               {/* ① 날짜 카드 — 최상단, 컨텍스트 헤더 역할 */}
-              <div
-                className="step3-date-card"
-                onClick={() => {
-                  const el = dateInputRef.current;
-                  if (!el) return;
-                  if (typeof (el as any).showPicker === 'function') {
-                    (el as any).showPicker();
-                  } else {
-                    el.focus();
-                    el.click();
-                  }
-                }}
-              >
+              <div className="step3-date-card">
                 <div className="step3-date-inner">
                   <div className="step3-date-workout-name">
                     {selectedCategory?.label}
@@ -568,6 +573,8 @@ export const AddWorkout = () => {
                   value={workoutDate}
                   onChange={(e) => setWorkoutDate(e.target.value)}
                   className="step3-date-hidden-input"
+                  max={editWorkout ? undefined : maxDateInput}
+                  min={editWorkout ? undefined : minDateInput}
                   required
                 />
               </div>
