@@ -815,36 +815,32 @@ export const AddWorkout = () => {
 
               {/* ③ 인증사진 카드 — 선택 */}
               <div className="step3-section-card step3-photo-card">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="file-input-hidden"
+                />
                 <div className="step3-photo-header">
                   <div className="step3-photo-header-left">
                     <span className="step3-section-title">📸 인증사진</span>
                     <span className="step3-pill step3-pill-optional">선택</span>
                   </div>
                   {(imagePreview || editWorkout?.proof_image) ? (
-                    <div className="step3-photo-thumb" style={{ position: 'relative' }}>
+                    <div
+                      className="step3-photo-thumb"
+                      onClick={() => { enableFilePickerGuard(); addLog('PICKER open (thumb/click)', '#ff8'); fileInputRef.current?.click(); }}
+                    >
                       <img src={imagePreview ?? editWorkout?.proof_image} alt="미리보기" />
-                      <div className="step3-photo-thumb-overlay" style={{ pointerEvents: 'none' }}>변경</div>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        onClick={() => { enableFilePickerGuard(); addLog('PICKER open (thumb/overlay)', '#ff8'); }}
-                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', fontSize: 0 }}
-                      />
+                      <div className="step3-photo-thumb-overlay">변경</div>
                     </div>
                   ) : (
-                    <div style={{ position: 'relative', display: 'inline-block' }}>
-                      <span className="step3-photo-add-btn">📷 사진 첨부</span>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        onClick={() => { enableFilePickerGuard(); addLog('PICKER open (gallery/overlay)', '#ff8'); }}
-                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', fontSize: 0 }}
-                      />
-                    </div>
+                    <button
+                      type="button"
+                      className="step3-photo-add-btn"
+                      onClick={() => { enableFilePickerGuard(); addLog('PICKER open (gallery/click)', '#ff8'); fileInputRef.current?.click(); }}
+                    >📷 사진 첨부</button>
                   )}
                 </div>
                 {showBrowserWarning && (
