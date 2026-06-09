@@ -247,11 +247,6 @@ export const AddWorkout = () => {
       }
     }
 
-    if (!editWorkout && !proofImage) {
-      alert('증빙 사진을 추가해주세요. (필수)');
-      return;
-    }
-
     setUploading(true);
 
     // 수정 모드
@@ -595,6 +590,7 @@ export const AddWorkout = () => {
                 onChange 시 spurious submit 이벤트를 발생시키는 버그 방지 */}
             <input
               ref={fileInputRef}
+              id="proof-image-input"
               type="file"
               accept="image/*"
               onChange={handleImageChange}
@@ -722,24 +718,22 @@ export const AddWorkout = () => {
                 <div className="step3-value-bar" />
               </div>
 
-              {/* ③ 인증사진 카드 — 필수, 컴팩트 */}
+              {/* ③ 인증사진 카드 — 선택 */}
               <div className="step3-section-card step3-photo-card">
                 <div className="step3-photo-header">
                   <div className="step3-photo-header-left">
                     <span className="step3-section-title">📸 인증사진</span>
-                    <span className={`step3-pill ${editWorkout ? 'step3-pill-optional' : 'step3-pill-required'}`}>
-                    {editWorkout ? '선택' : '필수'}
-                  </span>
+                    <span className="step3-pill step3-pill-optional">선택</span>
                   </div>
                   {(imagePreview || editWorkout?.proof_image) ? (
-                    <div className="step3-photo-thumb" onClick={() => fileInputRef.current?.click()}>
+                    <label htmlFor="proof-image-input" className="step3-photo-thumb">
                       <img src={imagePreview ?? editWorkout?.proof_image} alt="미리보기" />
                       <div className="step3-photo-thumb-overlay">변경</div>
-                    </div>
+                    </label>
                   ) : (
-                    <button type="button" className="step3-photo-add-btn" onClick={() => fileInputRef.current?.click()}>
+                    <label htmlFor="proof-image-input" className="step3-photo-add-btn">
                       📷 추가
-                    </button>
+                    </label>
                   )}
                 </div>
               </div>
