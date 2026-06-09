@@ -16,6 +16,15 @@ import { enableFilePickerGuard, disableFilePickerGuard } from '../utils/filePick
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
 const SESSION_KEY = 'addworkout_draft_v2';
 
+// re-mount 후 FileReader가 나중에 완료될 때 새 인스턴스에 이미지를 전달하는 모듈 채널
+// (Samsung Internet은 stopImmediatePropagation과 무관하게 re-mount를 강제함)
+let _imgPending: string | null = null;
+const _imgListeners = new Set<(v: string) => void>();
+function _notifyImg(v: string) {
+  _imgPending = v;
+  _imgListeners.forEach(fn => fn(v));
+}
+
 type AddWorkoutDraft = {
   step: 1 | 2 | 3 | 4;
   category: WorkoutCategory | null;
@@ -178,6 +187,28 @@ export const AddWorkout = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 모듈 채널 구독 — re-mount 후 FileReader가 늦게 완료된 경우 이미지 업데이트
+  useEffect(() => {
+    const apply = (preview: string) => {
+      addLog(`IMG_CHANNEL: received ${Math.round(preview.length / 1024)}kb`, '#8f8');
+      _imgPending = null;
+      setImagePreview(preview);
+      try {
+        const [header, data] = preview.split(',');
+        const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+        const binary = atob(data);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        setProofImage(new File([new Blob([bytes], { type: mime })], 'channel.jpg', { type: mime }));
+      } catch {}
+    };
+    // 이미 완료된 pending 이미지 처리 (이 인스턴스 mount 전에 FileReader가 완료된 경우)
+    if (_imgPending) apply(_imgPending);
+    _imgListeners.add(apply);
+    return () => { _imgListeners.delete(apply); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (editWorkout || step === 4) return;
     const draft: AddWorkoutDraft = {
@@ -334,6 +365,8 @@ export const AddWorkout = () => {
       } catch {
         addLog('IMG_SAVE FAILED quota — no restore on remount', '#f44');
       }
+      // re-mount 후 새 인스턴스에 이미지 전달 (Samsung Internet re-mount 대응)
+      _notifyImg(toSave);
       // guard 해제 + 이미지 표시를 함께 묶어서 처리
       // disableFilePickerGuard를 setTimeout 안에 넣어 300ms 동안 guard 유지
       // (guard 해제 후 popstate → re-mount 시 setImagePreview가 무시되는 케이스 방지)
