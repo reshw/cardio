@@ -42,12 +42,21 @@ export const AddWorkout = () => {
   const location = useLocation();
   const editWorkout = (location.state as any)?.editWorkout as Workout | undefined;
   const isDebug = new URLSearchParams(window.location.search).get('debug') === '1';
-  const [debugLogs, setDebugLogs] = useState<{ t: string; msg: string; color: string }[]>([]);
+  const DEBUG_LOG_KEY = 'addworkout_debug_log';
+  const [debugLogs, setDebugLogs] = useState<{ t: string; msg: string; color: string }[]>(() => {
+    if (!isDebug) return [];
+    try { return JSON.parse(localStorage.getItem(DEBUG_LOG_KEY) || '[]'); } catch { return []; }
+  });
   const [showDebug, setShowDebug] = useState(isDebug);
   const addLog = (msg: string, color = '#fff') => {
     if (!isDebug) return;
     const t = new Date().toISOString().slice(11, 23);
-    setDebugLogs(prev => [...prev.slice(-30), { t, msg, color }]);
+    const entry = { t, msg, color };
+    setDebugLogs(prev => {
+      const next = [...prev.slice(-49), entry];
+      try { localStorage.setItem(DEBUG_LOG_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
   };
   const savedDraft = (() => {
     if (editWorkout) return null;
@@ -461,7 +470,7 @@ export const AddWorkout = () => {
         <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999, maxHeight: showDebug ? '45vh' : '36px', background: '#111', color: '#fff', fontSize: '11px', fontFamily: 'monospace', transition: 'max-height .2s', overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: '#333', cursor: 'pointer' }} onClick={() => setShowDebug(v => !v)}>
             <span>🐛 DEBUG {showDebug ? '▼' : '▲'}  img={imagePreview ? '✅' : '❌'}  file={proofImage ? '✅' : '❌'}  step={step}</span>
-            <button type="button" style={{ background: '#f44', color: '#fff', border: 'none', borderRadius: 4, padding: '0 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); setDebugLogs([]); }}>Clear</button>
+            <button type="button" style={{ background: '#f44', color: '#fff', border: 'none', borderRadius: 4, padding: '0 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); setDebugLogs([]); localStorage.removeItem(DEBUG_LOG_KEY); }}>Clear</button>
           </div>
           {showDebug && (
             <div style={{ overflowY: 'auto', maxHeight: 'calc(45vh - 36px)', padding: '4px 8px' }}>
