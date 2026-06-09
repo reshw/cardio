@@ -17,9 +17,11 @@ export function isFilePickerGuardActive() {
 
 // main.tsx에서 createRoot() 전에 호출 — React Router보다 먼저 등록되어야 함
 export function installFilePickerGuard() {
-  window.addEventListener('popstate', () => {
+  window.addEventListener('popstate', (e) => {
     if (active && savedHash) {
-      // URL을 원래대로 복원 → React Router의 popstate 핸들러가 동일 URL을 보고 네비게이션 안 함
+      // stopImmediatePropagation: React Router의 popstate 핸들러 자체를 차단
+      // pushState만으로는 URL이 복원되어도 React Router가 "navigation 발생"으로 인식해 re-mount
+      e.stopImmediatePropagation();
       history.pushState(null, '', window.location.pathname + window.location.search + savedHash);
     }
   });
