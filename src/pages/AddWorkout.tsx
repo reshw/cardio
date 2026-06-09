@@ -25,6 +25,7 @@ type AddWorkoutDraft = {
   intensity: number;
   memo: string;
   showOtherWorkouts: boolean;
+  imagePreview?: string;
 };
 
 const DIFF_LEVELS = [
@@ -585,17 +586,6 @@ export const AddWorkout = () => {
           const activeIdx = DIFF_LEVELS.findIndex(l => intensity >= l.min && intensity <= l.max);
 
           return (
-            <>
-            {/* 파일 인풋: form 외부에 배치 — Android WebView에서 form 내부 file input이
-                onChange 시 spurious submit 이벤트를 발생시키는 버그 방지 */}
-            <input
-              ref={fileInputRef}
-              id="proof-image-input"
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="file-input-hidden"
-            />
             <form onSubmit={handleSubmit} className="step3-form">
 
               {/* ① 날짜 카드 — 최상단, 컨텍스트 헤더 역할 */}
@@ -720,20 +710,27 @@ export const AddWorkout = () => {
 
               {/* ③ 인증사진 카드 — 선택 */}
               <div className="step3-section-card step3-photo-card">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="file-input-hidden"
+                />
                 <div className="step3-photo-header">
                   <div className="step3-photo-header-left">
                     <span className="step3-section-title">📸 인증사진</span>
                     <span className="step3-pill step3-pill-optional">선택</span>
                   </div>
                   {(imagePreview || editWorkout?.proof_image) ? (
-                    <label htmlFor="proof-image-input" className="step3-photo-thumb">
+                    <div className="step3-photo-thumb" onClick={() => fileInputRef.current?.click()}>
                       <img src={imagePreview ?? editWorkout?.proof_image} alt="미리보기" />
                       <div className="step3-photo-thumb-overlay">변경</div>
-                    </label>
+                    </div>
                   ) : (
-                    <label htmlFor="proof-image-input" className="step3-photo-add-btn">
+                    <button type="button" className="step3-photo-add-btn" onClick={() => fileInputRef.current?.click()}>
                       📷 추가
-                    </label>
+                    </button>
                   )}
                 </div>
               </div>
@@ -801,7 +798,6 @@ export const AddWorkout = () => {
                 </button>
               </div>
             </form>
-            </>
           );
         })()}
 
