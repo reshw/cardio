@@ -41,6 +41,14 @@ export const AddWorkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const editWorkout = (location.state as any)?.editWorkout as Workout | undefined;
+  const isDebug = new URLSearchParams(window.location.search).get('debug') === '1';
+  const [debugLogs, setDebugLogs] = useState<{ t: string; msg: string; color: string }[]>([]);
+  const [showDebug, setShowDebug] = useState(isDebug);
+  const addLog = (msg: string, color = '#fff') => {
+    if (!isDebug) return;
+    const t = new Date().toISOString().slice(11, 23);
+    setDebugLogs(prev => [...prev.slice(-30), { t, msg, color }]);
+  };
   const savedDraft = (() => {
     if (editWorkout) return null;
     try {
@@ -96,6 +104,14 @@ export const AddWorkout = () => {
   const [showOtherWorkouts, setShowOtherWorkouts] = useState(savedDraft?.showOtherWorkouts ?? false); // 기타운동 표시 여부
 
   useEffect(() => {
+    addLog(`MOUNT step=${savedDraftRef.current?.step ?? 'none'} draft_img=${savedDraftRef.current?.imagePreview ? 'YES('+Math.round((savedDraftRef.current.imagePreview.length)/1024)+'kb)' : 'NO'}`, '#88f');
+    const onVisibility = () => addLog(`VISIBILITY → ${document.visibilityState}`, '#ff8');
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     const loadWorkoutTypes = async () => {
       try {
         const types = await workoutTypeService.getActiveWorkoutTypes();
@@ -113,7 +129,8 @@ export const AddWorkout = () => {
   // 이미지 복원 — 페이지 kill 후 재시작 시 (Samsung Internet, KakaoTalk WebView 등)
   useEffect(() => {
     const preview = savedDraftRef.current?.imagePreview;
-    if (!preview) return;
+    if (!preview) { addLog('IMG_RESTORE: no preview in draft', '#f88'); return; }
+    addLog(`IMG_RESTORE: restoring ${Math.round(preview.length/1024)}kb`, '#8f8');
     setImagePreview(preview);
     try {
       const [header, data] = preview.split(',');
@@ -122,7 +139,9 @@ export const AddWorkout = () => {
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
       setProofImage(new File([new Blob([bytes], { type: mime })], 'restored.jpg', { type: mime }));
-    } catch { /* 복원 실패 시 사용자가 재선택 */ }
+      addLog('IMG_RESTORE: File 재구성 완료', '#8f8');
+    } catch (e) { addLog(`IMG_RESTORE ERROR: ${e}`, '#f44'); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -233,12 +252,16 @@ export const AddWorkout = () => {
   // 이미지 선택
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    addLog(`onChange fired: files=${e.target.files?.length ?? 0} file=${file ? file.name+' '+Math.round(file.size/1024)+'kb' : 'NULL'}`, file ? '#8f8' : '#f44');
     if (file) {
       setProofImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        const result = reader.result as string;
+        addLog(`FileReader done: result=${result ? Math.round(result.length/1024)+'kb' : 'NULL'}`, result ? '#8f8' : '#f44');
+        setImagePreview(result);
       };
+      reader.onerror = () => addLog(`FileReader ERROR: ${reader.error}`, '#f44');
       reader.readAsDataURL(file);
     }
   };
@@ -420,6 +443,25 @@ export const AddWorkout = () => {
 
   return (
     <div className="container add-workout-page">
+      {/* 디버그 패널 — ?debug=1 로 활성화 */}
+      {isDebug && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999, maxHeight: showDebug ? '45vh' : '36px', background: '#111', color: '#fff', fontSize: '11px', fontFamily: 'monospace', transition: 'max-height .2s', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: '#333', cursor: 'pointer' }} onClick={() => setShowDebug(v => !v)}>
+            <span>🐛 DEBUG {showDebug ? '▼' : '▲'}  img={imagePreview ? '✅' : '❌'}  file={proofImage ? '✅' : '❌'}  step={step}</span>
+            <button type="button" style={{ background: '#f44', color: '#fff', border: 'none', borderRadius: 4, padding: '0 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); setDebugLogs([]); }}>Clear</button>
+          </div>
+          {showDebug && (
+            <div style={{ overflowY: 'auto', maxHeight: 'calc(45vh - 36px)', padding: '4px 8px' }}>
+              {debugLogs.length === 0 && <div style={{ color: '#888', padding: 4 }}>이벤트 없음 — 사진 추가 버튼을 눌러보세요</div>}
+              {debugLogs.map((l, i) => (
+                <div key={i} style={{ color: l.color, padding: '2px 0', borderBottom: '1px solid #222' }}>
+                  <span style={{ color: '#888' }}>{l.t} </span>{l.msg}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div className="detail-header">
         <button className="back-button" onClick={handleBack}>
           <ChevronLeft size={24} />
@@ -740,12 +782,12 @@ export const AddWorkout = () => {
                     <span className="step3-pill step3-pill-optional">선택</span>
                   </div>
                   {(imagePreview || editWorkout?.proof_image) ? (
-                    <div className="step3-photo-thumb" onClick={() => fileInputRef.current?.click()}>
+                    <div className="step3-photo-thumb" onClick={() => { addLog('PICKER open (thumb)', '#ff8'); fileInputRef.current?.click(); }}>
                       <img src={imagePreview ?? editWorkout?.proof_image} alt="미리보기" />
                       <div className="step3-photo-thumb-overlay">변경</div>
                     </div>
                   ) : (
-                    <button type="button" className="step3-photo-add-btn" onClick={() => fileInputRef.current?.click()}>
+                    <button type="button" className="step3-photo-add-btn" onClick={() => { addLog('PICKER open (btn)', '#ff8'); fileInputRef.current?.click(); }}>
                       📷 추가
                     </button>
                   )}
