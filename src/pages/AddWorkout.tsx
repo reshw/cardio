@@ -96,7 +96,7 @@ export const AddWorkout = () => {
   const [proofImage, setProofImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   const isSamsungBrowser = /SamsungBrowser/i.test(navigator.userAgent);
@@ -833,32 +833,27 @@ export const AddWorkout = () => {
                         style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', fontSize: 0 }}
                       />
                     </div>
+                  ) : isSamsungBrowser ? (
+                    /* Samsung Internet: visible native input — 시스템 이미지 피커(갤러리) 직접 열도록 */
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      onClick={() => { enableFilePickerGuard(); addLog('PICKER open (samsung/native)', '#ff8'); }}
+                      className="file-input-samsung-native"
+                    />
                   ) : (
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      {/* input을 버튼 위에 full-size 오버레이 — 사용자가 input 자체를 직접 클릭 (JS/label 우회) */}
-                      <div style={{ position: 'relative', display: 'inline-block' }}>
-                        <span className="step3-photo-add-btn">🖼️ 갤러리</span>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          onClick={() => { enableFilePickerGuard(); addLog('PICKER open (gallery/overlay)', '#ff8'); }}
-                          style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', fontSize: 0 }}
-                        />
-                      </div>
-                      <div style={{ position: 'relative', display: 'inline-block' }}>
-                        <span className="step3-photo-add-btn">📸 촬영</span>
-                        <input
-                          ref={cameraInputRef}
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          onChange={handleImageChange}
-                          onClick={() => { enableFilePickerGuard(); addLog('PICKER open (camera/overlay)', '#ff8'); }}
-                          style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', fontSize: 0 }}
-                        />
-                      </div>
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                      <span className="step3-photo-add-btn">🖼️ 갤러리</span>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        onClick={() => { enableFilePickerGuard(); addLog('PICKER open (gallery/overlay)', '#ff8'); }}
+                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', fontSize: 0 }}
+                      />
                     </div>
                   )}
                 </div>

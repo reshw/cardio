@@ -3894,6 +3894,41 @@ body.search-modal-open .bottom-nav {
   background: rgba(79, 195, 247, 0.06);
 }
 
+/* Samsung Internet: 시스템 갤러리 직접 열기 위한 visible native input */
+.file-input-samsung-native {
+  display: block;
+  width: 100%;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+.file-input-samsung-native::file-selector-button {
+  padding: 8px 16px;
+  background: var(--input-bg);
+  border: 1.5px dashed var(--border-color);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-right: 8px;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.file-input-samsung-native::-webkit-file-upload-button {
+  padding: 8px 16px;
+  background: var(--input-bg);
+  border: 1.5px dashed var(--border-color);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-right: 8px;
+  font-family: inherit;
+}
+
 .browser-warning-banner {
   display: flex;
   align-items: flex-start;
