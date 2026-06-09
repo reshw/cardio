@@ -833,19 +833,9 @@ export const AddWorkout = () => {
                         style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', fontSize: 0 }}
                       />
                     </div>
-                  ) : isSamsungBrowser ? (
-                    /* Samsung Internet: visible native input — 시스템 이미지 피커(갤러리) 직접 열도록 */
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      onClick={() => { enableFilePickerGuard(); addLog('PICKER open (samsung/native)', '#ff8'); }}
-                      className="file-input-samsung-native"
-                    />
                   ) : (
                     <div style={{ position: 'relative', display: 'inline-block' }}>
-                      <span className="step3-photo-add-btn">🖼️ 갤러리</span>
+                      <span className="step3-photo-add-btn">📷 사진 첨부</span>
                       <input
                         ref={fileInputRef}
                         type="file"
