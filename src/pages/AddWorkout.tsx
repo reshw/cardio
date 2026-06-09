@@ -42,7 +42,7 @@ export const AddWorkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const editWorkout = (location.state as any)?.editWorkout as Workout | undefined;
-  const isDebug = new URLSearchParams(window.location.search).get('debug') === '1';
+  const isDebug = new URLSearchParams(location.search).get('debug') === '1';
   const DEBUG_LOG_KEY = 'addworkout_debug_log';
   const [debugLogs, setDebugLogs] = useState<{ t: string; msg: string; color: string }[]>(() => {
     if (!isDebug) return [];
@@ -335,8 +335,11 @@ export const AddWorkout = () => {
         addLog('IMG_SAVE FAILED quota — no restore on remount', '#f44');
       }
       disableFilePickerGuard();
-      setIsCompressing(false);
-      setImagePreview(toSave);
+      // 최소 300ms 표시 보장 (소형 파일도 스피너가 보이도록)
+      setTimeout(() => {
+        setIsCompressing(false);
+        setImagePreview(toSave);
+      }, 300);
     };
     reader.onerror = () => {
       addLog(`FileReader ERROR: ${reader.error}`, '#f44');
