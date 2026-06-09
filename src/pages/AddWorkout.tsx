@@ -346,6 +346,7 @@ export const AddWorkout = () => {
           proof_image: imageUrl ?? editWorkout.proof_image,
         });
         localStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem(DEBUG_LOG_KEY);
         navigate(-1);
       } catch (error) {
         console.error('운동 기록 수정 실패:', error);
@@ -417,11 +418,13 @@ export const AddWorkout = () => {
       } catch {
         // 클럽 조회 실패해도 공유 화면은 표시 (빈 목록으로)
       }
-      sessionStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(DEBUG_LOG_KEY);
       setSavedWorkout(workout);
       setStep(4);
     } else {
-      sessionStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(DEBUG_LOG_KEY);
       navigate('/');
     }
   };
