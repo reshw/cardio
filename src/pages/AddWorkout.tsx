@@ -287,41 +287,57 @@ export const AddWorkout = () => {
     const file = e.target.files?.[0];
     // 같은 파일 재선택 시 onChange 미발화 방지 — 항상 value 초기화
     e.target.value = '';
-    addLog(`onChange fired: files=${1} file=${file ? file.name+' '+Math.round(file.size/1024)+'kb' : 'NULL'}`, file ? '#8f8' : '#f44');
-    if (file) {
-      setProofImage(file);
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const full = reader.result as string;
-        addLog(`FileReader done: ${Math.round(full.length/1024)}kb — compressing...`, '#ff8');
-        // 대용량 사진(10MB+) → localStorage 5MB 초과 방지: canvas로 최대 1200px 압축
-        const compressed = await new Promise<string>((resolve) => {
-          const img = new Image();
-          img.onload = () => {
-            const ratio = Math.min(1, 1200 / Math.max(img.width, img.height));
-            const canvas = document.createElement('canvas');
-            canvas.width = Math.round(img.width * ratio);
-            canvas.height = Math.round(img.height * ratio);
-            canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.75));
-          };
-          img.onerror = () => resolve(full);
-          img.src = full;
-        });
-        addLog(`compressed: ${Math.round(compressed.length/1024)}kb`, '#8f8');
+    addLog(`onChange fired: ${file ? file.name + ' ' + Math.round(file.size / 1024) + 'kb' : 'NULL'}`, file ? '#8f8' : '#f44');
+    if (!file) return;
+
+    setProofImage(file);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const full = reader.result as string;
+      addLog(`FileReader done: ${Math.round(full.length / 1024)}kb`, '#8f8');
+
+      // 대용량 사진 → canvas 압축 (localStorage 5MB 한도 대응)
+      // 실패 시 원본 그대로 사용 (quota 오류는 아래에서 따로 처리)
+      let toSave = full;
+      if (full.length > 150 * 1024) {
         try {
-          const existing = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
-          localStorage.setItem(SESSION_KEY, JSON.stringify({ ...existing, imagePreview: compressed }));
-          addLog('IMG_SAVED to localStorage', '#8f8');
-        } catch {
-          addLog('IMG_SAVE FAILED (quota?)', '#f44');
+          toSave = await new Promise<string>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+              try {
+                const ratio = Math.min(1, 1200 / Math.max(img.width, img.height, 1));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(img.width * ratio);
+                canvas.height = Math.round(img.height * ratio);
+                const ctx = canvas.getContext('2d');
+                if (!ctx) { reject(new Error('no-ctx')); return; }
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', 0.75));
+              } catch (err) { reject(err); }
+            };
+            img.onerror = () => reject(new Error('img-load-failed'));
+            img.src = full;
+          });
+          addLog(`compressed: ${Math.round(toSave.length / 1024)}kb`, '#8f8');
+        } catch (err) {
+          addLog(`compress FAILED (${err}) — using original`, '#f44');
+          toSave = full; // 실패 시 원본 유지 (아래 quota 처리에서 걸러짐)
         }
-        disableFilePickerGuard();
-        setImagePreview(compressed);
-      };
-      reader.onerror = () => addLog(`FileReader ERROR: ${reader.error}`, '#f44');
-      reader.readAsDataURL(file);
-    }
+      }
+
+      try {
+        const existing = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+        localStorage.setItem(SESSION_KEY, JSON.stringify({ ...existing, imagePreview: toSave }));
+        addLog('IMG_SAVED', '#8f8');
+      } catch {
+        addLog('IMG_SAVE FAILED quota — no restore on remount', '#f44');
+        // 저장 실패해도 현재 세션은 setImagePreview로 표시 가능
+      }
+      disableFilePickerGuard();
+      setImagePreview(toSave);
+    };
+    reader.onerror = () => { addLog(`FileReader ERROR: ${reader.error}`, '#f44'); disableFilePickerGuard(); };
+    reader.readAsDataURL(file);
   };
 
   // 저장
