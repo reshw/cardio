@@ -285,24 +285,39 @@ export const AddWorkout = () => {
   // 이미지 선택
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    addLog(`onChange fired: files=${e.target.files?.length ?? 0} file=${file ? file.name+' '+Math.round(file.size/1024)+'kb' : 'NULL'}`, file ? '#8f8' : '#f44');
+    // 같은 파일 재선택 시 onChange 미발화 방지 — 항상 value 초기화
+    e.target.value = '';
+    addLog(`onChange fired: files=${1} file=${file ? file.name+' '+Math.round(file.size/1024)+'kb' : 'NULL'}`, file ? '#8f8' : '#f44');
     if (file) {
       setProofImage(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        addLog(`FileReader done: result=${result ? Math.round(result.length/1024)+'kb' : 'NULL'}`, result ? '#8f8' : '#f44');
-        // React state→useEffect→localStorage 체인을 기다리지 않고 즉시 저장
-        // Samsung Internet은 FileReader 완료 직후 re-mount하므로 동기적으로 persist 필요
+      reader.onloadend = async () => {
+        const full = reader.result as string;
+        addLog(`FileReader done: ${Math.round(full.length/1024)}kb — compressing...`, '#ff8');
+        // 대용량 사진(10MB+) → localStorage 5MB 초과 방지: canvas로 최대 1200px 압축
+        const compressed = await new Promise<string>((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const ratio = Math.min(1, 1200 / Math.max(img.width, img.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * ratio);
+            canvas.height = Math.round(img.height * ratio);
+            canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.75));
+          };
+          img.onerror = () => resolve(full);
+          img.src = full;
+        });
+        addLog(`compressed: ${Math.round(compressed.length/1024)}kb`, '#8f8');
         try {
           const existing = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
-          localStorage.setItem(SESSION_KEY, JSON.stringify({ ...existing, imagePreview: result }));
-          addLog('IMG_SAVED to localStorage directly', '#8f8');
+          localStorage.setItem(SESSION_KEY, JSON.stringify({ ...existing, imagePreview: compressed }));
+          addLog('IMG_SAVED to localStorage', '#8f8');
         } catch {
           addLog('IMG_SAVE FAILED (quota?)', '#f44');
         }
         disableFilePickerGuard();
-        setImagePreview(result);
+        setImagePreview(compressed);
       };
       reader.onerror = () => addLog(`FileReader ERROR: ${reader.error}`, '#f44');
       reader.readAsDataURL(file);
