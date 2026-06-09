@@ -121,14 +121,17 @@ export const AddWorkout = () => {
   const [showOtherWorkouts, setShowOtherWorkouts] = useState(savedDraft?.showOtherWorkouts ?? false); // 기타운동 표시 여부
 
   useEffect(() => {
-    addLog(`MOUNT step=${savedDraftRef.current?.step ?? 'none'} draft_img=${savedDraftRef.current?.imagePreview ? 'YES('+Math.round((savedDraftRef.current.imagePreview.length)/1024)+'kb)' : 'NO'}`, '#88f');
-    const onVisibility = () => addLog(`VISIBILITY → ${document.visibilityState}`, '#ff8');
+    addLog(`MOUNT step=${savedDraftRef.current?.step ?? 'none'} hash=${window.location.hash} href=${window.location.href.slice(-30)}`, '#88f');
+    const onVisibility = () => addLog(`VISIBILITY → ${document.visibilityState} hash=${window.location.hash}`, '#ff8');
     const onPageHide = (e: PageTransitionEvent) => addLog(`pagehide persisted=${e.persisted}`, e.persisted ? '#8f8' : '#f44');
+    const onPopState = () => addLog(`POPSTATE hash=${window.location.hash} href=${window.location.href.slice(-40)}`, '#f0f');
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('popstate', onPopState);
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('popstate', onPopState);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
