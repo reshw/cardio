@@ -1105,7 +1105,6 @@ body.search-modal-open .bottom-nav {
   width: 1px;
   height: 1px;
   overflow: hidden;
-  pointer-events: none;
 }
 
 /* Photo upload zone */

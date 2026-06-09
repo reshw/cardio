@@ -795,6 +795,7 @@ export const AddWorkout = () => {
               <div className="step3-section-card step3-photo-card">
                 <input
                   ref={fileInputRef}
+                  id="fileInputGallery"
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
@@ -802,6 +803,7 @@ export const AddWorkout = () => {
                 />
                 <input
                   ref={cameraInputRef}
+                  id="fileInputCamera"
                   type="file"
                   accept="image/*"
                   capture="environment"
@@ -820,12 +822,12 @@ export const AddWorkout = () => {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <button type="button" className="step3-photo-add-btn" onClick={() => { addLog('PICKER open (gallery)', '#ff8'); fileInputRef.current?.click(); }}>
+                      <label htmlFor="fileInputGallery" className="step3-photo-add-btn" onClick={() => addLog('PICKER open (gallery/label)', '#ff8')}>
                         🖼️ 갤러리
-                      </button>
-                      <button type="button" className="step3-photo-add-btn" onClick={() => { addLog('PICKER open (camera)', '#ff8'); cameraInputRef.current?.click(); }}>
+                      </label>
+                      <label htmlFor="fileInputCamera" className="step3-photo-add-btn" onClick={() => addLog('PICKER open (camera/label)', '#ff8')}>
                         📸 촬영
-                      </button>
+                      </label>
                     </div>
                   )}
                 </div>
