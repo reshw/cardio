@@ -284,6 +284,15 @@ export const AddWorkout = () => {
       reader.onloadend = () => {
         const result = reader.result as string;
         addLog(`FileReader done: result=${result ? Math.round(result.length/1024)+'kb' : 'NULL'}`, result ? '#8f8' : '#f44');
+        // React state→useEffect→localStorage 체인을 기다리지 않고 즉시 저장
+        // Samsung Internet은 FileReader 완료 직후 re-mount하므로 동기적으로 persist 필요
+        try {
+          const existing = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+          localStorage.setItem(SESSION_KEY, JSON.stringify({ ...existing, imagePreview: result }));
+          addLog('IMG_SAVED to localStorage directly', '#8f8');
+        } catch {
+          addLog('IMG_SAVE FAILED (quota?)', '#f44');
+        }
         setImagePreview(result);
       };
       reader.onerror = () => addLog(`FileReader ERROR: ${reader.error}`, '#f44');
