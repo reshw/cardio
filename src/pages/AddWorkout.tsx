@@ -821,9 +821,17 @@ export const AddWorkout = () => {
                     <span className="step3-pill step3-pill-optional">선택</span>
                   </div>
                   {(imagePreview || editWorkout?.proof_image) ? (
-                    <div className="step3-photo-thumb" onClick={() => { addLog('PICKER open (thumb)', '#ff8'); fileInputRef.current?.click(); }}>
+                    <div className="step3-photo-thumb" style={{ position: 'relative' }}>
                       <img src={imagePreview ?? editWorkout?.proof_image} alt="미리보기" />
-                      <div className="step3-photo-thumb-overlay">변경</div>
+                      <div className="step3-photo-thumb-overlay" style={{ pointerEvents: 'none' }}>변경</div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        onClick={() => { enableFilePickerGuard(); addLog('PICKER open (thumb/overlay)', '#ff8'); }}
+                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', fontSize: 0 }}
+                      />
                     </div>
                   ) : (
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -989,13 +997,15 @@ export const AddWorkout = () => {
                     };
                     if (savedWorkout.proof_image) shareData.content.imageUrl = savedWorkout.proof_image;
                     window.Kakao.Share.sendDefault(shareData);
+                    localStorage.removeItem(SESSION_KEY);
+                    localStorage.removeItem(DEBUG_LOG_KEY);
                     navigate('/');
                   }}
                 >
                   카카오톡 공유
                 </button>
               )}
-              <button className="kakao-share-skip" onClick={() => navigate('/')}>
+              <button className="kakao-share-skip" onClick={() => { localStorage.removeItem(SESSION_KEY); localStorage.removeItem(DEBUG_LOG_KEY); navigate('/'); }}>
                 건너뛰기
               </button>
             </div>
