@@ -126,8 +126,9 @@ export const AddWorkout = () => {
     const onVisibility = () => {
       addLog(`VISIBILITY → ${document.visibilityState} hash=${window.location.hash}`, '#ff8');
       if (document.visibilityState === 'visible') {
-        // onChange 발화 여유 후 guard 해제
-        setTimeout(() => disableFilePickerGuard(), 800);
+        // 외부 앱(파일앱·갤러리)에서 복귀 시 popstate가 늦게 오므로 여유 3초
+        // 파일 선택 성공 시엔 handleImageChange onloadend에서 즉시 해제
+        setTimeout(() => disableFilePickerGuard(), 3000);
       }
     };
     const onPageHide = (e: PageTransitionEvent) => addLog(`pagehide persisted=${e.persisted}`, e.persisted ? '#8f8' : '#f44');
@@ -300,6 +301,7 @@ export const AddWorkout = () => {
         } catch {
           addLog('IMG_SAVE FAILED (quota?)', '#f44');
         }
+        disableFilePickerGuard();
         setImagePreview(result);
       };
       reader.onerror = () => addLog(`FileReader ERROR: ${reader.error}`, '#f44');
