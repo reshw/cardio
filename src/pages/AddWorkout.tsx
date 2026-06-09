@@ -86,7 +86,15 @@ export const AddWorkout = () => {
   const [proofImage, setProofImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
+
+  const isSamsungBrowser = /SamsungBrowser/i.test(navigator.userAgent);
+  const isKakaoInApp = /KAKAOTALK/i.test(navigator.userAgent);
+  const isProblematicBrowser = isSamsungBrowser || isKakaoInApp;
+  const [showBrowserWarning, setShowBrowserWarning] = useState(
+    () => isProblematicBrowser && localStorage.getItem('browser_warning_dismissed') !== '1'
+  );
   const stepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stepIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [cursorExp, setCursorExp] = useState(1); // 0=ones, 1=tens, 2=hundreds, -1=tenths
@@ -106,8 +114,13 @@ export const AddWorkout = () => {
   useEffect(() => {
     addLog(`MOUNT step=${savedDraftRef.current?.step ?? 'none'} draft_img=${savedDraftRef.current?.imagePreview ? 'YES('+Math.round((savedDraftRef.current.imagePreview.length)/1024)+'kb)' : 'NO'}`, '#88f');
     const onVisibility = () => addLog(`VISIBILITY → ${document.visibilityState}`, '#ff8');
+    const onPageHide = (e: PageTransitionEvent) => addLog(`pagehide persisted=${e.persisted}`, e.persisted ? '#8f8' : '#f44');
     document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', onPageHide);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -778,6 +791,14 @@ export const AddWorkout = () => {
                   onChange={handleImageChange}
                   className="file-input-hidden"
                 />
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleImageChange}
+                  className="file-input-hidden"
+                />
                 <div className="step3-photo-header">
                   <div className="step3-photo-header-left">
                     <span className="step3-section-title">📸 인증사진</span>
@@ -789,11 +810,30 @@ export const AddWorkout = () => {
                       <div className="step3-photo-thumb-overlay">변경</div>
                     </div>
                   ) : (
-                    <button type="button" className="step3-photo-add-btn" onClick={() => { addLog('PICKER open (btn)', '#ff8'); fileInputRef.current?.click(); }}>
-                      📷 추가
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button type="button" className="step3-photo-add-btn" onClick={() => { addLog('PICKER open (gallery)', '#ff8'); fileInputRef.current?.click(); }}>
+                        🖼️ 갤러리
+                      </button>
+                      <button type="button" className="step3-photo-add-btn" onClick={() => { addLog('PICKER open (camera)', '#ff8'); cameraInputRef.current?.click(); }}>
+                        📸 촬영
+                      </button>
+                    </div>
                   )}
                 </div>
+                {showBrowserWarning && (
+                  <div className="browser-warning-banner">
+                    <span>
+                      {isKakaoInApp
+                        ? '카카오 인앱에서는 사진 선택이 불안정합니다. 우상단 ···메뉴 → 다른 브라우저로 열기를 이용해주세요.'
+                        : '삼성 브라우저에서는 사진 선택이 불안정할 수 있습니다. Chrome 앱에서 열면 더 안정적입니다.'}
+                    </span>
+                    <button
+                      type="button"
+                      className="browser-warning-dismiss"
+                      onClick={() => { localStorage.setItem('browser_warning_dismissed', '1'); setShowBrowserWarning(false); }}
+                    >✕</button>
+                  </div>
+                )}
               </div>
 
               {/* ④ 메모 카드 */}
