@@ -11,6 +11,7 @@ import type { WorkoutCategory, WorkoutSubType, WorkoutUnit, Workout } from '../s
 import clubService from '../services/clubService';
 import type { MyClubWithOrder } from '../services/clubService';
 import DatePickerSheet from '../components/DatePickerSheet';
+import { enableFilePickerGuard, disableFilePickerGuard } from '../utils/filePickerGuard';
 
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
 const SESSION_KEY = 'addworkout_draft_v2';
@@ -122,7 +123,13 @@ export const AddWorkout = () => {
 
   useEffect(() => {
     addLog(`MOUNT step=${savedDraftRef.current?.step ?? 'none'} hash=${window.location.hash} href=${window.location.href.slice(-30)}`, '#88f');
-    const onVisibility = () => addLog(`VISIBILITY → ${document.visibilityState} hash=${window.location.hash}`, '#ff8');
+    const onVisibility = () => {
+      addLog(`VISIBILITY → ${document.visibilityState} hash=${window.location.hash}`, '#ff8');
+      if (document.visibilityState === 'visible') {
+        // onChange 발화 여유 후 guard 해제
+        setTimeout(() => disableFilePickerGuard(), 800);
+      }
+    };
     const onPageHide = (e: PageTransitionEvent) => addLog(`pagehide persisted=${e.persisted}`, e.persisted ? '#8f8' : '#f44');
     const onPopState = () => addLog(`POPSTATE hash=${window.location.hash} href=${window.location.href.slice(-40)}`, '#f0f');
     document.addEventListener('visibilitychange', onVisibility);
@@ -825,7 +832,7 @@ export const AddWorkout = () => {
                           type="file"
                           accept="image/*"
                           onChange={handleImageChange}
-                          onClick={() => addLog('PICKER open (gallery/overlay)', '#ff8')}
+                          onClick={() => { enableFilePickerGuard(); addLog('PICKER open (gallery/overlay)', '#ff8'); }}
                           style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', fontSize: 0 }}
                         />
                       </div>
@@ -837,7 +844,7 @@ export const AddWorkout = () => {
                           accept="image/*"
                           capture="environment"
                           onChange={handleImageChange}
-                          onClick={() => addLog('PICKER open (camera/overlay)', '#ff8')}
+                          onClick={() => { enableFilePickerGuard(); addLog('PICKER open (camera/overlay)', '#ff8'); }}
                           style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', fontSize: 0 }}
                         />
                       </div>

@@ -2,6 +2,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { installFilePickerGuard } from './utils/filePickerGuard'
+
+// React Router보다 먼저 등록해야 popstate를 우선 처리 가능
+installFilePickerGuard()
 
 // Kakao SDK global type
 declare global {
