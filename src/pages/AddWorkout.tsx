@@ -13,6 +13,19 @@ import type { MyClubWithOrder } from '../services/clubService';
 import DatePickerSheet from '../components/DatePickerSheet';
 
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
+const SESSION_KEY = 'addworkout_draft_v2';
+
+type AddWorkoutDraft = {
+  step: 1 | 2 | 3 | 4;
+  category: WorkoutCategory | null;
+  subType: WorkoutSubType;
+  subTypeRatio: number;
+  value: string;
+  workoutDate: string;
+  intensity: number;
+  memo: string;
+  showOtherWorkouts: boolean;
+};
 
 const DIFF_LEVELS = [
   { emoji: '😌', label: '편안',   min: 1, max: 2,  base: 2  },
@@ -27,6 +40,15 @@ export const AddWorkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const editWorkout = (location.state as any)?.editWorkout as Workout | undefined;
+  const savedDraft = (() => {
+    if (editWorkout) return null;
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      return raw ? (JSON.parse(raw) as Partial<AddWorkoutDraft>) : null;
+    } catch {
+      return null;
+    }
+  })();
 
   const toLocalDatetime = (utcString: string) => {
     const d = new Date(utcString);
@@ -34,18 +56,19 @@ export const AddWorkout = () => {
     return new Date(d.getTime() - offset).toISOString().slice(0, 16);
   };
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(editWorkout ? 3 : 1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>((savedDraft?.step as 1 | 2 | 3 | 4 | undefined) ?? (editWorkout ? 3 : 1));
   const [savedWorkout, setSavedWorkout] = useState<Workout | null>(null);
   const [myClubs, setMyClubs] = useState<MyClubWithOrder[]>([]);
   const [shareClubId, setShareClubId] = useState<string>('');
   const [shareNickname, setShareNickname] = useState<string | null>(null);
   const [shareWorkoutNumber, setShareWorkoutNumber] = useState<number | undefined>(undefined);
-  const [category, setCategory] = useState<WorkoutCategory | null>(editWorkout?.category ?? null);
-  const [subType, setSubType] = useState<WorkoutSubType>(editWorkout?.sub_type ?? null);
+  const [category, setCategory] = useState<WorkoutCategory | null>(editWorkout?.category ?? (savedDraft?.category ?? null));
+  const [subType, setSubType] = useState<WorkoutSubType>(editWorkout?.sub_type ?? (savedDraft?.subType ?? null));
   const [subTypeRatio, setSubTypeRatio] = useState(50); // 0-100, 요가/복싱용 비율 슬라이더
-  const [value, setValue] = useState(editWorkout ? editWorkout.value.toString() : '');
+  const [value, setValue] = useState(editWorkout ? editWorkout.value.toString() : (savedDraft?.value ?? ''));
   const [workoutDate, setWorkoutDate] = useState(() => {
     if (editWorkout) return toLocalDatetime(editWorkout.workout_time);
+    if (savedDraft?.workoutDate) return savedDraft.workoutDate;
     const now = new Date();
     const offset = now.getTimezoneOffset() * 60000;
     return new Date(now.getTime() - offset).toISOString().slice(0, 16);
@@ -62,13 +85,13 @@ export const AddWorkout = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDirectInput, setShowDirectInput] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [intensity, setIntensity] = useState(editWorkout?.intensity ?? 4);
-  const [memo, setMemo] = useState(editWorkout?.memo ?? '');
+  const [intensity, setIntensity] = useState(editWorkout?.intensity ?? (savedDraft?.intensity ?? 4));
+  const [memo, setMemo] = useState(editWorkout?.memo ?? (savedDraft?.memo ?? ''));
 
   // 동적 운동 종목 로딩
   const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
   const [loadingTypes, setLoadingTypes] = useState(true);
-  const [showOtherWorkouts, setShowOtherWorkouts] = useState(false); // 기타운동 표시 여부
+  const [showOtherWorkouts, setShowOtherWorkouts] = useState(savedDraft?.showOtherWorkouts ?? false); // 기타운동 표시 여부
 
   useEffect(() => {
     const loadWorkoutTypes = async () => {
@@ -84,6 +107,26 @@ export const AddWorkout = () => {
     };
     loadWorkoutTypes();
   }, []);
+
+  useEffect(() => {
+    if (editWorkout || step === 4) return;
+    const draft: AddWorkoutDraft = {
+      step,
+      category,
+      subType,
+      subTypeRatio,
+      value,
+      workoutDate,
+      intensity,
+      memo,
+      showOtherWorkouts,
+    };
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(draft));
+    } catch {
+      // 저장 실패는 무시하고 입력은 계속 진행
+    }
+  }, [editWorkout, step, category, subType, subTypeRatio, value, workoutDate, intensity, memo, showOtherWorkouts]);
 
   useEffect(() => {
     if (step !== 4 || !shareClubId || !savedWorkout || !user) return;
@@ -225,6 +268,7 @@ export const AddWorkout = () => {
           memo: memo.trim() || undefined,
           proof_image: imageUrl ?? editWorkout.proof_image,
         });
+        localStorage.removeItem(SESSION_KEY);
         navigate(-1);
       } catch (error) {
         console.error('운동 기록 수정 실패:', error);
@@ -296,9 +340,11 @@ export const AddWorkout = () => {
       } catch {
         // 클럽 조회 실패해도 공유 화면은 표시 (빈 목록으로)
       }
+      sessionStorage.removeItem(SESSION_KEY);
       setSavedWorkout(workout);
       setStep(4);
     } else {
+      sessionStorage.removeItem(SESSION_KEY);
       navigate('/');
     }
   };
