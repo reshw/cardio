@@ -42,7 +42,7 @@ export const AddWorkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const editWorkout = (location.state as any)?.editWorkout as Workout | undefined;
-  const isDebug = new URLSearchParams(location.search).get('debug') === '1';
+  const isDebug = window.location.hash.includes('debug=1');
   const DEBUG_LOG_KEY = 'addworkout_debug_log';
   const [debugLogs, setDebugLogs] = useState<{ t: string; msg: string; color: string }[]>(() => {
     if (!isDebug) return [];
@@ -334,9 +334,11 @@ export const AddWorkout = () => {
       } catch {
         addLog('IMG_SAVE FAILED quota — no restore on remount', '#f44');
       }
-      disableFilePickerGuard();
-      // 최소 300ms 표시 보장 (소형 파일도 스피너가 보이도록)
+      // guard 해제 + 이미지 표시를 함께 묶어서 처리
+      // disableFilePickerGuard를 setTimeout 안에 넣어 300ms 동안 guard 유지
+      // (guard 해제 후 popstate → re-mount 시 setImagePreview가 무시되는 케이스 방지)
       setTimeout(() => {
+        disableFilePickerGuard();
         setIsCompressing(false);
         setImagePreview(toSave);
       }, 300);
