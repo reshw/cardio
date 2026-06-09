@@ -10,23 +10,8 @@ import { getDeviceInfo } from '../utils/deviceInfo';
 import type { WorkoutCategory, WorkoutSubType, WorkoutUnit, Workout } from '../services/workoutService';
 import clubService from '../services/clubService';
 import type { MyClubWithOrder } from '../services/clubService';
-import DatePickerSheet from '../components/DatePickerSheet';
 
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
-const SESSION_KEY = 'addworkout_draft_v2';
-
-type AddWorkoutDraft = {
-  step: 1 | 2 | 3 | 4;
-  category: WorkoutCategory | null;
-  subType: WorkoutSubType;
-  subTypeRatio: number;
-  value: string;
-  workoutDate: string;
-  intensity: number;
-  memo: string;
-  showOtherWorkouts: boolean;
-  imagePreview?: string;
-};
 
 const DIFF_LEVELS = [
   { emoji: '😌', label: '편안',   min: 1, max: 2,  base: 2  },
@@ -41,24 +26,6 @@ export const AddWorkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const editWorkout = (location.state as any)?.editWorkout as Workout | undefined;
-  const isDebug = new URLSearchParams(window.location.search).get('debug') === '1';
-  const [debugLogs, setDebugLogs] = useState<{ t: string; msg: string; color: string }[]>([]);
-  const [showDebug, setShowDebug] = useState(isDebug);
-  const addLog = (msg: string, color = '#fff') => {
-    if (!isDebug) return;
-    const t = new Date().toISOString().slice(11, 23);
-    setDebugLogs(prev => [...prev.slice(-30), { t, msg, color }]);
-  };
-  const savedDraft = (() => {
-    if (editWorkout) return null;
-    try {
-      const raw = localStorage.getItem(SESSION_KEY);
-      return raw ? (JSON.parse(raw) as Partial<AddWorkoutDraft>) : null;
-    } catch {
-      return null;
-    }
-  })();
-  const savedDraftRef = useRef(savedDraft);
 
   const toLocalDatetime = (utcString: string) => {
     const d = new Date(utcString);
@@ -66,19 +33,18 @@ export const AddWorkout = () => {
     return new Date(d.getTime() - offset).toISOString().slice(0, 16);
   };
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4>((savedDraft?.step as 1 | 2 | 3 | 4 | undefined) ?? (editWorkout ? 3 : 1));
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(editWorkout ? 3 : 1);
   const [savedWorkout, setSavedWorkout] = useState<Workout | null>(null);
   const [myClubs, setMyClubs] = useState<MyClubWithOrder[]>([]);
   const [shareClubId, setShareClubId] = useState<string>('');
   const [shareNickname, setShareNickname] = useState<string | null>(null);
   const [shareWorkoutNumber, setShareWorkoutNumber] = useState<number | undefined>(undefined);
-  const [category, setCategory] = useState<WorkoutCategory | null>(editWorkout?.category ?? (savedDraft?.category ?? null));
-  const [subType, setSubType] = useState<WorkoutSubType>(editWorkout?.sub_type ?? (savedDraft?.subType ?? null));
+  const [category, setCategory] = useState<WorkoutCategory | null>(editWorkout?.category ?? null);
+  const [subType, setSubType] = useState<WorkoutSubType>(editWorkout?.sub_type ?? null);
   const [subTypeRatio, setSubTypeRatio] = useState(50); // 0-100, 요가/복싱용 비율 슬라이더
-  const [value, setValue] = useState(editWorkout ? editWorkout.value.toString() : (savedDraft?.value ?? ''));
+  const [value, setValue] = useState(editWorkout ? editWorkout.value.toString() : '');
   const [workoutDate, setWorkoutDate] = useState(() => {
     if (editWorkout) return toLocalDatetime(editWorkout.workout_time);
-    if (savedDraft?.workoutDate) return savedDraft.workoutDate;
     const now = new Date();
     const offset = now.getTimezoneOffset() * 60000;
     return new Date(now.getTime() - offset).toISOString().slice(0, 16);
@@ -89,27 +55,17 @@ export const AddWorkout = () => {
   const dateInputRef = useRef<HTMLInputElement>(null);
   const stepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stepIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [cursorExp, setCursorExp] = useState(1); // 0=ones, 1=tens, 2=hundreds, -1=tenths
-  const cursorExpRef = useRef(1);
-  const touchActive = useRef(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [cursorExp, setCursorExp] = useState(0); // 0=ones, 1=tens, 2=hundreds, -1=tenths
+  const cursorExpRef = useRef(0);
   const [showDirectInput, setShowDirectInput] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [intensity, setIntensity] = useState(editWorkout?.intensity ?? (savedDraft?.intensity ?? 4));
-  const [memo, setMemo] = useState(editWorkout?.memo ?? (savedDraft?.memo ?? ''));
+  const [intensity, setIntensity] = useState(editWorkout?.intensity ?? 4);
+  const [memo, setMemo] = useState(editWorkout?.memo ?? '');
 
   // 동적 운동 종목 로딩
   const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
   const [loadingTypes, setLoadingTypes] = useState(true);
-  const [showOtherWorkouts, setShowOtherWorkouts] = useState(savedDraft?.showOtherWorkouts ?? false); // 기타운동 표시 여부
-
-  useEffect(() => {
-    addLog(`MOUNT step=${savedDraftRef.current?.step ?? 'none'} draft_img=${savedDraftRef.current?.imagePreview ? 'YES('+Math.round((savedDraftRef.current.imagePreview.length)/1024)+'kb)' : 'NO'}`, '#88f');
-    const onVisibility = () => addLog(`VISIBILITY → ${document.visibilityState}`, '#ff8');
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const [showOtherWorkouts, setShowOtherWorkouts] = useState(false); // 기타운동 표시 여부
 
   useEffect(() => {
     const loadWorkoutTypes = async () => {
@@ -125,45 +81,6 @@ export const AddWorkout = () => {
     };
     loadWorkoutTypes();
   }, []);
-
-  // 이미지 복원 — 페이지 kill 후 재시작 시 (Samsung Internet, KakaoTalk WebView 등)
-  useEffect(() => {
-    const preview = savedDraftRef.current?.imagePreview;
-    if (!preview) { addLog('IMG_RESTORE: no preview in draft', '#f88'); return; }
-    addLog(`IMG_RESTORE: restoring ${Math.round(preview.length/1024)}kb`, '#8f8');
-    setImagePreview(preview);
-    try {
-      const [header, data] = preview.split(',');
-      const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
-      const binary = atob(data);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      setProofImage(new File([new Blob([bytes], { type: mime })], 'restored.jpg', { type: mime }));
-      addLog('IMG_RESTORE: File 재구성 완료', '#8f8');
-    } catch (e) { addLog(`IMG_RESTORE ERROR: ${e}`, '#f44'); }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (editWorkout || step === 4) return;
-    const draft: AddWorkoutDraft = {
-      step,
-      category,
-      subType,
-      subTypeRatio,
-      value,
-      workoutDate,
-      intensity,
-      memo,
-      showOtherWorkouts,
-    };
-    try {
-      localStorage.setItem(SESSION_KEY, JSON.stringify({ ...draft, imagePreview }));
-    } catch {
-      // 이미지 포함 시 용량 초과 가능 — 이미지 빼고 재시도
-      try { localStorage.setItem(SESSION_KEY, JSON.stringify(draft)); } catch {}
-    }
-  }, [editWorkout, step, category, subType, subTypeRatio, value, workoutDate, intensity, memo, showOtherWorkouts, imagePreview]);
 
   useEffect(() => {
     if (step !== 4 || !shareClubId || !savedWorkout || !user) return;
@@ -252,16 +169,12 @@ export const AddWorkout = () => {
   // 이미지 선택
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    addLog(`onChange fired: files=${e.target.files?.length ?? 0} file=${file ? file.name+' '+Math.round(file.size/1024)+'kb' : 'NULL'}`, file ? '#8f8' : '#f44');
     if (file) {
       setProofImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        const result = reader.result as string;
-        addLog(`FileReader done: result=${result ? Math.round(result.length/1024)+'kb' : 'NULL'}`, result ? '#8f8' : '#f44');
-        setImagePreview(result);
+        setImagePreview(reader.result as string);
       };
-      reader.onerror = () => addLog(`FileReader ERROR: ${reader.error}`, '#f44');
       reader.readAsDataURL(file);
     }
   };
@@ -275,17 +188,10 @@ export const AddWorkout = () => {
       return;
     }
 
-    if (!editWorkout) {
-      const selectedTime = new Date(workoutDate);
-      const nowCheck = new Date();
-      if (selectedTime > nowCheck) {
-        alert('미래 날짜는 기록할 수 없습니다.');
-        return;
-      }
-      if (nowCheck.getTime() - selectedTime.getTime() > 48 * 60 * 60 * 1000) {
-        alert('48시간 이전 기록은 추가할 수 없습니다.\n(최대 2일 전까지만 가능)');
-        return;
-      }
+    if (!editWorkout && !proofImage) {
+      alert('증빙 사진을 추가해주세요. (필수)');
+      fileInputRef.current?.click();
+      return;
     }
 
     setUploading(true);
@@ -304,7 +210,6 @@ export const AddWorkout = () => {
           memo: memo.trim() || undefined,
           proof_image: imageUrl ?? editWorkout.proof_image,
         });
-        localStorage.removeItem(SESSION_KEY);
         navigate(-1);
       } catch (error) {
         console.error('운동 기록 수정 실패:', error);
@@ -365,10 +270,10 @@ export const AddWorkout = () => {
       return;
     }
 
-      setUploading(false);
+    setUploading(false);
 
-      const autoShare = localStorage.getItem(KAKAO_SHARE_KEY) !== 'false';
-      if (autoShare && workout) {
+    const autoShare = localStorage.getItem(KAKAO_SHARE_KEY) !== 'false';
+    if (autoShare && workout) {
       try {
         const clubs = await clubService.getMyClubs(user.id);
         setMyClubs(clubs);
@@ -376,11 +281,9 @@ export const AddWorkout = () => {
       } catch {
         // 클럽 조회 실패해도 공유 화면은 표시 (빈 목록으로)
       }
-      sessionStorage.removeItem(SESSION_KEY);
       setSavedWorkout(workout);
       setStep(4);
     } else {
-      sessionStorage.removeItem(SESSION_KEY);
       navigate('/');
     }
   };
@@ -403,8 +306,8 @@ export const AddWorkout = () => {
     const doAdjust = () => adjustAtExp(cursorExpRef.current, delta);
     doAdjust();
     stepTimerRef.current = setTimeout(() => {
-      stepIntervalRef.current = setInterval(doAdjust, 100);
-    }, 1000);
+      stepIntervalRef.current = setInterval(doAdjust, 120);
+    }, 380);
   };
 
   const stopStep = () => {
@@ -443,25 +346,6 @@ export const AddWorkout = () => {
 
   return (
     <div className="container add-workout-page">
-      {/* 디버그 패널 — ?debug=1 로 활성화 */}
-      {isDebug && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999, maxHeight: showDebug ? '45vh' : '36px', background: '#111', color: '#fff', fontSize: '11px', fontFamily: 'monospace', transition: 'max-height .2s', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: '#333', cursor: 'pointer' }} onClick={() => setShowDebug(v => !v)}>
-            <span>🐛 DEBUG {showDebug ? '▼' : '▲'}  img={imagePreview ? '✅' : '❌'}  file={proofImage ? '✅' : '❌'}  step={step}</span>
-            <button type="button" style={{ background: '#f44', color: '#fff', border: 'none', borderRadius: 4, padding: '0 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); setDebugLogs([]); }}>Clear</button>
-          </div>
-          {showDebug && (
-            <div style={{ overflowY: 'auto', maxHeight: 'calc(45vh - 36px)', padding: '4px 8px' }}>
-              {debugLogs.length === 0 && <div style={{ color: '#888', padding: 4 }}>이벤트 없음 — 사진 추가 버튼을 눌러보세요</div>}
-              {debugLogs.map((l, i) => (
-                <div key={i} style={{ color: l.color, padding: '2px 0', borderBottom: '1px solid #222' }}>
-                  <span style={{ color: '#888' }}>{l.t} </span>{l.msg}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
       <div className="detail-header">
         <button className="back-button" onClick={handleBack}>
           <ChevronLeft size={24} />
@@ -650,10 +534,16 @@ export const AddWorkout = () => {
               {/* ① 날짜 카드 — 최상단, 컨텍스트 헤더 역할 */}
               <div
                 className="step3-date-card"
-                onClick={() => editWorkout
-                  ? dateInputRef.current?.showPicker?.()
-                  : setShowDatePicker(true)
-                }
+                onClick={() => {
+                  const el = dateInputRef.current;
+                  if (!el) return;
+                  if (typeof (el as any).showPicker === 'function') {
+                    (el as any).showPicker();
+                  } else {
+                    el.focus();
+                    el.click();
+                  }
+                }}
               >
                 <div className="step3-date-inner">
                   <div className="step3-date-workout-name">
@@ -672,26 +562,15 @@ export const AddWorkout = () => {
                     <div className="step3-date-edit-chip">✎ 변경</div>
                   </div>
                 </div>
-                {/* datetime-local은 항상 DOM에 유지 (9a49807 구조 복원) —
-                    Samsung Internet이 form 내 datetime-local 부재 시 파일피커 동작 달라짐 */}
-                {(editWorkout || true) && (
-                  <input
-                    ref={dateInputRef}
-                    type="datetime-local"
-                    value={workoutDate}
-                    onChange={(e) => setWorkoutDate(e.target.value)}
-                    className="step3-date-hidden-input"
-                    style={editWorkout ? undefined : { pointerEvents: 'none' }}
-                  />
-                )}
-              </div>
-              {showDatePicker && (
-                <DatePickerSheet
+                <input
+                  ref={dateInputRef}
+                  type="datetime-local"
                   value={workoutDate}
-                  onChange={setWorkoutDate}
-                  onClose={() => setShowDatePicker(false)}
+                  onChange={(e) => setWorkoutDate(e.target.value)}
+                  className="step3-date-hidden-input"
+                  required
                 />
-              )}
+              </div>
 
               {/* ② 수치 입력 — 자릿수 네비게이터 */}
               <div className="step3-value-card">
@@ -715,44 +594,28 @@ export const AddWorkout = () => {
                   </div>
                 ) : (
                   <>
-                    {/* 휠피커: ‹ [자릿수별 +/숫자/-] › */}
+                    {/* [−] ‹ 자릿수 › [+] — 한 줄 통합 */}
                     <div className="step3-value-row">
+                      <button type="button" className="step3-adj-btn step3-adj-minus"
+                        onMouseDown={() => startDigitStep(-1)} onMouseUp={stopStep} onMouseLeave={stopStep}
+                        onTouchStart={(e) => { e.preventDefault(); startDigitStep(-1); }} onTouchEnd={stopStep}
+                      >−</button>
                       <button type="button" className="step3-nav-arrow"
                         onClick={() => setCursorExp(e => Math.min(maxCursorExp, e + 1))}>‹</button>
                       <div className="step3-digit-display">
                         {displayExps.map(exp => {
                           const d = getDigitAtExp(exp);
-                          const isActive = clampedExp === exp;
-                          const isLeadingZero = !isActive && exp >= 0 && d === 0
+                          const isSelected = clampedExp === exp;
+                          const isLeadingZero = !isSelected && exp >= 0 && d === 0
                             && displayExps.filter(e => e > exp).every(e => getDigitAtExp(e) === 0);
                           return (
                             <span key={exp} className="step3-digit-slot">
                               {exp === -1 && <span className="step3-digit-dot">.</span>}
-                              <div className={`step3-digit-col${isActive ? ' active' : ''}`}>
-                                <button
-                                  type="button"
-                                  className="step3-digit-adj-btn step3-digit-adj-plus"
-                                  onMouseDown={() => { if (touchActive.current) return; startDigitStep(1); }}
-                                  onMouseUp={stopStep}
-                                  onMouseLeave={stopStep}
-                                  onTouchStart={(e) => { e.preventDefault(); touchActive.current = true; startDigitStep(1); }}
-                                  onTouchEnd={() => { stopStep(); setTimeout(() => { touchActive.current = false; }, 300); }}
-                                >+</button>
-                                <button
-                                  type="button"
-                                  className={`step3-digit-box${isActive ? ' selected' : ''}${isLeadingZero ? ' dim' : ''}`}
-                                  onClick={() => setCursorExp(exp)}
-                                >{d}</button>
-                                <button
-                                  type="button"
-                                  className="step3-digit-adj-btn step3-digit-adj-minus"
-                                  onMouseDown={() => { if (touchActive.current) return; startDigitStep(-1); }}
-                                  onMouseUp={stopStep}
-                                  onMouseLeave={stopStep}
-                                  onTouchStart={(e) => { e.preventDefault(); touchActive.current = true; startDigitStep(-1); }}
-                                  onTouchEnd={() => { stopStep(); setTimeout(() => { touchActive.current = false; }, 300); }}
-                                >−</button>
-                              </div>
+                              <button
+                                type="button"
+                                className={`step3-digit-box${isSelected ? ' selected' : ''}${isLeadingZero ? ' dim' : ''}`}
+                                onClick={() => setCursorExp(exp)}
+                              >{d}</button>
                             </span>
                           );
                         })}
@@ -760,6 +623,10 @@ export const AddWorkout = () => {
                       </div>
                       <button type="button" className="step3-nav-arrow"
                         onClick={() => setCursorExp(e => Math.max(minCursorExp, e - 1))}>›</button>
+                      <button type="button" className="step3-adj-btn step3-adj-plus"
+                        onMouseDown={() => startDigitStep(1)} onMouseUp={stopStep} onMouseLeave={stopStep}
+                        onTouchStart={(e) => { e.preventDefault(); startDigitStep(1); }} onTouchEnd={stopStep}
+                      >+</button>
                     </div>
                     <button type="button" className="step3-type-direct-btn"
                       onClick={() => setShowDirectInput(true)}>⌨️ 직접 입력</button>
@@ -769,7 +636,7 @@ export const AddWorkout = () => {
                 <div className="step3-value-bar" />
               </div>
 
-              {/* ③ 인증사진 카드 — 선택 */}
+              {/* ③ 인증사진 카드 — 필수, 컴팩트 */}
               <div className="step3-section-card step3-photo-card">
                 <input
                   ref={fileInputRef}
@@ -781,15 +648,17 @@ export const AddWorkout = () => {
                 <div className="step3-photo-header">
                   <div className="step3-photo-header-left">
                     <span className="step3-section-title">📸 인증사진</span>
-                    <span className="step3-pill step3-pill-optional">선택</span>
+                    <span className={`step3-pill ${editWorkout ? 'step3-pill-optional' : 'step3-pill-required'}`}>
+                    {editWorkout ? '선택' : '필수'}
+                  </span>
                   </div>
                   {(imagePreview || editWorkout?.proof_image) ? (
-                    <div className="step3-photo-thumb" onClick={() => { addLog('PICKER open (thumb)', '#ff8'); fileInputRef.current?.click(); }}>
+                    <div className="step3-photo-thumb" onClick={() => fileInputRef.current?.click()}>
                       <img src={imagePreview ?? editWorkout?.proof_image} alt="미리보기" />
                       <div className="step3-photo-thumb-overlay">변경</div>
                     </div>
                   ) : (
-                    <button type="button" className="step3-photo-add-btn" onClick={() => { addLog('PICKER open (btn)', '#ff8'); fileInputRef.current?.click(); }}>
+                    <button type="button" className="step3-photo-add-btn" onClick={() => fileInputRef.current?.click()}>
                       📷 추가
                     </button>
                   )}
