@@ -95,6 +95,7 @@ export const AddWorkout = () => {
   });
   const [proofImage, setProofImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -291,6 +292,7 @@ export const AddWorkout = () => {
     if (!file) return;
 
     setProofImage(file);
+    setIsCompressing(true);
     const reader = new FileReader();
     reader.onloadend = async () => {
       const full = reader.result as string;
@@ -321,7 +323,7 @@ export const AddWorkout = () => {
           addLog(`compressed: ${Math.round(toSave.length / 1024)}kb`, '#8f8');
         } catch (err) {
           addLog(`compress FAILED (${err}) — using original`, '#f44');
-          toSave = full; // 실패 시 원본 유지 (아래 quota 처리에서 걸러짐)
+          toSave = full;
         }
       }
 
@@ -331,12 +333,16 @@ export const AddWorkout = () => {
         addLog('IMG_SAVED', '#8f8');
       } catch {
         addLog('IMG_SAVE FAILED quota — no restore on remount', '#f44');
-        // 저장 실패해도 현재 세션은 setImagePreview로 표시 가능
       }
       disableFilePickerGuard();
+      setIsCompressing(false);
       setImagePreview(toSave);
     };
-    reader.onerror = () => { addLog(`FileReader ERROR: ${reader.error}`, '#f44'); disableFilePickerGuard(); };
+    reader.onerror = () => {
+      addLog(`FileReader ERROR: ${reader.error}`, '#f44');
+      disableFilePickerGuard();
+      setIsCompressing(false);
+    };
     reader.readAsDataURL(file);
   };
 
@@ -860,7 +866,12 @@ export const AddWorkout = () => {
                     <span className="step3-section-title">📸 인증사진</span>
                     <span className="step3-pill step3-pill-optional">선택</span>
                   </div>
-                  {(imagePreview || editWorkout?.proof_image) ? (
+                  {isCompressing ? (
+                    <div className="step3-photo-compressing">
+                      <div className="step3-photo-compressing-spinner" />
+                      <span>처리 중...</span>
+                    </div>
+                  ) : (imagePreview || editWorkout?.proof_image) ? (
                     <div
                       className="step3-photo-thumb"
                       onClick={() => { enableFilePickerGuard(); addLog('PICKER open (thumb/click)', '#ff8'); fileInputRef.current?.click(); }}
