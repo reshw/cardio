@@ -672,14 +672,16 @@ export const AddWorkout = () => {
                     <div className="step3-date-edit-chip">✎ 변경</div>
                   </div>
                 </div>
-                {editWorkout && (
+                {/* datetime-local은 항상 DOM에 유지 (9a49807 구조 복원) —
+                    Samsung Internet이 form 내 datetime-local 부재 시 파일피커 동작 달라짐 */}
+                {(editWorkout || true) && (
                   <input
                     ref={dateInputRef}
                     type="datetime-local"
                     value={workoutDate}
                     onChange={(e) => setWorkoutDate(e.target.value)}
                     className="step3-date-hidden-input"
-                    required
+                    style={editWorkout ? undefined : { pointerEvents: 'none' }}
                   />
                 )}
               </div>
