@@ -50,6 +50,7 @@ export const AddWorkout = () => {
       return null;
     }
   })();
+  const savedDraftRef = useRef(savedDraft);
 
   const toLocalDatetime = (utcString: string) => {
     const d = new Date(utcString);
@@ -109,6 +110,21 @@ export const AddWorkout = () => {
     loadWorkoutTypes();
   }, []);
 
+  // 이미지 복원 — 페이지 kill 후 재시작 시 (Samsung Internet, KakaoTalk WebView 등)
+  useEffect(() => {
+    const preview = savedDraftRef.current?.imagePreview;
+    if (!preview) return;
+    setImagePreview(preview);
+    try {
+      const [header, data] = preview.split(',');
+      const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const binary = atob(data);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      setProofImage(new File([new Blob([bytes], { type: mime })], 'restored.jpg', { type: mime }));
+    } catch { /* 복원 실패 시 사용자가 재선택 */ }
+  }, []);
+
   useEffect(() => {
     if (editWorkout || step === 4) return;
     const draft: AddWorkoutDraft = {
@@ -123,11 +139,12 @@ export const AddWorkout = () => {
       showOtherWorkouts,
     };
     try {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(draft));
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ ...draft, imagePreview }));
     } catch {
-      // 저장 실패는 무시하고 입력은 계속 진행
+      // 이미지 포함 시 용량 초과 가능 — 이미지 빼고 재시도
+      try { localStorage.setItem(SESSION_KEY, JSON.stringify(draft)); } catch {}
     }
-  }, [editWorkout, step, category, subType, subTypeRatio, value, workoutDate, intensity, memo, showOtherWorkouts]);
+  }, [editWorkout, step, category, subType, subTypeRatio, value, workoutDate, intensity, memo, showOtherWorkouts, imagePreview]);
 
   useEffect(() => {
     if (step !== 4 || !shareClubId || !savedWorkout || !user) return;
