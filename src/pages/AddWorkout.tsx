@@ -793,23 +793,6 @@ export const AddWorkout = () => {
 
               {/* ③ 인증사진 카드 — 선택 */}
               <div className="step3-section-card step3-photo-card">
-                <input
-                  ref={fileInputRef}
-                  id="fileInputGallery"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="file-input-hidden"
-                />
-                <input
-                  ref={cameraInputRef}
-                  id="fileInputCamera"
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleImageChange}
-                  className="file-input-hidden"
-                />
                 <div className="step3-photo-header">
                   <div className="step3-photo-header-left">
                     <span className="step3-section-title">📸 인증사진</span>
@@ -822,12 +805,30 @@ export const AddWorkout = () => {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <label htmlFor="fileInputGallery" className="step3-photo-add-btn" onClick={() => addLog('PICKER open (gallery/label)', '#ff8')}>
-                        🖼️ 갤러리
-                      </label>
-                      <label htmlFor="fileInputCamera" className="step3-photo-add-btn" onClick={() => addLog('PICKER open (camera/label)', '#ff8')}>
-                        📸 촬영
-                      </label>
+                      {/* input을 버튼 위에 full-size 오버레이 — 사용자가 input 자체를 직접 클릭 (JS/label 우회) */}
+                      <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <span className="step3-photo-add-btn">🖼️ 갤러리</span>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          onClick={() => addLog('PICKER open (gallery/overlay)', '#ff8')}
+                          style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', fontSize: 0 }}
+                        />
+                      </div>
+                      <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <span className="step3-photo-add-btn">📸 촬영</span>
+                        <input
+                          ref={cameraInputRef}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={handleImageChange}
+                          onClick={() => addLog('PICKER open (camera/overlay)', '#ff8')}
+                          style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', fontSize: 0 }}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
