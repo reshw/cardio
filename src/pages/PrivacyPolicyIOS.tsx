@@ -3,7 +3,7 @@ export const PrivacyPolicyIOS = () => {
     <div className="container">
       <div className="policy-container">
         <h1>개인정보처리방침</h1>
-        <p className="policy-date">적용 대상: CardioXclub (iOS 앱)</p>
+        <p className="policy-date">적용 대상: CardioXclub (iOS 앱 · Android 앱 · 웹 서비스)</p>
         <p className="policy-date">시행일자: 2026년 1월 15일</p>
 
         <section className="policy-section">
@@ -55,13 +55,18 @@ export const PrivacyPolicyIOS = () => {
         </section>
 
         <section className="policy-section">
-          <h2>3. 타 회원 데이터와의 결합</h2>
+          <h2>3. 타 회원 데이터와의 결합 및 멀티플랫폼 접근</h2>
           <p>
             본 앱은 랭킹 서비스 특성상 수집된 운동 데이터를 다른 회원의 데이터와
             집계·비교하여 순위를 산출합니다. 이 과정에서 개별 회원의 데이터는
             해당 회원의 계정과 연결되어 서버에 저장됩니다.
             타 회원에게는 랭킹 순위 및 집계 결과만 표시되며,
             개인 식별 정보는 공개 설정에 따릅니다.
+          </p>
+          <p>
+            서버에 저장된 데이터는 동일 계정으로 로그인한 경우
+            웹 서비스(cardio.scnd.kr) 및 Android 앱에서도 동일하게 조회·이용됩니다.
+            모든 플랫폼은 동일한 서버와 개인정보 처리 정책을 공유합니다.
           </p>
         </section>
 
