@@ -3,6 +3,7 @@ import workoutService from '../services/workoutService';
 import { uploadToR2 } from '../utils/r2Storage';
 import type { Workout } from '../services/workoutService';
 import { Edit2, Trash2 } from 'lucide-react';
+import { WorkoutSourceIcon, getSourceLabel } from './WorkoutSourceIcon';
 
 interface Props {
   workout: Workout;
@@ -145,6 +146,16 @@ export const WorkoutDetailModal = ({ workout, onClose, onDelete, onUpdate }: Pro
                 <div className="detail-label">날짜</div>
                 <div className="detail-value">{formatDate(workout.created_at)}</div>
               </div>
+
+              {workout.source && workout.source !== 'manual' && (
+                <div className="detail-section">
+                  <div className="detail-label">기록 출처</div>
+                  <div className="detail-value" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <WorkoutSourceIcon source={workout.source} size={14} />
+                    {getSourceLabel(workout.source)}
+                  </div>
+                </div>
+              )}
 
               {workout.memo && (
                 <div className="detail-section">

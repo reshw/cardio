@@ -10,6 +10,7 @@ import { uploadToR2 } from '../utils/r2Storage';
 import { IntegratedCommentSection } from '../components/IntegratedCommentSection';
 import { LikeStatsModal } from '../components/LikeStatsModal';
 import { useAuth } from '../contexts/AuthContext';
+import { WorkoutSourceIcon, getSourceLabel, getSourceColor } from '../components/WorkoutSourceIcon';
 
 interface WorkoutDetailProps {
   workoutData?: Workout;
@@ -360,21 +361,37 @@ export const WorkoutDetail = ({ workoutData: propWorkout, onClose }: WorkoutDeta
               <div className="detail-value">{formatDate(workout.workout_time)}</div>
             </div>
 
-            {workout.source === 'strava' && (
-              <div className="strava-source-card">
-                <div className="strava-source-title">
-                  <img src="https://cdn.simpleicons.org/strava/FC4C02" alt="Strava" width={14} height={14} />
-                  Strava 연동 기록
+            {workout.source && workout.source !== 'manual' && (
+              workout.moving_seconds != null || workout.average_speed != null ||
+              workout.average_heartrate != null || workout.max_heartrate != null ||
+              workout.calories != null || workout.steps != null || workout.elevation_gain != null
+            ) && (
+              <div className="strava-source-card" style={{ background: workout.source === 'strava' ? '#fff5f2' : workout.source === 'apple_health' ? '#fff0f3' : '#f0f6ff', borderColor: workout.source === 'strava' ? '#ffd5c8' : workout.source === 'apple_health' ? '#ffcdd6' : '#c5d8ff' }}>
+                <div className="strava-source-title" style={{ color: getSourceColor(workout.source) }}>
+                  <WorkoutSourceIcon source={workout.source} size={14} />
+                  {getSourceLabel(workout.source)} 연동 기록
                 </div>
                 <div className="strava-source-metrics">
-                  {workout.moving_seconds != null && (
+                  {workout.source === 'strava' && workout.moving_seconds != null && (
                     <span>이동 {formatMovingTime(workout.moving_seconds)}</span>
                   )}
-                  {workout.average_speed != null && (
+                  {workout.source === 'strava' && workout.average_speed != null && (
                     <span>평균 {(workout.average_speed * 3.6).toFixed(1)} km/h</span>
                   )}
                   {workout.average_heartrate != null && (
                     <span>심박 {Math.round(workout.average_heartrate)} bpm</span>
+                  )}
+                  {workout.max_heartrate != null && (
+                    <span>최고 심박 {Math.round(workout.max_heartrate)} bpm</span>
+                  )}
+                  {workout.calories != null && (
+                    <span>{workout.calories} kcal</span>
+                  )}
+                  {workout.steps != null && (
+                    <span>{workout.steps.toLocaleString()} 보</span>
+                  )}
+                  {workout.elevation_gain != null && (
+                    <span>고도 +{workout.elevation_gain} m</span>
                   )}
                 </div>
               </div>

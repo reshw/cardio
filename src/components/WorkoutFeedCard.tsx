@@ -3,6 +3,7 @@ import { Heart, MessageCircle, MoreVertical, Share, Copy, CircleOff } from 'luci
 import { useAuth } from '../contexts/AuthContext';
 import feedService from '../services/feedService';
 import { CommentSection } from './CommentSection';
+import { WorkoutSourceIcon, getSourceLabel, getSourceColor } from './WorkoutSourceIcon';
 import type { WorkoutFeedItem } from '../services/feedService';
 
 const REPORT_REASONS = ['스팸', '욕설/혐오발언', '부적절한 내용', '기타'];
@@ -422,7 +423,12 @@ export const WorkoutFeedCard = ({
               {item.user_display_name}
             </span>
             <span className="feed-time-v2">{formatTime(workout.workout_time)}</span>
-            <span className="feed-workout-type-v2">{getWorkoutLabel()}</span>
+            <span className="feed-workout-type-v2">
+              {workout.source && workout.source !== 'manual' && (
+                <WorkoutSourceIcon source={workout.source} size={11} />
+              )}
+              {getWorkoutLabel()}
+            </span>
           </div>
 
           {/* 둘째 줄: 데이터 + 좋아요/댓글 */}
@@ -589,20 +595,23 @@ export const WorkoutFeedCard = ({
                 </div>
               </div>
 
-              {workout.source === 'strava' && (workout.moving_seconds || workout.average_heartrate || workout.device_name) && (
+              {workout.source && workout.source !== 'manual' && (
+                workout.moving_seconds || workout.average_heartrate || workout.max_heartrate ||
+                workout.device_name || workout.calories || workout.steps || workout.elevation_gain
+              ) && (
                 <div className="workout-detail-section">
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <img src="https://cdn.simpleicons.org/strava/FC4C02" alt="Strava" style={{ width: 14, height: 14 }} />
-                    Strava 데이터
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: 6, color: getSourceColor(workout.source) }}>
+                    <WorkoutSourceIcon source={workout.source} size={14} />
+                    {getSourceLabel(workout.source)} 데이터
                   </h3>
                   <div className="workout-detail-info">
-                    {workout.moving_seconds ? (
+                    {workout.source === 'strava' && workout.moving_seconds ? (
                       <div className="workout-detail-row">
                         <span className="label">이동 시간</span>
                         <span className="value">{formatDuration(workout.moving_seconds)}</span>
                       </div>
                     ) : null}
-                    {formatStravaSpeed() && (
+                    {workout.source === 'strava' && formatStravaSpeed() && (
                       <div className="workout-detail-row">
                         <span className="label">{getStravaSpeedLabel()}</span>
                         <span className="value">{formatStravaSpeed()}</span>
@@ -614,7 +623,31 @@ export const WorkoutFeedCard = ({
                         <span className="value">{Math.round(workout.average_heartrate)} bpm</span>
                       </div>
                     ) : null}
-                    {workout.device_name ? (
+                    {workout.max_heartrate ? (
+                      <div className="workout-detail-row">
+                        <span className="label">최고 심박수</span>
+                        <span className="value">{Math.round(workout.max_heartrate)} bpm</span>
+                      </div>
+                    ) : null}
+                    {workout.calories ? (
+                      <div className="workout-detail-row">
+                        <span className="label">칼로리</span>
+                        <span className="value">{workout.calories} kcal</span>
+                      </div>
+                    ) : null}
+                    {workout.steps ? (
+                      <div className="workout-detail-row">
+                        <span className="label">걸음수</span>
+                        <span className="value">{workout.steps.toLocaleString()} 보</span>
+                      </div>
+                    ) : null}
+                    {workout.elevation_gain ? (
+                      <div className="workout-detail-row">
+                        <span className="label">누적 고도</span>
+                        <span className="value">{workout.elevation_gain} m</span>
+                      </div>
+                    ) : null}
+                    {workout.source === 'strava' && workout.device_name ? (
                       <div className="workout-detail-row">
                         <span className="label">기록 기기</span>
                         <span className="value">{workout.device_name}</span>
