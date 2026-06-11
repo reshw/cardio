@@ -9,6 +9,7 @@ import type { RaceRecord } from '../services/raceService';
 import { RaceRecordCard } from '../components/RaceRecordCard';
 import { AddRaceModal } from '../components/AddRaceModal';
 import { ExternalLink, Pencil, Trash2 } from 'lucide-react';
+import { WorkoutSourceIcon } from '../components/WorkoutSourceIcon';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import {
@@ -346,8 +347,8 @@ export const History = () => {
                         </div>
                         <div className="workout-item-right">
                           <div className="workout-date" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            {workout.source === 'strava' && (
-                              <img src="https://cdn.simpleicons.org/strava/FC4C02" alt="Strava" style={{ width: 12, height: 12 }} />
+                            {workout.source && workout.source !== 'manual' && (
+                              <WorkoutSourceIcon source={workout.source} size={12} />
                             )}
                             {formatDate(workout.workout_time)}
                           </div>

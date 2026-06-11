@@ -362,9 +362,10 @@ export const WorkoutDetail = ({ workoutData: propWorkout, onClose }: WorkoutDeta
             </div>
 
             {workout.source && workout.source !== 'manual' && (
-              workout.moving_seconds != null || workout.average_speed != null ||
+              workout.elapsed_seconds != null || workout.moving_seconds != null || workout.average_speed != null ||
               workout.average_heartrate != null || workout.max_heartrate != null ||
-              workout.calories != null || workout.steps != null || workout.elevation_gain != null
+              workout.calories != null || workout.steps != null || workout.elevation_gain != null ||
+              workout.device_name != null
             ) && (
               <div className="strava-source-card" style={{ background: workout.source === 'strava' ? '#fff5f2' : workout.source === 'apple_health' ? '#fff0f3' : '#f0f6ff', borderColor: workout.source === 'strava' ? '#ffd5c8' : workout.source === 'apple_health' ? '#ffcdd6' : '#c5d8ff' }}>
                 <div className="strava-source-title" style={{ color: getSourceColor(workout.source) }}>
@@ -374,6 +375,9 @@ export const WorkoutDetail = ({ workoutData: propWorkout, onClose }: WorkoutDeta
                 <div className="strava-source-metrics">
                   {workout.source === 'strava' && workout.moving_seconds != null && (
                     <span>이동 {formatMovingTime(workout.moving_seconds)}</span>
+                  )}
+                  {workout.source === 'apple_health' && workout.elapsed_seconds != null && (
+                    <span>운동 시간 {formatMovingTime(workout.elapsed_seconds)}</span>
                   )}
                   {workout.source === 'strava' && workout.average_speed != null && (
                     <span>평균 {(workout.average_speed * 3.6).toFixed(1)} km/h</span>
@@ -392,6 +396,9 @@ export const WorkoutDetail = ({ workoutData: propWorkout, onClose }: WorkoutDeta
                   )}
                   {workout.elevation_gain != null && (
                     <span>고도 +{workout.elevation_gain} m</span>
+                  )}
+                  {workout.device_name != null && (
+                    <span>{workout.device_name}</span>
                   )}
                 </div>
               </div>

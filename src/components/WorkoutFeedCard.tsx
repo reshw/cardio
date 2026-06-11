@@ -424,9 +424,6 @@ export const WorkoutFeedCard = ({
             </span>
             <span className="feed-time-v2">{formatTime(workout.workout_time)}</span>
             <span className="feed-workout-type-v2">
-              {workout.source && workout.source !== 'manual' && (
-                <WorkoutSourceIcon source={workout.source} size={11} />
-              )}
               {getWorkoutLabel()}
             </span>
           </div>
@@ -596,7 +593,7 @@ export const WorkoutFeedCard = ({
               </div>
 
               {workout.source && workout.source !== 'manual' && (
-                workout.moving_seconds || workout.average_heartrate || workout.max_heartrate ||
+                workout.elapsed_seconds || workout.moving_seconds || workout.average_heartrate || workout.max_heartrate ||
                 workout.device_name || workout.calories || workout.steps || workout.elevation_gain
               ) && (
                 <div className="workout-detail-section">
@@ -609,6 +606,12 @@ export const WorkoutFeedCard = ({
                       <div className="workout-detail-row">
                         <span className="label">이동 시간</span>
                         <span className="value">{formatDuration(workout.moving_seconds)}</span>
+                      </div>
+                    ) : null}
+                    {workout.source === 'apple_health' && workout.elapsed_seconds ? (
+                      <div className="workout-detail-row">
+                        <span className="label">운동 시간</span>
+                        <span className="value">{formatDuration(workout.elapsed_seconds)}</span>
                       </div>
                     ) : null}
                     {workout.source === 'strava' && formatStravaSpeed() && (
@@ -647,7 +650,7 @@ export const WorkoutFeedCard = ({
                         <span className="value">{workout.elevation_gain} m</span>
                       </div>
                     ) : null}
-                    {workout.source === 'strava' && workout.device_name ? (
+                    {workout.device_name ? (
                       <div className="workout-detail-row">
                         <span className="label">기록 기기</span>
                         <span className="value">{workout.device_name}</span>
