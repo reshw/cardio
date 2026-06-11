@@ -29,6 +29,8 @@ import { AdminUserManagement } from './pages/AdminUserManagement';
 import { AdminWorkoutTypes } from './pages/AdminWorkoutTypes';
 import { AdminImageSettings } from './pages/AdminImageSettings';
 import { AdminStravaIntegrations } from './pages/AdminStravaIntegrations';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { TermsOfService } from './pages/TermsOfService';
 import { JoinClub } from './pages/JoinClub';
 import { AppGuide } from './pages/AppGuide';
 import { Header } from './components/Header';
@@ -158,6 +160,10 @@ function App() {
     <AuthProvider>
       <HashRouter>
         <Routes>
+          {/* Public routes */}
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+
           {/* Supabase Auth 콜백 (Kakao OAuth 완료 후 여기로 리다이렉트) */}
           <Route path="/auth/callback" element={<KakaoCallback />} />
           {/* 기존 URL 하위 호환 */}
