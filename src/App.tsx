@@ -32,6 +32,7 @@ import { AdminStravaIntegrations } from './pages/AdminStravaIntegrations';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { PrivacyPolicyIOS } from './pages/PrivacyPolicyIOS';
 import { TermsOfService } from './pages/TermsOfService';
+import { Download } from './pages/Download';
 import { JoinClub } from './pages/JoinClub';
 import { AppGuide } from './pages/AppGuide';
 import { Header } from './components/Header';
@@ -165,6 +166,7 @@ function App() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/privacy-ios" element={<PrivacyPolicyIOS />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/download" element={<Download />} />
 
           {/* Supabase Auth 콜백 (Kakao OAuth 완료 후 여기로 리다이렉트) */}
           <Route path="/auth/callback" element={<KakaoCallback />} />
