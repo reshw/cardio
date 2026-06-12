@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Bell, CirclePlus } from 'lucide-react';
+import { Bell, CirclePlus, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { NotificationDropdown } from './NotificationDropdown';
 import notificationService from '../services/notificationService';
 import { CreateClubModal } from './CreateClubModal';
+import { supabase } from '../lib/supabase';
 
 export const Header = () => {
   const { user } = useAuth();
@@ -14,6 +15,8 @@ export const Header = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showClubActionModal, setShowClubActionModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [hasDeviceToken, setHasDeviceToken] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -24,12 +27,30 @@ export const Header = () => {
     return 'Cardio';
   };
 
-  // 읽지 않은 알림 개수 조회
   useEffect(() => {
-    if (user) {
-      loadUnreadCount();
-    }
+    if (!user) return;
+    loadUnreadCount();
+    supabase
+      .from('device_tokens')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('platform', 'android')
+      .maybeSingle()
+      .then(({ data }) => setHasDeviceToken(!!data));
   }, [user]);
+
+  const handleSync = async () => {
+    if (!user || syncing) return;
+    setSyncing(true);
+    await fetch('/api/sync/trigger-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id }),
+    }).catch(() => {});
+    setTimeout(() => setSyncing(false), 3000);
+  };
+
+  // 읽지 않은 알림 개수 조회
 
   const loadUnreadCount = async () => {
     if (!user) return;
@@ -58,12 +79,24 @@ export const Header = () => {
         {user && (
           <div className="header-notification">
             {(location.pathname === '/') && (
-              <button
-                className="add-button"
-                onClick={() => navigate('/add-workout')}
-              >
-                + 기록 추가
-              </button>
+              <>
+                {hasDeviceToken && (
+                  <button
+                    className="sync-button"
+                    onClick={handleSync}
+                    disabled={syncing}
+                    title="기기 동기화 요청"
+                  >
+                    <RefreshCw size={16} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
+                  </button>
+                )}
+                <button
+                  className="add-button"
+                  onClick={() => navigate('/add-workout')}
+                >
+                  + 기록 추가
+                </button>
+              </>
             )}
             {location.pathname.startsWith('/club') && !location.pathname.includes('/settings') && !location.pathname.includes('/members') && !location.pathname.includes('/member/') && !location.pathname.includes('/my-settings') && (
               <button
