@@ -37,6 +37,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setUser(data ?? null);
     setLoading(false);
+
+    if (data?.id) {
+      fetch('/api/sync/trigger-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: data.id }),
+      }).catch(() => {});
+    }
   };
 
   useEffect(() => {
