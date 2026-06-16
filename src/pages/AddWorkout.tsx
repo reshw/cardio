@@ -97,7 +97,6 @@ export const AddWorkout = () => {
     savedDraft?.proofImageUrl ?? editWorkout?.proof_image ?? null
   );
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -658,10 +657,10 @@ export const AddWorkout = () => {
                 />
               )}
 
-              {/* ③ 인증사진 카드 — 선택 */}
+              {/* ③ 인증사진 카드 — 선택 (4/14·5/20 검증 패턴: visible input + label htmlFor) */}
               <div className="step3-section-card step3-photo-card">
                 <input
-                  ref={fileInputRef}
+                  id="proof-image-input"
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
@@ -678,19 +677,20 @@ export const AddWorkout = () => {
                       <span>업로드 중...</span>
                     </div>
                   ) : proofImageUrl ? (
-                    <div
+                    <label
+                      htmlFor="proof-image-input"
                       className="step3-photo-thumb"
-                      onClick={() => { addLog('PICKER open (thumb)', '#ff8'); fileInputRef.current?.click(); }}
+                      onClick={() => addLog('PICKER open (thumb/label)', '#ff8')}
                     >
                       <img src={proofImageUrl} alt="미리보기" />
                       <div className="step3-photo-thumb-overlay">변경</div>
-                    </div>
+                    </label>
                   ) : (
-                    <button
-                      type="button"
+                    <label
+                      htmlFor="proof-image-input"
                       className="step3-photo-add-btn"
-                      onClick={() => { addLog('PICKER open (gallery)', '#ff8'); fileInputRef.current?.click(); }}
-                    >📷 사진 첨부</button>
+                      onClick={() => addLog('PICKER open (gallery/label)', '#ff8')}
+                    >📷 사진 첨부</label>
                   )}
                 </div>
                 {showBrowserWarning && (
