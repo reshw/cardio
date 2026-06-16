@@ -11,19 +11,10 @@ import type { WorkoutCategory, WorkoutSubType, WorkoutUnit, Workout } from '../s
 import clubService from '../services/clubService';
 import type { MyClubWithOrder } from '../services/clubService';
 import DatePickerSheet from '../components/DatePickerSheet';
-import { enableFilePickerGuard, disableFilePickerGuard } from '../utils/filePickerGuard';
+import ValuePickerSheet from '../components/ValuePickerSheet';
 
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
-const SESSION_KEY = 'addworkout_draft_v2';
-
-// re-mount 후 FileReader가 나중에 완료될 때 새 인스턴스에 이미지를 전달하는 모듈 채널
-// (Samsung Internet은 stopImmediatePropagation과 무관하게 re-mount를 강제함)
-let _imgPending: string | null = null;
-const _imgListeners = new Set<(v: string) => void>();
-function _notifyImg(v: string) {
-  _imgPending = v;
-  _imgListeners.forEach(fn => fn(v));
-}
+const SESSION_KEY = 'addworkout_draft_v3';
 
 type AddWorkoutDraft = {
   step: 1 | 2 | 3 | 4;
@@ -35,7 +26,7 @@ type AddWorkoutDraft = {
   intensity: number;
   memo: string;
   showOtherWorkouts: boolean;
-  imagePreview?: string;
+  proofImageUrl?: string;
 };
 
 const DIFF_LEVELS = [
@@ -102,9 +93,10 @@ export const AddWorkout = () => {
     const offset = now.getTimezoneOffset() * 60000;
     return new Date(now.getTime() - offset).toISOString().slice(0, 16);
   });
-  const [proofImage, setProofImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isCompressing, setIsCompressing] = useState(false);
+  const [proofImageUrl, setProofImageUrl] = useState<string | null>(
+    savedDraft?.proofImageUrl ?? editWorkout?.proof_image ?? null
+  );
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -115,13 +107,8 @@ export const AddWorkout = () => {
   const [showBrowserWarning, setShowBrowserWarning] = useState(
     () => isProblematicBrowser && localStorage.getItem('browser_warning_dismissed') !== '1'
   );
-  const stepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const stepIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [cursorExp, setCursorExp] = useState(1); // 0=ones, 1=tens, 2=hundreds, -1=tenths
-  const cursorExpRef = useRef(1);
-  const touchActive = useRef(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showDirectInput, setShowDirectInput] = useState(false);
+  const [showValuePicker, setShowValuePicker] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [intensity, setIntensity] = useState(editWorkout?.intensity ?? (savedDraft?.intensity ?? 4));
   const [memo, setMemo] = useState(editWorkout?.memo ?? (savedDraft?.memo ?? ''));
@@ -132,24 +119,14 @@ export const AddWorkout = () => {
   const [showOtherWorkouts, setShowOtherWorkouts] = useState(savedDraft?.showOtherWorkouts ?? false); // 기타운동 표시 여부
 
   useEffect(() => {
-    addLog(`MOUNT step=${savedDraftRef.current?.step ?? 'none'} hash=${window.location.hash} href=${window.location.href.slice(-30)}`, '#88f');
-    const onVisibility = () => {
-      addLog(`VISIBILITY → ${document.visibilityState} hash=${window.location.hash}`, '#ff8');
-      if (document.visibilityState === 'visible') {
-        // 외부 앱(파일앱·갤러리)에서 복귀 시 popstate가 늦게 오므로 여유 3초
-        // 파일 선택 성공 시엔 handleImageChange onloadend에서 즉시 해제
-        setTimeout(() => disableFilePickerGuard(), 3000);
-      }
-    };
+    addLog(`MOUNT step=${savedDraftRef.current?.step ?? 'none'} img=${savedDraftRef.current?.proofImageUrl ? 'YES' : 'NO'}`, '#88f');
+    const onVisibility = () => addLog(`VISIBILITY → ${document.visibilityState}`, '#ff8');
     const onPageHide = (e: PageTransitionEvent) => addLog(`pagehide persisted=${e.persisted}`, e.persisted ? '#8f8' : '#f44');
-    const onPopState = () => addLog(`POPSTATE hash=${window.location.hash} href=${window.location.href.slice(-40)}`, '#f0f');
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', onPageHide);
-    window.addEventListener('popstate', onPopState);
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', onPageHide);
-      window.removeEventListener('popstate', onPopState);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -169,46 +146,6 @@ export const AddWorkout = () => {
     loadWorkoutTypes();
   }, []);
 
-  // 이미지 복원 — 페이지 kill 후 재시작 시 (Samsung Internet, KakaoTalk WebView 등)
-  useEffect(() => {
-    const preview = savedDraftRef.current?.imagePreview;
-    if (!preview) { addLog('IMG_RESTORE: no preview in draft', '#f88'); return; }
-    addLog(`IMG_RESTORE: restoring ${Math.round(preview.length/1024)}kb`, '#8f8');
-    setImagePreview(preview);
-    try {
-      const [header, data] = preview.split(',');
-      const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
-      const binary = atob(data);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      setProofImage(new File([new Blob([bytes], { type: mime })], 'restored.jpg', { type: mime }));
-      addLog('IMG_RESTORE: File 재구성 완료', '#8f8');
-    } catch (e) { addLog(`IMG_RESTORE ERROR: ${e}`, '#f44'); }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 모듈 채널 구독 — re-mount 후 FileReader가 늦게 완료된 경우 이미지 업데이트
-  useEffect(() => {
-    const apply = (preview: string) => {
-      addLog(`IMG_CHANNEL: received ${Math.round(preview.length / 1024)}kb`, '#8f8');
-      _imgPending = null;
-      setImagePreview(preview);
-      try {
-        const [header, data] = preview.split(',');
-        const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
-        const binary = atob(data);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        setProofImage(new File([new Blob([bytes], { type: mime })], 'channel.jpg', { type: mime }));
-      } catch {}
-    };
-    // 이미 완료된 pending 이미지 처리 (이 인스턴스 mount 전에 FileReader가 완료된 경우)
-    if (_imgPending) apply(_imgPending);
-    _imgListeners.add(apply);
-    return () => { _imgListeners.delete(apply); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => {
     if (editWorkout || step === 4) return;
     const draft: AddWorkoutDraft = {
@@ -221,14 +158,10 @@ export const AddWorkout = () => {
       intensity,
       memo,
       showOtherWorkouts,
+      proofImageUrl: proofImageUrl ?? undefined,
     };
-    try {
-      localStorage.setItem(SESSION_KEY, JSON.stringify({ ...draft, imagePreview }));
-    } catch {
-      // 이미지 포함 시 용량 초과 가능 — 이미지 빼고 재시도
-      try { localStorage.setItem(SESSION_KEY, JSON.stringify(draft)); } catch {}
-    }
-  }, [editWorkout, step, category, subType, subTypeRatio, value, workoutDate, intensity, memo, showOtherWorkouts, imagePreview]);
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(draft)); } catch {}
+  }, [editWorkout, step, category, subType, subTypeRatio, value, workoutDate, intensity, memo, showOtherWorkouts, proofImageUrl]);
 
   useEffect(() => {
     if (step !== 4 || !shareClubId || !savedWorkout || !user) return;
@@ -273,29 +206,6 @@ export const AddWorkout = () => {
 
   const displayUnit = getUnitForSubType();
 
-  // 자릿수 네비게이터 — 동적 범위
-  const maxCursorExp = displayUnit === 'm' ? 3 : 2;        // 최대: 백/천 자리
-  const minCursorExp = displayUnit === 'km' ? -1 : 0;      // 최소: km=소수점, 나머지=정수
-  const clampedExp   = Math.max(minCursorExp, Math.min(maxCursorExp, cursorExp));
-  cursorExpRef.current = clampedExp;
-
-  const numVal = parseFloat(value) || 0;
-  // 현재 값의 최고 자리 exponent
-  const hiFromVal = numVal >= 1 ? Math.floor(Math.log10(numVal)) : 0;
-  // 현재 문자열의 최저 자리 exponent (소수점 아래)
-  const loFromStr = (() => {
-    const dot = (value || '').indexOf('.');
-    return dot === -1 ? 0 : -(value.length - dot - 1);
-  })();
-  const hiExp = Math.max(clampedExp > 0 ? clampedExp : 0, hiFromVal);
-  const loExp = Math.min(clampedExp < 0 ? clampedExp : 0, loFromStr);
-  // 표시할 exponent 배열 (높은 → 낮은 순)
-  const displayExps = Array.from({ length: hiExp - loExp + 1 }, (_, i) => hiExp - i);
-  const getDigitAtExp = (exp: number): number =>
-    exp >= 0
-      ? Math.floor(numVal / Math.pow(10, exp)) % 10
-      : Math.floor(numVal * Math.pow(10, -exp)) % 10;
-
   // 카테고리 선택
   const handleCategorySelect = (cat: WorkoutCategory) => {
     setCategory(cat);
@@ -314,74 +224,24 @@ export const AddWorkout = () => {
     setStep(3);
   };
 
-  // 이미지 선택
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 이미지 선택 → 즉시 R2 업로드 (URL만 들고 다님)
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    // 같은 파일 재선택 시 onChange 미발화 방지 — 항상 value 초기화
-    e.target.value = '';
+    e.target.value = ''; // 같은 파일 재선택 시 onChange 재발화
     addLog(`onChange fired: ${file ? file.name + ' ' + Math.round(file.size / 1024) + 'kb' : 'NULL'}`, file ? '#8f8' : '#f44');
     if (!file) return;
 
-    setProofImage(file);
-    setIsCompressing(true);
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const full = reader.result as string;
-      addLog(`FileReader done: ${Math.round(full.length / 1024)}kb`, '#8f8');
-
-      // 대용량 사진 → canvas 압축 (localStorage 5MB 한도 대응)
-      // 실패 시 원본 그대로 사용 (quota 오류는 아래에서 따로 처리)
-      let toSave = full;
-      if (full.length > 150 * 1024) {
-        try {
-          toSave = await new Promise<string>((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => {
-              try {
-                const ratio = Math.min(1, 1200 / Math.max(img.width, img.height, 1));
-                const canvas = document.createElement('canvas');
-                canvas.width = Math.round(img.width * ratio);
-                canvas.height = Math.round(img.height * ratio);
-                const ctx = canvas.getContext('2d');
-                if (!ctx) { reject(new Error('no-ctx')); return; }
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                resolve(canvas.toDataURL('image/jpeg', 0.75));
-              } catch (err) { reject(err); }
-            };
-            img.onerror = () => reject(new Error('img-load-failed'));
-            img.src = full;
-          });
-          addLog(`compressed: ${Math.round(toSave.length / 1024)}kb`, '#8f8');
-        } catch (err) {
-          addLog(`compress FAILED (${err}) — using original`, '#f44');
-          toSave = full;
-        }
-      }
-
-      try {
-        const existing = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
-        localStorage.setItem(SESSION_KEY, JSON.stringify({ ...existing, imagePreview: toSave }));
-        addLog('IMG_SAVED', '#8f8');
-      } catch {
-        addLog('IMG_SAVE FAILED quota — no restore on remount', '#f44');
-      }
-      // re-mount 후 새 인스턴스에 이미지 전달 (Samsung Internet re-mount 대응)
-      _notifyImg(toSave);
-      // guard 해제 + 이미지 표시를 함께 묶어서 처리
-      // disableFilePickerGuard를 setTimeout 안에 넣어 300ms 동안 guard 유지
-      // (guard 해제 후 popstate → re-mount 시 setImagePreview가 무시되는 케이스 방지)
-      setTimeout(() => {
-        disableFilePickerGuard();
-        setIsCompressing(false);
-        setImagePreview(toSave);
-      }, 300);
-    };
-    reader.onerror = () => {
-      addLog(`FileReader ERROR: ${reader.error}`, '#f44');
-      disableFilePickerGuard();
-      setIsCompressing(false);
-    };
-    reader.readAsDataURL(file);
+    setIsUploadingImage(true);
+    try {
+      const url = await uploadToR2(file);
+      addLog(`R2 uploaded: ${url.slice(-40)}`, '#8f8');
+      setProofImageUrl(url);
+    } catch (err) {
+      addLog(`R2 upload FAILED: ${err}`, '#f44');
+      alert(`이미지 업로드에 실패했습니다.\n${err instanceof Error ? err.message : ''}`);
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   // 저장
@@ -406,21 +266,22 @@ export const AddWorkout = () => {
       }
     }
 
+    if (isUploadingImage) {
+      alert('이미지 업로드 중입니다. 잠시만 기다려주세요.');
+      return;
+    }
+
     setUploading(true);
 
     // 수정 모드
     if (editWorkout) {
       try {
-        let imageUrl: string | undefined;
-        if (proofImage) {
-          imageUrl = await uploadToR2(proofImage);
-        }
         await workoutService.updateWorkout(editWorkout.id, {
           value: parseFloat(value),
           workout_time: new Date(workoutDate).toISOString(),
           intensity,
           memo: memo.trim() || undefined,
-          proof_image: imageUrl ?? editWorkout.proof_image,
+          proof_image: proofImageUrl ?? editWorkout.proof_image,
         });
         localStorage.removeItem(SESSION_KEY);
         localStorage.removeItem(DEBUG_LOG_KEY);
@@ -436,20 +297,6 @@ export const AddWorkout = () => {
 
     let workout: Workout | null = null;
     try {
-      let imageUrl: string | undefined;
-
-      // 이미지가 있으면 R2에 업로드
-      if (proofImage) {
-        console.log('🖼️ R2 업로드 시작...');
-        try {
-          imageUrl = await uploadToR2(proofImage);
-          console.log('✅ R2 업로드 성공:', imageUrl);
-        } catch (uploadError) {
-          console.error('❌ R2 업로드 실패:', uploadError);
-          alert('이미지 업로드에 실패했습니다. 이미지 없이 저장하시겠습니까?');
-        }
-      }
-
       // 서브타입 비율 계산 (복합형만)
       let subTypeRatios: Record<string, number> | undefined;
       if (isMixedMode && subTypeRatio > 0 && subTypeRatio < 100) {
@@ -460,7 +307,6 @@ export const AddWorkout = () => {
         };
       }
 
-      // 운동 기록 저장
       console.log('💾 운동 기록 저장 시작...');
       workout = await workoutService.createWorkout({
         user_id: user.id,
@@ -470,7 +316,7 @@ export const AddWorkout = () => {
         value: parseFloat(value),
         unit: displayUnit as WorkoutUnit,
         intensity,
-        proof_image: imageUrl,
+        proof_image: proofImageUrl ?? undefined,
         memo: memo.trim() || undefined,
         ...getDeviceInfo(),
         workout_time: new Date(workoutDate).toISOString(),
@@ -504,33 +350,6 @@ export const AddWorkout = () => {
       localStorage.removeItem(DEBUG_LOG_KEY);
       navigate('/');
     }
-  };
-
-  // 자릿수 조정 (long-press repeat 지원)
-  const adjustAtExp = (exp: number, delta: 1 | -1) => {
-    const pv = Math.pow(10, exp);
-    const maxVal = displayUnit === 'm' ? 9999 : displayUnit === 'km' ? 999.9 : 999;
-    setValue(prev => {
-      const str = prev || '0';
-      const dot = str.indexOf('.');
-      const currentDecimals = dot === -1 ? 0 : str.length - dot - 1;
-      const resultDecimals = Math.max(currentDecimals, exp < 0 ? -exp : 0);
-      const n = Math.min(maxVal, Math.max(0, (parseFloat(str) || 0) + delta * pv));
-      return n.toFixed(resultDecimals);
-    });
-  };
-
-  const startDigitStep = (delta: 1 | -1) => {
-    const doAdjust = () => adjustAtExp(cursorExpRef.current, delta);
-    doAdjust();
-    stepTimerRef.current = setTimeout(() => {
-      stepIntervalRef.current = setInterval(doAdjust, 100);
-    }, 1000);
-  };
-
-  const stopStep = () => {
-    if (stepTimerRef.current) clearTimeout(stepTimerRef.current);
-    if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
   };
 
   // 뒤로 가기
@@ -568,7 +387,7 @@ export const AddWorkout = () => {
       {isDebug && (
         <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999, maxHeight: showDebug ? '45vh' : '36px', background: '#111', color: '#fff', fontSize: '11px', fontFamily: 'monospace', transition: 'max-height .2s', overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: '#333', cursor: 'pointer' }} onClick={() => setShowDebug(v => !v)}>
-            <span>🐛 DEBUG {showDebug ? '▼' : '▲'}  img={imagePreview ? '✅' : '❌'}  file={proofImage ? '✅' : '❌'}  step={step}</span>
+            <span>🐛 DEBUG {showDebug ? '▼' : '▲'}  img={proofImageUrl ? '✅' : '❌'}  uploading={isUploadingImage ? 'YES' : 'NO'}  step={step}</span>
             <button type="button" style={{ background: '#f44', color: '#fff', border: 'none', borderRadius: 4, padding: '0 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); setDebugLogs([]); localStorage.removeItem(DEBUG_LOG_KEY); }}>Clear</button>
           </div>
           {showDebug && (
@@ -814,81 +633,30 @@ export const AddWorkout = () => {
                 />
               )}
 
-              {/* ② 수치 입력 — 자릿수 네비게이터 */}
-              <div className="step3-value-card">
+              {/* ② 수치 입력 — 탭하면 바텀시트 오픈 */}
+              <button
+                type="button"
+                className="step3-value-card step3-value-tap"
+                onClick={() => setShowValuePicker(true)}
+              >
                 <div className="step3-value-hint">{displayUnit}</div>
-
-                {showDirectInput ? (
-                  /* 직접 입력 모드 */
-                  <div className="step3-direct-row">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={value}
-                      onChange={(e) => setValue(e.target.value)}
-                      onBlur={() => setShowDirectInput(false)}
-                      className="step3-direct-input"
-                      autoFocus
-                      required
-                    />
-                    <span className="step3-direct-unit">{displayUnit}</span>
-                  </div>
-                ) : (
-                  <>
-                    {/* 휠피커: ‹ [자릿수별 +/숫자/-] › */}
-                    <div className="step3-value-row">
-                      <button type="button" className="step3-nav-arrow"
-                        onClick={() => setCursorExp(e => Math.min(maxCursorExp, e + 1))}>‹</button>
-                      <div className="step3-digit-display">
-                        {displayExps.map(exp => {
-                          const d = getDigitAtExp(exp);
-                          const isActive = clampedExp === exp;
-                          const isLeadingZero = !isActive && exp >= 0 && d === 0
-                            && displayExps.filter(e => e > exp).every(e => getDigitAtExp(e) === 0);
-                          return (
-                            <span key={exp} className="step3-digit-slot">
-                              {exp === -1 && <span className="step3-digit-dot">.</span>}
-                              <div className={`step3-digit-col${isActive ? ' active' : ''}`}>
-                                <button
-                                  type="button"
-                                  className="step3-digit-adj-btn step3-digit-adj-plus"
-                                  onMouseDown={() => { if (touchActive.current) return; startDigitStep(1); }}
-                                  onMouseUp={stopStep}
-                                  onMouseLeave={stopStep}
-                                  onTouchStart={(e) => { e.preventDefault(); touchActive.current = true; startDigitStep(1); }}
-                                  onTouchEnd={() => { stopStep(); setTimeout(() => { touchActive.current = false; }, 300); }}
-                                >+</button>
-                                <button
-                                  type="button"
-                                  className={`step3-digit-box${isActive ? ' selected' : ''}${isLeadingZero ? ' dim' : ''}`}
-                                  onClick={() => setCursorExp(exp)}
-                                >{d}</button>
-                                <button
-                                  type="button"
-                                  className="step3-digit-adj-btn step3-digit-adj-minus"
-                                  onMouseDown={() => { if (touchActive.current) return; startDigitStep(-1); }}
-                                  onMouseUp={stopStep}
-                                  onMouseLeave={stopStep}
-                                  onTouchStart={(e) => { e.preventDefault(); touchActive.current = true; startDigitStep(-1); }}
-                                  onTouchEnd={() => { stopStep(); setTimeout(() => { touchActive.current = false; }, 300); }}
-                                >−</button>
-                              </div>
-                            </span>
-                          );
-                        })}
-                        <span className="step3-digit-unit-label">{displayUnit}</span>
-                      </div>
-                      <button type="button" className="step3-nav-arrow"
-                        onClick={() => setCursorExp(e => Math.max(minCursorExp, e - 1))}>›</button>
-                    </div>
-                    <button type="button" className="step3-type-direct-btn"
-                      onClick={() => setShowDirectInput(true)}>⌨️ 직접 입력</button>
-                  </>
-                )}
-
+                <div className="step3-value-tap-row">
+                  <span className="step3-value-tap-num">
+                    {value && parseFloat(value) > 0 ? value : '0'}
+                  </span>
+                  <span className="step3-value-tap-unit">{displayUnit}</span>
+                  <span className="step3-value-tap-pencil">✎</span>
+                </div>
                 <div className="step3-value-bar" />
-              </div>
+              </button>
+              {showValuePicker && (
+                <ValuePickerSheet
+                  value={value}
+                  unit={displayUnit}
+                  onChange={setValue}
+                  onClose={() => setShowValuePicker(false)}
+                />
+              )}
 
               {/* ③ 인증사진 카드 — 선택 */}
               <div className="step3-section-card step3-photo-card">
@@ -904,24 +672,24 @@ export const AddWorkout = () => {
                     <span className="step3-section-title">📸 인증사진</span>
                     <span className="step3-pill step3-pill-optional">선택</span>
                   </div>
-                  {isCompressing ? (
+                  {isUploadingImage ? (
                     <div className="step3-photo-compressing">
                       <div className="step3-photo-compressing-spinner" />
-                      <span>처리 중...</span>
+                      <span>업로드 중...</span>
                     </div>
-                  ) : (imagePreview || editWorkout?.proof_image) ? (
+                  ) : proofImageUrl ? (
                     <div
                       className="step3-photo-thumb"
-                      onClick={() => { enableFilePickerGuard(); addLog('PICKER open (thumb/click)', '#ff8'); fileInputRef.current?.click(); }}
+                      onClick={() => { addLog('PICKER open (thumb)', '#ff8'); fileInputRef.current?.click(); }}
                     >
-                      <img src={imagePreview ?? editWorkout?.proof_image} alt="미리보기" />
+                      <img src={proofImageUrl} alt="미리보기" />
                       <div className="step3-photo-thumb-overlay">변경</div>
                     </div>
                   ) : (
                     <button
                       type="button"
                       className="step3-photo-add-btn"
-                      onClick={() => { enableFilePickerGuard(); addLog('PICKER open (gallery/click)', '#ff8'); fileInputRef.current?.click(); }}
+                      onClick={() => { addLog('PICKER open (gallery)', '#ff8'); fileInputRef.current?.click(); }}
                     >📷 사진 첨부</button>
                   )}
                 </div>

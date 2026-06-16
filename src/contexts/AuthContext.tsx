@@ -80,13 +80,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loginAsDemo = async () => {
     const demoId = import.meta.env.VITE_DEMO_USER_ID;
-    if (!demoId) return;
-    const { data } = await supabase
+    if (!demoId) {
+      alert('데모 로그인이 설정되지 않았습니다. (VITE_DEMO_USER_ID 환경변수 누락)');
+      return;
+    }
+    const { data, error } = await supabase
       .from('users')
       .select('id, username, display_name, email, kakao_id, provider, profile_image, is_admin, is_super_admin, is_sub_admin')
       .eq('id', demoId)
       .single();
-    if (data) setUser(data);
+    if (error || !data) {
+      alert(`데모 사용자 조회 실패\n${error?.message ?? '데이터 없음'}`);
+      return;
+    }
+    setUser(data);
   };
 
   return (
