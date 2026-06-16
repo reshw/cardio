@@ -38,7 +38,7 @@ import { AppGuide } from './pages/AppGuide';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import KakaoCallback from './components/KakaoCallback';
-import TestUpload from './pages/TestUpload';
+import PhotoUpload from './pages/PhotoUpload';
 import './App.css';
 
 function ProtectedRoutes() {
@@ -168,7 +168,7 @@ function App() {
           <Route path="/privacy-ios" element={<PrivacyPolicyIOS />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/download" element={<Download />} />
-          <Route path="/test-upload" element={<TestUpload />} />
+          <Route path="/photo-upload" element={<PhotoUpload />} />
 
           {/* Supabase Auth 콜백 (Kakao OAuth 완료 후 여기로 리다이렉트) */}
           <Route path="/auth/callback" element={<KakaoCallback />} />
