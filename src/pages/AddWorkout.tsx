@@ -111,9 +111,10 @@ export const AddWorkout = () => {
   const [intensity, setIntensity] = useState(editWorkout?.intensity ?? (savedDraft?.intensity ?? 4));
   const [memo, setMemo] = useState(editWorkout?.memo ?? (savedDraft?.memo ?? ''));
 
-  // 동적 운동 종목 로딩
-  const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
-  const [loadingTypes, setLoadingTypes] = useState(true);
+  // 동적 운동 종목 로딩 — 캐시 있으면 즉시 렌더 (스피너 건너뛰기)
+  const cachedTypes = workoutTypeService.getCachedActiveTypes();
+  const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>(cachedTypes ?? []);
+  const [loadingTypes, setLoadingTypes] = useState(cachedTypes === null);
   const [showOtherWorkouts, setShowOtherWorkouts] = useState(savedDraft?.showOtherWorkouts ?? false); // 기타운동 표시 여부
 
   useEffect(() => {
