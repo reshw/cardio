@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import workoutService from '../services/workoutService';
 import workoutTypeService from '../services/workoutTypeService';
 import type { WorkoutType } from '../services/workoutTypeService';
-import { uploadToR2 } from '../utils/r2Storage';
 import { getDeviceInfo } from '../utils/deviceInfo';
 import type { WorkoutCategory, WorkoutSubType, WorkoutUnit, Workout } from '../services/workoutService';
 import clubService from '../services/clubService';
@@ -15,6 +14,7 @@ import ValuePickerSheet from '../components/ValuePickerSheet';
 
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
 const SESSION_KEY = 'addworkout_draft_v3';
+const PENDING_PHOTO_KEY = 'addworkout_pending_photo_url';
 
 type AddWorkoutDraft = {
   step: 1 | 2 | 3 | 4;
@@ -96,7 +96,6 @@ export const AddWorkout = () => {
   const [proofImageUrl, setProofImageUrl] = useState<string | null>(
     savedDraft?.proofImageUrl ?? editWorkout?.proof_image ?? null
   );
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -119,6 +118,13 @@ export const AddWorkout = () => {
 
   useEffect(() => {
     addLog(`MOUNT step=${savedDraftRef.current?.step ?? 'none'} img=${savedDraftRef.current?.proofImageUrl ? 'YES' : 'NO'}`, '#88f');
+    // /photo-upload에서 돌아왔을 때 sessionStorage URL 픽업
+    const pendingUrl = sessionStorage.getItem(PENDING_PHOTO_KEY);
+    if (pendingUrl) {
+      addLog(`Pending photo restored: ...${pendingUrl.slice(-30)}`, '#8f8');
+      setProofImageUrl(pendingUrl);
+      sessionStorage.removeItem(PENDING_PHOTO_KEY);
+    }
     const onVisibility = () => addLog(`VISIBILITY → ${document.visibilityState}`, '#ff8');
     const onPageHide = (e: PageTransitionEvent) => addLog(`pagehide persisted=${e.persisted}`, e.persisted ? '#8f8' : '#f44');
     document.addEventListener('visibilitychange', onVisibility);
@@ -223,26 +229,6 @@ export const AddWorkout = () => {
     setStep(3);
   };
 
-  // 이미지 선택 → 즉시 R2 업로드 (URL만 들고 다님)
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = ''; // 같은 파일 재선택 시 onChange 재발화
-    addLog(`onChange fired: ${file ? file.name + ' ' + Math.round(file.size / 1024) + 'kb' : 'NULL'}`, file ? '#8f8' : '#f44');
-    if (!file) return;
-
-    setIsUploadingImage(true);
-    try {
-      const url = await uploadToR2(file);
-      addLog(`R2 uploaded: ${url.slice(-40)}`, '#8f8');
-      setProofImageUrl(url);
-    } catch (err) {
-      addLog(`R2 upload FAILED: ${err}`, '#f44');
-      alert(`이미지 업로드에 실패했습니다.\n${err instanceof Error ? err.message : ''}`);
-    } finally {
-      setIsUploadingImage(false);
-    }
-  };
-
   // 저장
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -263,11 +249,6 @@ export const AddWorkout = () => {
         alert('48시간 이전 기록은 추가할 수 없습니다.\n(최대 2일 전까지만 가능)');
         return;
       }
-    }
-
-    if (isUploadingImage) {
-      alert('이미지 업로드 중입니다. 잠시만 기다려주세요.');
-      return;
     }
 
     setUploading(true);
@@ -386,7 +367,7 @@ export const AddWorkout = () => {
       {isDebug && (
         <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999, maxHeight: showDebug ? '45vh' : '36px', background: '#111', color: '#fff', fontSize: '11px', fontFamily: 'monospace', transition: 'max-height .2s', overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: '#333', cursor: 'pointer' }} onClick={() => setShowDebug(v => !v)}>
-            <span>🐛 DEBUG {showDebug ? '▼' : '▲'}  img={proofImageUrl ? '✅' : '❌'}  uploading={isUploadingImage ? 'YES' : 'NO'}  step={step}</span>
+            <span>🐛 DEBUG {showDebug ? '▼' : '▲'}  img={proofImageUrl ? '✅' : '❌'}  step={step}</span>
             <button type="button" style={{ background: '#f44', color: '#fff', border: 'none', borderRadius: 4, padding: '0 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); setDebugLogs([]); localStorage.removeItem(DEBUG_LOG_KEY); }}>Clear</button>
           </div>
           {showDebug && (
@@ -657,40 +638,29 @@ export const AddWorkout = () => {
                 />
               )}
 
-              {/* ③ 인증사진 카드 — 선택 (4/14·5/20 검증 패턴: visible input + label htmlFor) */}
+              {/* ③ 인증사진 카드 — 가벼운 /photo-upload 페이지로 이동해서 처리 (Samsung WebView kill 회피) */}
               <div className="step3-section-card step3-photo-card">
-                <input
-                  id="proof-image-input"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="file-input-hidden"
-                />
                 <div className="step3-photo-header">
                   <div className="step3-photo-header-left">
                     <span className="step3-section-title">📸 인증사진</span>
                     <span className="step3-pill step3-pill-optional">선택</span>
                   </div>
-                  {isUploadingImage ? (
-                    <div className="step3-photo-compressing">
-                      <div className="step3-photo-compressing-spinner" />
-                      <span>업로드 중...</span>
-                    </div>
-                  ) : proofImageUrl ? (
-                    <label
-                      htmlFor="proof-image-input"
+                  {proofImageUrl ? (
+                    <button
+                      type="button"
                       className="step3-photo-thumb"
-                      onClick={() => addLog('PICKER open (thumb/label)', '#ff8')}
+                      onClick={() => { addLog('navigate to /photo-upload (thumb)', '#ff8'); navigate('/photo-upload'); }}
+                      style={{ padding: 0, border: 'none', background: 'none' }}
                     >
                       <img src={proofImageUrl} alt="미리보기" />
                       <div className="step3-photo-thumb-overlay">변경</div>
-                    </label>
+                    </button>
                   ) : (
-                    <label
-                      htmlFor="proof-image-input"
+                    <button
+                      type="button"
                       className="step3-photo-add-btn"
-                      onClick={() => addLog('PICKER open (gallery/label)', '#ff8')}
-                    >📷 사진 첨부</label>
+                      onClick={() => { addLog('navigate to /photo-upload', '#ff8'); navigate('/photo-upload'); }}
+                    >📷 사진 첨부</button>
                   )}
                 </div>
                 {showBrowserWarning && (
