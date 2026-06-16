@@ -1127,7 +1127,13 @@ body.search-modal-open .bottom-nav {
 }
 
 .file-input-hidden {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  clip: rect(0 0 0 0);
 }
 
 .step3-photo-compressing {
@@ -4025,6 +4031,9 @@ body.search-modal-open .bottom-nav {
 }
 
 .step3-photo-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 8px 14px;
   background: var(--input-bg);
   border: 1.5px dashed var(--border-color);
@@ -4038,6 +4047,7 @@ body.search-modal-open .bottom-nav {
   -webkit-tap-highlight-color: transparent;
   white-space: nowrap;
   flex-shrink: 0;
+  user-select: none;
 }
 
 .step3-photo-add-btn:active {
@@ -4112,6 +4122,7 @@ body.search-modal-open .bottom-nav {
 }
 
 .step3-photo-thumb {
+  display: block;
   position: relative;
   width: 68px;
   height: 68px;
