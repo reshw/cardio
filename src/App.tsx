@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Login } from './pages/Login';
@@ -29,6 +29,10 @@ import { AdminUserManagement } from './pages/AdminUserManagement';
 import { AdminWorkoutTypes } from './pages/AdminWorkoutTypes';
 import { AdminImageSettings } from './pages/AdminImageSettings';
 import { AdminStravaIntegrations } from './pages/AdminStravaIntegrations';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { PrivacyPolicyIOS } from './pages/PrivacyPolicyIOS';
+import { TermsOfService } from './pages/TermsOfService';
+import { Download } from './pages/Download';
 import { JoinClub } from './pages/JoinClub';
 import { AppGuide } from './pages/AppGuide';
 import { Header } from './components/Header';
@@ -156,8 +160,14 @@ function App() {
   return (
     <ErrorBoundary>
     <AuthProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
+          {/* Public routes */}
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/privacy-ios" element={<PrivacyPolicyIOS />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/download" element={<Download />} />
+
           {/* Supabase Auth 콜백 (Kakao OAuth 완료 후 여기로 리다이렉트) */}
           <Route path="/auth/callback" element={<KakaoCallback />} />
           {/* 기존 URL 하위 호환 */}
@@ -170,7 +180,7 @@ function App() {
             </div>
           } />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </AuthProvider>
     </ErrorBoundary>
   );

@@ -30,15 +30,19 @@ export interface Workout {
   upload_os?: string;
   created_at: string; // 기록을 올린 시점 (스냅샷, 순서 결정용, 수정 불가)
   workout_time: string; // 실제 운동한 시간 (사용자 수정 가능)
-  source?: string; // 'manual' | 'strava'
+  source?: string; // 'manual' | 'strava' | 'apple_health' | 'google_health'
   source_activity_id?: string;
   elapsed_seconds?: number | null;
   moving_seconds?: number | null;
   average_speed?: number | null; // m/s
   average_heartrate?: number | null; // bpm
+  max_heartrate?: number | null; // bpm
   device_name?: string | null;
   timezone?: string | null;
   utc_offset?: number | null; // 초 단위 (32400 = +9h)
+  calories?: number | null; // kcal
+  elevation_gain?: number | null; // m
+  steps?: number | null;
 }
 
 export interface CreateWorkoutData {

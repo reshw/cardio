@@ -10,7 +10,7 @@ export const KakaoLogin = () => {
     await supabase.auth.signInWithOAuth({
       provider: 'kakao',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/#/auth/callback`,
         scopes: 'profile_nickname profile_image account_email phone_number name birthyear gender',
         queryParams: {
           prompt: 'login', // 매번 계정 선택 강제

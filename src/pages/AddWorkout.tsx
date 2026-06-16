@@ -11,8 +11,23 @@ import type { WorkoutCategory, WorkoutSubType, WorkoutUnit, Workout } from '../s
 import clubService from '../services/clubService';
 import type { MyClubWithOrder } from '../services/clubService';
 import DatePickerSheet from '../components/DatePickerSheet';
+import ValuePickerSheet from '../components/ValuePickerSheet';
 
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
+const SESSION_KEY = 'addworkout_draft_v3';
+
+type AddWorkoutDraft = {
+  step: 1 | 2 | 3 | 4;
+  category: WorkoutCategory | null;
+  subType: WorkoutSubType;
+  subTypeRatio: number;
+  value: string;
+  workoutDate: string;
+  intensity: number;
+  memo: string;
+  showOtherWorkouts: boolean;
+  proofImageUrl?: string;
+};
 
 const DIFF_LEVELS = [
   { emoji: '😌', label: '편안',   min: 1, max: 2,  base: 2  },
@@ -27,6 +42,33 @@ export const AddWorkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const editWorkout = (location.state as any)?.editWorkout as Workout | undefined;
+  const isDebug = window.location.hash.includes('debug=1');
+  const DEBUG_LOG_KEY = 'addworkout_debug_log';
+  const [debugLogs, setDebugLogs] = useState<{ t: string; msg: string; color: string }[]>(() => {
+    if (!isDebug) return [];
+    try { return JSON.parse(localStorage.getItem(DEBUG_LOG_KEY) || '[]'); } catch { return []; }
+  });
+  const [showDebug, setShowDebug] = useState(isDebug);
+  const addLog = (msg: string, color = '#fff') => {
+    if (!isDebug) return;
+    const t = new Date().toISOString().slice(11, 23);
+    const entry = { t, msg, color };
+    setDebugLogs(prev => {
+      const next = [...prev.slice(-49), entry];
+      try { localStorage.setItem(DEBUG_LOG_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const savedDraft = (() => {
+    if (editWorkout) return null;
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      return raw ? (JSON.parse(raw) as Partial<AddWorkoutDraft>) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const savedDraftRef = useRef(savedDraft);
 
   const toLocalDatetime = (utcString: string) => {
     const d = new Date(utcString);
@@ -34,41 +76,60 @@ export const AddWorkout = () => {
     return new Date(d.getTime() - offset).toISOString().slice(0, 16);
   };
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(editWorkout ? 3 : 1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>((savedDraft?.step as 1 | 2 | 3 | 4 | undefined) ?? (editWorkout ? 3 : 1));
   const [savedWorkout, setSavedWorkout] = useState<Workout | null>(null);
   const [myClubs, setMyClubs] = useState<MyClubWithOrder[]>([]);
   const [shareClubId, setShareClubId] = useState<string>('');
   const [shareNickname, setShareNickname] = useState<string | null>(null);
   const [shareWorkoutNumber, setShareWorkoutNumber] = useState<number | undefined>(undefined);
-  const [category, setCategory] = useState<WorkoutCategory | null>(editWorkout?.category ?? null);
-  const [subType, setSubType] = useState<WorkoutSubType>(editWorkout?.sub_type ?? null);
+  const [category, setCategory] = useState<WorkoutCategory | null>(editWorkout?.category ?? (savedDraft?.category ?? null));
+  const [subType, setSubType] = useState<WorkoutSubType>(editWorkout?.sub_type ?? (savedDraft?.subType ?? null));
   const [subTypeRatio, setSubTypeRatio] = useState(50); // 0-100, 요가/복싱용 비율 슬라이더
-  const [value, setValue] = useState(editWorkout ? editWorkout.value.toString() : '');
+  const [value, setValue] = useState(editWorkout ? editWorkout.value.toString() : (savedDraft?.value ?? ''));
   const [workoutDate, setWorkoutDate] = useState(() => {
     if (editWorkout) return toLocalDatetime(editWorkout.workout_time);
+    if (savedDraft?.workoutDate) return savedDraft.workoutDate;
     const now = new Date();
     const offset = now.getTimezoneOffset() * 60000;
     return new Date(now.getTime() - offset).toISOString().slice(0, 16);
   });
-  const [proofImage, setProofImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [proofImageUrl, setProofImageUrl] = useState<string | null>(
+    savedDraft?.proofImageUrl ?? editWorkout?.proof_image ?? null
+  );
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const dateInputRef = useRef<HTMLInputElement>(null);
-  const stepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const stepIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [cursorExp, setCursorExp] = useState(1); // 0=ones, 1=tens, 2=hundreds, -1=tenths
-  const cursorExpRef = useRef(1);
-  const touchActive = useRef(false);
+
+  const isSamsungBrowser = /SamsungBrowser/i.test(navigator.userAgent);
+  const isKakaoInApp = /KAKAOTALK/i.test(navigator.userAgent);
+  const isProblematicBrowser = isSamsungBrowser || isKakaoInApp;
+  const [showBrowserWarning, setShowBrowserWarning] = useState(
+    () => isProblematicBrowser && localStorage.getItem('browser_warning_dismissed') !== '1'
+  );
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showDirectInput, setShowDirectInput] = useState(false);
+  const [showValuePicker, setShowValuePicker] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [intensity, setIntensity] = useState(editWorkout?.intensity ?? 4);
-  const [memo, setMemo] = useState(editWorkout?.memo ?? '');
+  const [intensity, setIntensity] = useState(editWorkout?.intensity ?? (savedDraft?.intensity ?? 4));
+  const [memo, setMemo] = useState(editWorkout?.memo ?? (savedDraft?.memo ?? ''));
 
   // 동적 운동 종목 로딩
   const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
   const [loadingTypes, setLoadingTypes] = useState(true);
-  const [showOtherWorkouts, setShowOtherWorkouts] = useState(false); // 기타운동 표시 여부
+  const [showOtherWorkouts, setShowOtherWorkouts] = useState(savedDraft?.showOtherWorkouts ?? false); // 기타운동 표시 여부
+
+  useEffect(() => {
+    addLog(`MOUNT step=${savedDraftRef.current?.step ?? 'none'} img=${savedDraftRef.current?.proofImageUrl ? 'YES' : 'NO'}`, '#88f');
+    const onVisibility = () => addLog(`VISIBILITY → ${document.visibilityState}`, '#ff8');
+    const onPageHide = (e: PageTransitionEvent) => addLog(`pagehide persisted=${e.persisted}`, e.persisted ? '#8f8' : '#f44');
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const loadWorkoutTypes = async () => {
@@ -84,6 +145,23 @@ export const AddWorkout = () => {
     };
     loadWorkoutTypes();
   }, []);
+
+  useEffect(() => {
+    if (editWorkout || step === 4) return;
+    const draft: AddWorkoutDraft = {
+      step,
+      category,
+      subType,
+      subTypeRatio,
+      value,
+      workoutDate,
+      intensity,
+      memo,
+      showOtherWorkouts,
+      proofImageUrl: proofImageUrl ?? undefined,
+    };
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(draft)); } catch {}
+  }, [editWorkout, step, category, subType, subTypeRatio, value, workoutDate, intensity, memo, showOtherWorkouts, proofImageUrl]);
 
   useEffect(() => {
     if (step !== 4 || !shareClubId || !savedWorkout || !user) return;
@@ -128,29 +206,6 @@ export const AddWorkout = () => {
 
   const displayUnit = getUnitForSubType();
 
-  // 자릿수 네비게이터 — 동적 범위
-  const maxCursorExp = displayUnit === 'm' ? 3 : 2;        // 최대: 백/천 자리
-  const minCursorExp = displayUnit === 'km' ? -1 : 0;      // 최소: km=소수점, 나머지=정수
-  const clampedExp   = Math.max(minCursorExp, Math.min(maxCursorExp, cursorExp));
-  cursorExpRef.current = clampedExp;
-
-  const numVal = parseFloat(value) || 0;
-  // 현재 값의 최고 자리 exponent
-  const hiFromVal = numVal >= 1 ? Math.floor(Math.log10(numVal)) : 0;
-  // 현재 문자열의 최저 자리 exponent (소수점 아래)
-  const loFromStr = (() => {
-    const dot = (value || '').indexOf('.');
-    return dot === -1 ? 0 : -(value.length - dot - 1);
-  })();
-  const hiExp = Math.max(clampedExp > 0 ? clampedExp : 0, hiFromVal);
-  const loExp = Math.min(clampedExp < 0 ? clampedExp : 0, loFromStr);
-  // 표시할 exponent 배열 (높은 → 낮은 순)
-  const displayExps = Array.from({ length: hiExp - loExp + 1 }, (_, i) => hiExp - i);
-  const getDigitAtExp = (exp: number): number =>
-    exp >= 0
-      ? Math.floor(numVal / Math.pow(10, exp)) % 10
-      : Math.floor(numVal * Math.pow(10, -exp)) % 10;
-
   // 카테고리 선택
   const handleCategorySelect = (cat: WorkoutCategory) => {
     setCategory(cat);
@@ -169,16 +224,23 @@ export const AddWorkout = () => {
     setStep(3);
   };
 
-  // 이미지 선택
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 이미지 선택 → 즉시 R2 업로드 (URL만 들고 다님)
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setProofImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    e.target.value = ''; // 같은 파일 재선택 시 onChange 재발화
+    addLog(`onChange fired: ${file ? file.name + ' ' + Math.round(file.size / 1024) + 'kb' : 'NULL'}`, file ? '#8f8' : '#f44');
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    try {
+      const url = await uploadToR2(file);
+      addLog(`R2 uploaded: ${url.slice(-40)}`, '#8f8');
+      setProofImageUrl(url);
+    } catch (err) {
+      addLog(`R2 upload FAILED: ${err}`, '#f44');
+      alert(`이미지 업로드에 실패했습니다.\n${err instanceof Error ? err.message : ''}`);
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -204,8 +266,8 @@ export const AddWorkout = () => {
       }
     }
 
-    if (!editWorkout && !proofImage) {
-      alert('증빙 사진을 추가해주세요. (필수)');
+    if (isUploadingImage) {
+      alert('이미지 업로드 중입니다. 잠시만 기다려주세요.');
       return;
     }
 
@@ -214,17 +276,15 @@ export const AddWorkout = () => {
     // 수정 모드
     if (editWorkout) {
       try {
-        let imageUrl: string | undefined;
-        if (proofImage) {
-          imageUrl = await uploadToR2(proofImage);
-        }
         await workoutService.updateWorkout(editWorkout.id, {
           value: parseFloat(value),
           workout_time: new Date(workoutDate).toISOString(),
           intensity,
           memo: memo.trim() || undefined,
-          proof_image: imageUrl ?? editWorkout.proof_image,
+          proof_image: proofImageUrl ?? editWorkout.proof_image,
         });
+        localStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem(DEBUG_LOG_KEY);
         navigate(-1);
       } catch (error) {
         console.error('운동 기록 수정 실패:', error);
@@ -237,20 +297,6 @@ export const AddWorkout = () => {
 
     let workout: Workout | null = null;
     try {
-      let imageUrl: string | undefined;
-
-      // 이미지가 있으면 R2에 업로드
-      if (proofImage) {
-        console.log('🖼️ R2 업로드 시작...');
-        try {
-          imageUrl = await uploadToR2(proofImage);
-          console.log('✅ R2 업로드 성공:', imageUrl);
-        } catch (uploadError) {
-          console.error('❌ R2 업로드 실패:', uploadError);
-          alert('이미지 업로드에 실패했습니다. 이미지 없이 저장하시겠습니까?');
-        }
-      }
-
       // 서브타입 비율 계산 (복합형만)
       let subTypeRatios: Record<string, number> | undefined;
       if (isMixedMode && subTypeRatio > 0 && subTypeRatio < 100) {
@@ -261,7 +307,6 @@ export const AddWorkout = () => {
         };
       }
 
-      // 운동 기록 저장
       console.log('💾 운동 기록 저장 시작...');
       workout = await workoutService.createWorkout({
         user_id: user.id,
@@ -271,7 +316,7 @@ export const AddWorkout = () => {
         value: parseFloat(value),
         unit: displayUnit as WorkoutUnit,
         intensity,
-        proof_image: imageUrl,
+        proof_image: proofImageUrl ?? undefined,
         memo: memo.trim() || undefined,
         ...getDeviceInfo(),
         workout_time: new Date(workoutDate).toISOString(),
@@ -296,38 +341,15 @@ export const AddWorkout = () => {
       } catch {
         // 클럽 조회 실패해도 공유 화면은 표시 (빈 목록으로)
       }
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(DEBUG_LOG_KEY);
       setSavedWorkout(workout);
       setStep(4);
     } else {
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(DEBUG_LOG_KEY);
       navigate('/');
     }
-  };
-
-  // 자릿수 조정 (long-press repeat 지원)
-  const adjustAtExp = (exp: number, delta: 1 | -1) => {
-    const pv = Math.pow(10, exp);
-    const maxVal = displayUnit === 'm' ? 9999 : displayUnit === 'km' ? 999.9 : 999;
-    setValue(prev => {
-      const str = prev || '0';
-      const dot = str.indexOf('.');
-      const currentDecimals = dot === -1 ? 0 : str.length - dot - 1;
-      const resultDecimals = Math.max(currentDecimals, exp < 0 ? -exp : 0);
-      const n = Math.min(maxVal, Math.max(0, (parseFloat(str) || 0) + delta * pv));
-      return n.toFixed(resultDecimals);
-    });
-  };
-
-  const startDigitStep = (delta: 1 | -1) => {
-    const doAdjust = () => adjustAtExp(cursorExpRef.current, delta);
-    doAdjust();
-    stepTimerRef.current = setTimeout(() => {
-      stepIntervalRef.current = setInterval(doAdjust, 100);
-    }, 1000);
-  };
-
-  const stopStep = () => {
-    if (stepTimerRef.current) clearTimeout(stepTimerRef.current);
-    if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
   };
 
   // 뒤로 가기
@@ -361,6 +383,25 @@ export const AddWorkout = () => {
 
   return (
     <div className="container add-workout-page">
+      {/* 디버그 패널 — ?debug=1 로 활성화 */}
+      {isDebug && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999, maxHeight: showDebug ? '45vh' : '36px', background: '#111', color: '#fff', fontSize: '11px', fontFamily: 'monospace', transition: 'max-height .2s', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: '#333', cursor: 'pointer' }} onClick={() => setShowDebug(v => !v)}>
+            <span>🐛 DEBUG {showDebug ? '▼' : '▲'}  img={proofImageUrl ? '✅' : '❌'}  uploading={isUploadingImage ? 'YES' : 'NO'}  step={step}</span>
+            <button type="button" style={{ background: '#f44', color: '#fff', border: 'none', borderRadius: 4, padding: '0 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); setDebugLogs([]); localStorage.removeItem(DEBUG_LOG_KEY); }}>Clear</button>
+          </div>
+          {showDebug && (
+            <div style={{ overflowY: 'auto', maxHeight: 'calc(45vh - 36px)', padding: '4px 8px' }}>
+              {debugLogs.length === 0 && <div style={{ color: '#888', padding: 4 }}>이벤트 없음 — 사진 추가 버튼을 눌러보세요</div>}
+              {debugLogs.map((l, i) => (
+                <div key={i} style={{ color: l.color, padding: '2px 0', borderBottom: '1px solid #222' }}>
+                  <span style={{ color: '#888' }}>{l.t} </span>{l.msg}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div className="detail-header">
         <button className="back-button" onClick={handleBack}>
           <ChevronLeft size={24} />
@@ -544,16 +585,6 @@ export const AddWorkout = () => {
           const activeIdx = DIFF_LEVELS.findIndex(l => intensity >= l.min && intensity <= l.max);
 
           return (
-            <>
-            {/* 파일 인풋: form 외부에 배치 — Android WebView에서 form 내부 file input이
-                onChange 시 spurious submit 이벤트를 발생시키는 버그 방지 */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="file-input-hidden"
-            />
             <form onSubmit={handleSubmit} className="step3-form">
 
               {/* ① 날짜 카드 — 최상단, 컨텍스트 헤더 역할 */}
@@ -581,14 +612,16 @@ export const AddWorkout = () => {
                     <div className="step3-date-edit-chip">✎ 변경</div>
                   </div>
                 </div>
-                {editWorkout && (
+                {/* datetime-local은 항상 DOM에 유지 (9a49807 구조 복원) —
+                    Samsung Internet이 form 내 datetime-local 부재 시 파일피커 동작 달라짐 */}
+                {(editWorkout || true) && (
                   <input
                     ref={dateInputRef}
                     type="datetime-local"
                     value={workoutDate}
                     onChange={(e) => setWorkoutDate(e.target.value)}
                     className="step3-date-hidden-input"
-                    required
+                    style={editWorkout ? undefined : { pointerEvents: 'none' }}
                   />
                 )}
               </div>
@@ -600,102 +633,80 @@ export const AddWorkout = () => {
                 />
               )}
 
-              {/* ② 수치 입력 — 자릿수 네비게이터 */}
-              <div className="step3-value-card">
+              {/* ② 수치 입력 — 탭하면 바텀시트 오픈 */}
+              <button
+                type="button"
+                className="step3-value-card step3-value-tap"
+                onClick={() => setShowValuePicker(true)}
+              >
                 <div className="step3-value-hint">{displayUnit}</div>
-
-                {showDirectInput ? (
-                  /* 직접 입력 모드 */
-                  <div className="step3-direct-row">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={value}
-                      onChange={(e) => setValue(e.target.value)}
-                      onBlur={() => setShowDirectInput(false)}
-                      className="step3-direct-input"
-                      autoFocus
-                      required
-                    />
-                    <span className="step3-direct-unit">{displayUnit}</span>
-                  </div>
-                ) : (
-                  <>
-                    {/* 휠피커: ‹ [자릿수별 +/숫자/-] › */}
-                    <div className="step3-value-row">
-                      <button type="button" className="step3-nav-arrow"
-                        onClick={() => setCursorExp(e => Math.min(maxCursorExp, e + 1))}>‹</button>
-                      <div className="step3-digit-display">
-                        {displayExps.map(exp => {
-                          const d = getDigitAtExp(exp);
-                          const isActive = clampedExp === exp;
-                          const isLeadingZero = !isActive && exp >= 0 && d === 0
-                            && displayExps.filter(e => e > exp).every(e => getDigitAtExp(e) === 0);
-                          return (
-                            <span key={exp} className="step3-digit-slot">
-                              {exp === -1 && <span className="step3-digit-dot">.</span>}
-                              <div className={`step3-digit-col${isActive ? ' active' : ''}`}>
-                                <button
-                                  type="button"
-                                  className="step3-digit-adj-btn step3-digit-adj-plus"
-                                  onMouseDown={() => { if (touchActive.current) return; startDigitStep(1); }}
-                                  onMouseUp={stopStep}
-                                  onMouseLeave={stopStep}
-                                  onTouchStart={(e) => { e.preventDefault(); touchActive.current = true; startDigitStep(1); }}
-                                  onTouchEnd={() => { stopStep(); setTimeout(() => { touchActive.current = false; }, 300); }}
-                                >+</button>
-                                <button
-                                  type="button"
-                                  className={`step3-digit-box${isActive ? ' selected' : ''}${isLeadingZero ? ' dim' : ''}`}
-                                  onClick={() => setCursorExp(exp)}
-                                >{d}</button>
-                                <button
-                                  type="button"
-                                  className="step3-digit-adj-btn step3-digit-adj-minus"
-                                  onMouseDown={() => { if (touchActive.current) return; startDigitStep(-1); }}
-                                  onMouseUp={stopStep}
-                                  onMouseLeave={stopStep}
-                                  onTouchStart={(e) => { e.preventDefault(); touchActive.current = true; startDigitStep(-1); }}
-                                  onTouchEnd={() => { stopStep(); setTimeout(() => { touchActive.current = false; }, 300); }}
-                                >−</button>
-                              </div>
-                            </span>
-                          );
-                        })}
-                        <span className="step3-digit-unit-label">{displayUnit}</span>
-                      </div>
-                      <button type="button" className="step3-nav-arrow"
-                        onClick={() => setCursorExp(e => Math.max(minCursorExp, e - 1))}>›</button>
-                    </div>
-                    <button type="button" className="step3-type-direct-btn"
-                      onClick={() => setShowDirectInput(true)}>⌨️ 직접 입력</button>
-                  </>
-                )}
-
+                <div className="step3-value-tap-row">
+                  <span className="step3-value-tap-num">
+                    {value && parseFloat(value) > 0 ? value : '0'}
+                  </span>
+                  <span className="step3-value-tap-unit">{displayUnit}</span>
+                  <span className="step3-value-tap-pencil">✎</span>
+                </div>
                 <div className="step3-value-bar" />
-              </div>
+              </button>
+              {showValuePicker && (
+                <ValuePickerSheet
+                  value={value}
+                  unit={displayUnit}
+                  onChange={setValue}
+                  onClose={() => setShowValuePicker(false)}
+                />
+              )}
 
-              {/* ③ 인증사진 카드 — 필수, 컴팩트 */}
+              {/* ③ 인증사진 카드 — 선택 */}
               <div className="step3-section-card step3-photo-card">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="file-input-hidden"
+                />
                 <div className="step3-photo-header">
                   <div className="step3-photo-header-left">
                     <span className="step3-section-title">📸 인증사진</span>
-                    <span className={`step3-pill ${editWorkout ? 'step3-pill-optional' : 'step3-pill-required'}`}>
-                    {editWorkout ? '선택' : '필수'}
-                  </span>
+                    <span className="step3-pill step3-pill-optional">선택</span>
                   </div>
-                  {(imagePreview || editWorkout?.proof_image) ? (
-                    <div className="step3-photo-thumb" onClick={() => fileInputRef.current?.click()}>
-                      <img src={imagePreview ?? editWorkout?.proof_image} alt="미리보기" />
+                  {isUploadingImage ? (
+                    <div className="step3-photo-compressing">
+                      <div className="step3-photo-compressing-spinner" />
+                      <span>업로드 중...</span>
+                    </div>
+                  ) : proofImageUrl ? (
+                    <div
+                      className="step3-photo-thumb"
+                      onClick={() => { addLog('PICKER open (thumb)', '#ff8'); fileInputRef.current?.click(); }}
+                    >
+                      <img src={proofImageUrl} alt="미리보기" />
                       <div className="step3-photo-thumb-overlay">변경</div>
                     </div>
                   ) : (
-                    <button type="button" className="step3-photo-add-btn" onClick={() => fileInputRef.current?.click()}>
-                      📷 추가
-                    </button>
+                    <button
+                      type="button"
+                      className="step3-photo-add-btn"
+                      onClick={() => { addLog('PICKER open (gallery)', '#ff8'); fileInputRef.current?.click(); }}
+                    >📷 사진 첨부</button>
                   )}
                 </div>
+                {showBrowserWarning && (
+                  <div className="browser-warning-banner">
+                    <span>
+                      {isKakaoInApp
+                        ? '카카오 인앱에서는 사진 선택이 불안정합니다. 우상단 ···메뉴 → 다른 브라우저로 열기를 이용해주세요.'
+                        : '삼성 브라우저에서는 사진 선택이 불안정할 수 있습니다. Chrome 앱에서 열면 더 안정적입니다.'}
+                    </span>
+                    <button
+                      type="button"
+                      className="browser-warning-dismiss"
+                      onClick={() => { localStorage.setItem('browser_warning_dismissed', '1'); setShowBrowserWarning(false); }}
+                    >✕</button>
+                  </div>
+                )}
               </div>
 
               {/* ④ 메모 카드 */}
@@ -761,7 +772,6 @@ export const AddWorkout = () => {
                 </button>
               </div>
             </form>
-            </>
           );
         })()}
 
@@ -818,13 +828,15 @@ export const AddWorkout = () => {
                     };
                     if (savedWorkout.proof_image) shareData.content.imageUrl = savedWorkout.proof_image;
                     window.Kakao.Share.sendDefault(shareData);
+                    localStorage.removeItem(SESSION_KEY);
+                    localStorage.removeItem(DEBUG_LOG_KEY);
                     navigate('/');
                   }}
                 >
                   카카오톡 공유
                 </button>
               )}
-              <button className="kakao-share-skip" onClick={() => navigate('/')}>
+              <button className="kakao-share-skip" onClick={() => { localStorage.removeItem(SESSION_KEY); localStorage.removeItem(DEBUG_LOG_KEY); navigate('/'); }}>
                 건너뛰기
               </button>
             </div>
