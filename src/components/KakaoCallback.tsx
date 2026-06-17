@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Session } from '@supabase/supabase-js';
@@ -6,6 +6,7 @@ import type { Session } from '@supabase/supabase-js';
 const KakaoCallback = () => {
   const navigate = useNavigate();
   const processed = useRef(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const handleSession = async (session: Session) => {
@@ -24,8 +25,8 @@ const KakaoCallback = () => {
       );
 
       if (!kakaoId) {
-        console.error('Kakao ID를 찾을 수 없습니다.', authUser);
-        navigate('/', { replace: true });
+        console.error('[KakaoCallback] Kakao ID를 찾을 수 없습니다.', authUser);
+        setErrorMsg('카카오 계정 정보를 가져올 수 없습니다. 다시 시도해주세요.');
         return;
       }
 
@@ -50,7 +51,7 @@ const KakaoCallback = () => {
             gender = account?.gender || null;
           }
         } catch (err) {
-          console.warn('카카오 사용자 정보 조회 실패:', err);
+          console.warn('[KakaoCallback] 카카오 사용자 정보 조회 실패:', err);
         }
       }
 
@@ -72,7 +73,7 @@ const KakaoCallback = () => {
           p_gender:        gender,
         });
       } catch (err) {
-        console.error('link_or_create_user 실패:', err);
+        console.error('[KakaoCallback] link_or_create_user 실패:', err);
       }
 
       // RPC 완료 후 세션 갱신 → AuthContext가 public.users를 다시 조회하도록 트리거
@@ -84,26 +85,64 @@ const KakaoCallback = () => {
       navigate(redirectTo, { replace: true });
     };
 
-    // URL에 에러 파라미터가 있으면 즉시 로그인 페이지로
+    // URL에 에러 파라미터가 있으면 즉시 에러 표시
     const params = new URLSearchParams(window.location.search);
-    if (params.get('error')) {
-      console.error('[KakaoCallback] OAuth error:', params.get('error_description'));
-      navigate('/login', { replace: true });
+    const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    const oauthError = params.get('error') || hashParams.get('error');
+    const oauthErrorDesc = params.get('error_description') || hashParams.get('error_description');
+    if (oauthError) {
+      console.error('[KakaoCallback] OAuth error:', oauthError, oauthErrorDesc);
+      setErrorMsg(`로그인 실패: ${oauthErrorDesc || oauthError}`);
       return;
     }
 
     // Case 1: 코드 교환이 이미 완료된 경우
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('[KakaoCallback] getSession error:', error);
+      }
       if (session) handleSession(session);
     });
 
     // Case 2: PKCE 코드 교환이 아직 진행 중인 경우
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[KakaoCallback] authStateChange:', event, !!session);
       if (session) handleSession(session);
     });
 
-    return () => subscription.unsubscribe();
+    // 30초 타임아웃: 코드 교환이 끝까지 안 되면 에러 표시
+    const timeout = window.setTimeout(() => {
+      if (!processed.current) {
+        console.error('[KakaoCallback] 30s timeout — code exchange가 완료되지 않음');
+        setErrorMsg('로그인 응답을 받지 못했습니다. 카카오톡 인앱 브라우저인 경우 외부 브라우저(Chrome/Safari)로 다시 시도해주세요.');
+      }
+    }, 30000);
+
+    return () => {
+      subscription.unsubscribe();
+      window.clearTimeout(timeout);
+    };
   }, [navigate]);
+
+  if (errorMsg) {
+    return (
+      <div className="container">
+        <div className="login-container">
+          <h1>💪 Cardio</h1>
+          <p style={{ color: '#d32f2f', marginTop: 16, marginBottom: 16, lineHeight: 1.5 }}>
+            {errorMsg}
+          </p>
+          <button
+            type="button"
+            className="kakao-login-button"
+            onClick={() => navigate('/', { replace: true })}
+          >
+            로그인 화면으로
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
