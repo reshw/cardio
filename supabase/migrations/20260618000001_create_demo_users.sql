@@ -29,3 +29,8 @@ create policy "demo_users_admin_write"
       where auth_id = auth.uid() and is_admin = true
     )
   );
+
+-- 기본 데모 계정 시드
+insert into demo_users (tmp_number, user_id, label) values
+  (0, '9a753212-83f1-41d2-84c2-ef6fc6347154', '데모 체험하기'),
+  (1, 'f0f85a33-5198-45d3-ab8a-0a8d5471b4c5', '임시 체험');
