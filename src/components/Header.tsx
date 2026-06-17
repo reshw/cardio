@@ -98,7 +98,7 @@ export const Header = () => {
                 </button>
               </>
             )}
-            {location.pathname.startsWith('/club') && !location.pathname.includes('/settings') && !location.pathname.includes('/members') && !location.pathname.includes('/member/') && !location.pathname.includes('/my-settings') && (
+            {location.pathname.startsWith('/club') && !location.pathname.includes('/settings') && !location.pathname.includes('/members') && !location.pathname.includes('/member/') && !location.pathname.includes('/my-settings') && !user?.isGuest && (
               <button
                 className="header-action-button"
                 onClick={() => setShowClubActionModal(true)}

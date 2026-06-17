@@ -29,6 +29,7 @@ import { AdminUserManagement } from './pages/AdminUserManagement';
 import { AdminWorkoutTypes } from './pages/AdminWorkoutTypes';
 import { AdminImageSettings } from './pages/AdminImageSettings';
 import { AdminStravaIntegrations } from './pages/AdminStravaIntegrations';
+import { AdminDemoUsers } from './pages/AdminDemoUsers';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { PrivacyPolicyIOS } from './pages/PrivacyPolicyIOS';
 import { TermsOfService } from './pages/TermsOfService';
@@ -149,6 +150,7 @@ function ProtectedRoutes() {
           <Route path="/admin/workout-types" element={<AdminWorkoutTypes />} />
           <Route path="/admin/image-settings" element={<AdminImageSettings />} />
           <Route path="/admin/strava" element={<AdminStravaIntegrations />} />
+          <Route path="/admin/demo-users" element={<AdminDemoUsers />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

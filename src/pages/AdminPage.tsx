@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ChevronLeft, Shield, CheckCircle, ChevronRight, Users, Activity, Link } from 'lucide-react';
+import { ChevronLeft, Shield, CheckCircle, ChevronRight, Users, Activity, Link, UserPlus } from 'lucide-react';
 
 export const AdminPage = () => {
   const navigate = useNavigate();
@@ -45,6 +45,12 @@ export const AdminPage = () => {
       title: 'Strava 연동 현황',
       description: '연동 회원 목록 확인 및 강제 해제',
       path: '/admin/strava',
+    },
+    {
+      icon: <UserPlus size={24} />,
+      title: '데모 계정 관리',
+      description: '임시 체험용 계정 등록/링크 발급/삭제',
+      path: '/admin/demo-users',
     },
   ];
 
