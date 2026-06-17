@@ -42,7 +42,7 @@ export const AddWorkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const editWorkout = (location.state as any)?.editWorkout as Workout | undefined;
-  const isDebug = window.location.hash.includes('debug=1');
+  const isDebug = window.location.hash.includes('debug=1') || new URLSearchParams(window.location.search).get('debug') === '1';
   const DEBUG_LOG_KEY = 'addworkout_debug_log';
   const [debugLogs, setDebugLogs] = useState<{ t: string; msg: string; color: string }[]>(() => {
     if (!isDebug) return [];

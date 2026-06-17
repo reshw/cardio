@@ -13,7 +13,7 @@ const LOG_KEY = 'photo_upload_log';
 
 export default function PhotoUpload() {
   const navigate = useNavigate();
-  const isDebug = window.location.hash.includes('debug=1');
+  const isDebug = window.location.hash.includes('debug=1') || new URLSearchParams(window.location.search).get('debug') === '1';
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<{ t: string; msg: string; color: string }[]>(() => {

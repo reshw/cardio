@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Login } from './pages/Login';
@@ -161,7 +161,7 @@ function App() {
   return (
     <ErrorBoundary>
     <AuthProvider>
-      <HashRouter>
+      <BrowserRouter>
         <Routes>
           {/* Public routes */}
           <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -182,7 +182,7 @@ function App() {
             </div>
           } />
         </Routes>
-      </HashRouter>
+      </BrowserRouter>
     </AuthProvider>
     </ErrorBoundary>
   );
