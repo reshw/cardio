@@ -107,11 +107,11 @@ export const DiagOverlay = () => {
     <div
       style={{
         position: 'fixed',
-        top: 0,
+        top: 'env(safe-area-inset-top, 0px)',
         left: 0,
         right: 0,
-        minHeight: '50vh',
-        maxHeight: '80vh',
+        minHeight: `${Math.floor(window.innerHeight * 0.7)}px`,
+        maxHeight: `${Math.floor(window.innerHeight * 0.85)}px`,
         overflowY: 'auto',
         background: 'rgba(255, 255, 0, 0.96)',
         color: '#000',
