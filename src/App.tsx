@@ -65,7 +65,7 @@ function ProtectedRoutes() {
 
   return (
     <>
-      {!isNativeApp && <Header />}
+      <Header />
       <div className="main-content">
         <Routes>
           <Route path="/" element={<History />} />
