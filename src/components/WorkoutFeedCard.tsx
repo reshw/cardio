@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Heart, MessageCircle, MoreVertical, Share, Copy, CircleOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import feedService from '../services/feedService';
@@ -541,7 +542,7 @@ export const WorkoutFeedCard = ({
       )}
 
       {/* 상세보기 바텀시트 */}
-      {showDetail && (
+      {showDetail && createPortal(
         <div className="workout-sheet-overlay" onClick={() => setShowDetail(false)}>
           <div className="workout-sheet" onClick={(e) => e.stopPropagation()}>
             {/* 고정 헤더 */}
@@ -721,7 +722,8 @@ export const WorkoutFeedCard = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
