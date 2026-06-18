@@ -18,9 +18,8 @@ export const AdminDemoUsers = () => {
   const [rows, setRows] = useState<DemoUserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [newUserId, setNewUserId] = useState('');
   const [newLabel, setNewLabel] = useState('');
-  const [newTmp, setNewTmp] = useState('');
+  const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -69,53 +68,58 @@ export const AdminDemoUsers = () => {
   };
 
   const handleAdd = async () => {
-    const uid = newUserId.trim();
-    if (!uid) {
-      alert('user_id를 입력하세요.');
+    const label = newLabel.trim();
+    if (!label) {
+      alert('라벨을 입력하세요.');
       return;
     }
-    let tmp: number;
-    if (newTmp.trim() === '') {
-      const maxTmp = rows.length > 0 ? Math.max(...rows.map((r) => r.tmp_number)) : -1;
-      tmp = maxTmp + 1;
-    } else {
-      const parsed = parseInt(newTmp, 10);
-      if (Number.isNaN(parsed) || parsed < 0) {
-        alert('tmp 번호는 0 이상의 정수여야 합니다.');
-        return;
-      }
-      tmp = parsed;
+    setAdding(true);
+
+    // users 테이블에 테스터 계정 생성
+    const username = `tester_${Date.now()}`;
+    const { data: newUser, error: userError } = await supabase
+      .from('users')
+      .insert({ username, display_name: label, is_tester: true, provider: 'demo' })
+      .select('id')
+      .single();
+
+    if (userError || !newUser) {
+      alert(`계정 생성 실패: ${userError?.message}`);
+      setAdding(false);
+      return;
     }
 
-    const { error } = await supabase.from('demo_users').insert({
+    // tmp_number 자동 부여
+    const maxTmp = rows.length > 0 ? Math.max(...rows.map((r) => r.tmp_number)) : -1;
+    const tmp = maxTmp + 1;
+
+    const { error: demoError } = await supabase.from('demo_users').insert({
       tmp_number: tmp,
-      user_id: uid,
-      label: newLabel.trim() || null,
+      user_id: newUser.id,
+      label,
     });
 
-    if (error) {
-      alert(`등록 실패: ${error.message}`);
+    if (demoError) {
+      alert(`등록 실패: ${demoError.message}`);
+      setAdding(false);
       return;
     }
 
-    setNewUserId('');
     setNewLabel('');
-    setNewTmp('');
     setShowAdd(false);
-    showToast(`tmp=${tmp} 등록 완료`);
+    setAdding(false);
+    showToast(`tmp=${tmp} 생성 완료`);
     load();
   };
 
-  const handleDelete = async (tmp: number) => {
-    if (!confirm(`tmp=${tmp} 항목을 삭제하시겠어요?`)) return;
-    const { error } = await supabase
-      .from('demo_users')
-      .delete()
-      .eq('tmp_number', tmp);
-    if (error) {
-      alert(`삭제 실패: ${error.message}`);
-      return;
-    }
+  const handleDelete = async (tmp: number, userId: string) => {
+    if (!confirm(`tmp=${tmp} 계정을 삭제하시겠어요?\n(users 테이블의 계정도 함께 삭제됩니다)`)) return;
+
+    // demo_users 먼저 삭제 (FK 제약)
+    await supabase.from('demo_users').delete().eq('tmp_number', tmp);
+    // 테스터 계정이면 users에서도 삭제
+    await supabase.from('users').delete().eq('id', userId).eq('is_tester', true);
+
     showToast(`tmp=${tmp} 삭제 완료`);
     load();
   };
@@ -162,8 +166,7 @@ export const AdminDemoUsers = () => {
 
       <div className="settings-content" style={{ padding: 16 }}>
         <div style={{ fontSize: 13, color: '#666', marginBottom: 16, lineHeight: 1.5 }}>
-          기존 가입자(public.users) 한 명을 데모 계정으로 등록합니다. tmp=0이
-          "데모 체험하기" 기본 계정입니다. 등록된 항목의 링크를 복사해 카카오 등으로 전달하세요.
+          테스터 계정을 생성하고 링크를 발급합니다. tmp=0은 "데모 체험하기" 기본 계정입니다.
         </div>
 
         <button
@@ -184,7 +187,7 @@ export const AdminDemoUsers = () => {
           }}
         >
           <Plus size={16} />
-          {showAdd ? '취소' : '데모 계정 추가'}
+          {showAdd ? '취소' : '테스터 계정 생성'}
         </button>
 
         {showAdd && (
@@ -200,47 +203,12 @@ export const AdminDemoUsers = () => {
             }}
           >
             <label style={{ fontSize: 13, color: '#444' }}>
-              user_id (UUID)
-              <input
-                type="text"
-                value={newUserId}
-                onChange={(e) => setNewUserId(e.target.value)}
-                placeholder="00000000-0000-0000-0000-000000000000"
-                style={{
-                  width: '100%',
-                  padding: '8px 10px',
-                  marginTop: 4,
-                  borderRadius: 6,
-                  border: '1px solid #ccc',
-                  fontSize: 13,
-                  fontFamily: 'monospace',
-                }}
-              />
-            </label>
-            <label style={{ fontSize: 13, color: '#444' }}>
-              라벨 (어드민 식별용, 선택)
+              라벨 (이름으로 표시됨)
               <input
                 type="text"
                 value={newLabel}
                 onChange={(e) => setNewLabel(e.target.value)}
-                placeholder="예: 김아무개 임시"
-                style={{
-                  width: '100%',
-                  padding: '8px 10px',
-                  marginTop: 4,
-                  borderRadius: 6,
-                  border: '1px solid #ccc',
-                  fontSize: 13,
-                }}
-              />
-            </label>
-            <label style={{ fontSize: 13, color: '#444' }}>
-              tmp 번호 (비워두면 자동 부여, 0번 = 기본 데모)
-              <input
-                type="text"
-                value={newTmp}
-                onChange={(e) => setNewTmp(e.target.value)}
-                placeholder="자동"
+                placeholder="예: 김아무개 테스터"
                 style={{
                   width: '100%',
                   padding: '8px 10px',
@@ -253,18 +221,19 @@ export const AdminDemoUsers = () => {
             </label>
             <button
               onClick={handleAdd}
+              disabled={adding}
               style={{
                 padding: '10px',
                 borderRadius: 6,
                 border: 'none',
-                background: '#FFD700',
+                background: adding ? '#ccc' : '#FFD700',
                 color: '#000',
                 fontSize: 14,
                 fontWeight: 600,
-                cursor: 'pointer',
+                cursor: adding ? 'not-allowed' : 'pointer',
               }}
             >
-              등록
+              {adding ? '생성 중...' : '생성'}
             </button>
           </div>
         )}
@@ -273,7 +242,7 @@ export const AdminDemoUsers = () => {
           <div style={{ textAlign: 'center', color: '#888', padding: 32 }}>로딩 중...</div>
         ) : rows.length === 0 ? (
           <div style={{ textAlign: 'center', color: '#888', padding: 32, fontSize: 13 }}>
-            등록된 데모 계정이 없습니다.
+            등록된 테스터 계정이 없습니다.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -303,7 +272,7 @@ export const AdminDemoUsers = () => {
                   </span>
                   <span style={{ fontSize: 14, fontWeight: 600 }}>{row.display_name}</span>
                 </div>
-                {row.label && (
+                {row.label && row.label !== row.display_name && (
                   <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>{row.label}</div>
                 )}
                 <div style={{ fontSize: 11, color: '#999', fontFamily: 'monospace', marginBottom: 8 }}>
@@ -330,7 +299,7 @@ export const AdminDemoUsers = () => {
                     링크 복사
                   </button>
                   <button
-                    onClick={() => handleDelete(row.tmp_number)}
+                    onClick={() => handleDelete(row.tmp_number, row.user_id)}
                     style={{
                       padding: '6px 10px',
                       borderRadius: 6,
