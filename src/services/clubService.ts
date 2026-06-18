@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import userService from './userService';
 import { sendClubRequestEmail } from '../utils/email';
+import workoutTypeService from './workoutTypeService';
 
 export interface Club {
   id: string;
@@ -1275,7 +1276,7 @@ class ClubService {
 
     try {
       // workout_types 테이블에서 모든 운동 종목 조회
-      const workoutTypes = await import('./workoutTypeService').then(m => m.default.getActiveWorkoutTypes());
+      const workoutTypes = await workoutTypeService.getActiveWorkoutTypes();
 
       // 각 운동 종목과 세부타입에 대한 기본 계수 생성
       for (const type of workoutTypes) {
