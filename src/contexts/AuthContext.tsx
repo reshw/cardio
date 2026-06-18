@@ -48,22 +48,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchPublicUser = async (authId: string) => {
-    const { data } = await supabase
-      .from('users')
-      .select('id, username, display_name, email, kakao_id, provider, profile_image, is_admin, is_super_admin, is_sub_admin')
-      .eq('auth_id', authId)
-      .maybeSingle();
+    // session 은 있는데 users 조회 실패 시: 네트워크 일시 실패 가능성 있어 1회 재시도.
+    // 그래도 실패하면 supabase auth 자체를 끊어 사용자가 깨끗한 상태에서 다시 로그인 가능하게 함.
+    // — 이전엔 silent 하게 user=null 박아 Login 화면이 계속 보이며 "로그인 안 됨" 으로 오인됐음.
+    const fetchOnce = () =>
+      supabase
+        .from('users')
+        .select('id, username, display_name, email, kakao_id, provider, profile_image, is_admin, is_super_admin, is_sub_admin')
+        .eq('auth_id', authId)
+        .maybeSingle();
 
-    setUser(data ?? null);
+    let { data, error } = await fetchOnce();
+    if (error || !data) {
+      diagLog.add(
+        'auth',
+        `fetchPublicUser 1차 실패 authId=${authId.slice(0, 8)} error=${error?.message || 'no-row'} — 재시도`
+      );
+      await new Promise((r) => setTimeout(r, 500));
+      const retry = await fetchOnce();
+      data = retry.data;
+      error = retry.error;
+    }
+
+    if (error || !data) {
+      diagLog.add(
+        'auth',
+        `fetchPublicUser 최종 실패 authId=${authId.slice(0, 8)} error=${error?.message || 'no-row'} — auth signOut 진행`
+      );
+      try {
+        await supabase.auth.signOut();
+      } catch {}
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
+    diagLog.add('auth', `fetchPublicUser 성공 userId=${data.id.slice(0, 8)}`);
+    setUser(data);
     setLoading(false);
 
-    if (data?.id) {
-      fetch('/api/sync/trigger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: data.id }),
-      }).catch(() => {});
-    }
+    fetch('/api/sync/trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: data.id }),
+    }).catch(() => {});
   };
 
   useEffect(() => {
