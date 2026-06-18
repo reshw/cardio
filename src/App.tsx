@@ -40,10 +40,13 @@ import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import KakaoCallback from './components/KakaoCallback';
 import PhotoUpload from './pages/PhotoUpload';
+import { AppAuthBridge } from './pages/AppAuthBridge';
+import { useIsNativeApp } from './hooks/useIsNativeApp';
 import './App.css';
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
+  const isNativeApp = useIsNativeApp();
 
   if (loading) {
     return (
@@ -62,7 +65,7 @@ function ProtectedRoutes() {
 
   return (
     <>
-      <Header />
+      {!isNativeApp && <Header />}
       <div className="main-content">
         <Routes>
           <Route path="/" element={<History />} />
@@ -154,7 +157,7 @@ function ProtectedRoutes() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
-      <BottomNav />
+      {!isNativeApp && <BottomNav />}
     </>
   );
 }
@@ -171,6 +174,9 @@ function App() {
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/download" element={<Download />} />
           <Route path="/photo-upload" element={<PhotoUpload />} />
+
+          {/* Android 앱 세션 브릿지 */}
+          <Route path="/app-auth" element={<AppAuthBridge />} />
 
           {/* Supabase Auth 콜백 (Kakao OAuth 완료 후 여기로 리다이렉트) */}
           <Route path="/auth/callback" element={<KakaoCallback />} />
