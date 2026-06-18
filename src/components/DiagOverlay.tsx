@@ -75,13 +75,42 @@ const collectAncestorStacking = (selector: string): string[] => {
   return ancestors;
 };
 
+const STORAGE_KEY = 'diag-enabled';
+const TAP_COUNT_KEY = 'diag-tap-count';
+const TAP_TIME_KEY = 'diag-tap-time';
+const TAP_WINDOW_MS = 1500;
+const TAP_THRESHOLD = 7;
+
 export const DiagOverlay = () => {
   const [tick, setTick] = useState(0);
-  // 임시 진단용: ?diag=1 또는 cardio-android WebView 에서 자동 활성
-  // 디버깅 완료 후 별도 커밋으로 제거 필요
-  const enabled =
-    new URLSearchParams(window.location.search).has('diag') ||
-    navigator.userAgent.includes('cardio-android');
+  const [enabled, setEnabled] = useState(
+    () =>
+      new URLSearchParams(window.location.search).has('diag') ||
+      localStorage.getItem(STORAGE_KEY) === '1'
+  );
+
+  // "기록" 탭 1.5초 내 7번 연속 탭 시 활성화 (안드로이드 빌드넘버 패턴)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const t = e.target as HTMLElement | null;
+      const item = t?.closest('a, button');
+      if (!item) return;
+      if (!(item.textContent || '').includes('기록')) return;
+      const now = Date.now();
+      const last = Number(localStorage.getItem(TAP_TIME_KEY) || 0);
+      const prev = Number(localStorage.getItem(TAP_COUNT_KEY) || 0);
+      const count = now - last > TAP_WINDOW_MS ? 1 : prev + 1;
+      localStorage.setItem(TAP_TIME_KEY, String(now));
+      localStorage.setItem(TAP_COUNT_KEY, String(count));
+      if (count >= TAP_THRESHOLD) {
+        localStorage.setItem(STORAGE_KEY, '1');
+        localStorage.removeItem(TAP_COUNT_KEY);
+        setEnabled(true);
+      }
+    };
+    document.addEventListener('click', handler, true);
+    return () => document.removeEventListener('click', handler, true);
+  }, []);
 
   useEffect(() => {
     if (!enabled) return;
@@ -90,6 +119,11 @@ export const DiagOverlay = () => {
   }, [enabled]);
 
   if (!enabled) return null;
+
+  const dismiss = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setEnabled(false);
+  };
 
   const overlay = collect('.modal-overlay');
   const content = collect('.modal-content');
@@ -119,6 +153,7 @@ export const DiagOverlay = () => {
         fontSize: '13px',
         lineHeight: 1.35,
         padding: '10px 12px',
+        paddingRight: '52px',
         zIndex: 2147483647,
         pointerEvents: 'auto',
         whiteSpace: 'pre-wrap',
@@ -126,6 +161,30 @@ export const DiagOverlay = () => {
         borderTop: '3px solid #000',
       }}
     >
+      <button
+        onClick={dismiss}
+        aria-label="close diag overlay"
+        style={{
+          position: 'absolute',
+          top: 6,
+          right: 6,
+          width: 38,
+          height: 38,
+          background: '#000',
+          color: '#fff',
+          border: 'none',
+          borderRadius: '50%',
+          fontSize: '18px',
+          fontWeight: 700,
+          cursor: 'pointer',
+          pointerEvents: 'auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        ✕
+      </button>
       {`tick ${tick} viewport ${innerWidth}x${innerHeight}\n`}
       {`html overflow=${htmlCs.overflow} overflowX=${htmlCs.overflowX} transform=${htmlCs.transform}\n`}
       {`body overflow=${bodyCs.overflow} overflowX=${bodyCs.overflowX} transform=${bodyCs.transform}\n`}

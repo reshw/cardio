@@ -29,19 +29,39 @@ body { overflow-x: clip; }
 
 ---
 
-### dvh / svh / lvh 단위 사용 시 vh fallback 필수
+### viewport 단위 (vh / dvh / svh / lvh) 사용 금지
 
-구형 Android WebView(Chrome 108 미만)에서 `dvh` 미지원 시 height가 0으로 collapse됨.
-반드시 `vh` fallback 라인을 앞에 추가할 것.
+`cardio-android` WebView 에서 **vh / dvh 둘 다 0 으로 계산되는 버그** 확인됨 (Chrome WebView 149 에서도 발생). 결과: `max-height: 90vh` → 0 → 모달/시트 콘텐츠 0 px 컬랩스 → 검정 backdrop만 보이고 내용 사라짐.
+
+Chrome 브라우저에선 정상이라 prod 일반 사용자는 모르지만, cardio-and WebView 안에선 모달 전체가 깨짐.
 
 ```css
-/* 금지 */
-max-height: 90dvh;
-
-/* 올바름 */
+/* 금지 — vh, dvh, svh, lvh 전부 */
 max-height: 90vh;
 max-height: 90dvh;
+height: 100dvh;
+min-height: calc(100vh - 60px);
 ```
+
+**대안 패턴**
+
+1. **`%` (부모가 viewport 사이즈일 때)** — 모달/시트의 경우 부모 `position: fixed; inset: 0` 오버레이가 viewport 풀사이즈이므로 자식의 `%` 가 vh 등가:
+
+   ```css
+   .modal-overlay { position: fixed; inset: 0; }
+   .modal-content { max-height: 90%; }   /* vh 대신 */
+   ```
+
+2. **고정 px** — 모달 내부 inner element 또는 자체 `position: fixed` 박스처럼 부모가 viewport 사이즈가 아닌 경우:
+
+   ```css
+   .notification-dropdown { position: fixed; max-height: 600px; }
+   .modal-inner-list      { max-height: 400px; }
+   ```
+
+3. **JS 계산 inline style** — 동적 계산 필요한 경우 `window.innerHeight * 0.7` 등.
+
+페이지 풀사이즈 컨테이너(`min-height: 100vh` 패턴)는 cosmetic 영향만 있어 일단 보류 중. 정식 마이그레이션 시 html/body/#root 에 `height: 100%` 추가 후 `100%` 로 전환 필요.
 
 ---
 
