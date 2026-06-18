@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import KakaoLogin from '../components/KakaoLogin';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 type InAppKind = 'kakaotalk' | 'naver' | 'facebook' | 'instagram' | 'line' | null;
 
@@ -23,10 +24,33 @@ export const Login = () => {
   const { loginAsDemo } = useAuth();
   const navigate = useNavigate();
   const [inApp, setInApp] = useState<InAppKind>(null);
+  const [diagSent, setDiagSent] = useState(false);
+  const [diagSending, setDiagSending] = useState(false);
 
   useEffect(() => {
     setInApp(detectInApp());
   }, []);
+
+  const handleDiagnostic = async () => {
+    setDiagSending(true);
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    await fetch('/api/send-login-diagnostic', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+        origin: window.location.origin,
+        inAppKind: detectInApp() || null,
+        sessionExists: !!session,
+        sessionError: sessionError?.message || null,
+        screenSize: `${window.screen.width}x${window.screen.height}`,
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    setDiagSending(false);
+    setDiagSent(true);
+  };
 
   const handleDemoLogin = async () => {
     await loginAsDemo();
@@ -99,6 +123,28 @@ export const Login = () => {
         <button className="demo-login-button" onClick={handleDemoLogin}>
           데모 체험하기
         </button>
+
+        <div style={{ marginTop: 24, textAlign: 'center' }}>
+          {diagSent ? (
+            <p style={{ fontSize: 13, color: '#888' }}>관리자에게 연락했습니다.</p>
+          ) : (
+            <button
+              type="button"
+              onClick={handleDiagnostic}
+              disabled={diagSending}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: 12,
+                color: '#bbb',
+                cursor: diagSending ? 'default' : 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              {diagSending ? '전송 중...' : '로그인이 계속 안 되시나요?'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
