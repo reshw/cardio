@@ -42,7 +42,7 @@ export const Header = () => {
   const handleSync = async () => {
     if (!user || syncing) return;
     setSyncing(true);
-    await fetch('/api/sync/trigger-user', {
+    await fetch('/api/sync/trigger', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: user.id }),

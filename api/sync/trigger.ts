@@ -19,24 +19,28 @@ const supabase = createClient(
 )
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') return res.status(405).end()
+  if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end()
 
-  const { userId } = req.body
-  if (!userId) return res.status(400).json({ error: 'userId required' })
+  const userId: string | undefined = req.body?.userId
 
-  const { data: tokens } = await supabase
-    .from('device_tokens')
-    .select('fcm_token')
-    .eq('user_id', userId)
-    .eq('platform', 'android')
+  let query = supabase.from('device_tokens').select('fcm_token').eq('platform', 'android')
+  if (userId) query = query.eq('user_id', userId)
 
+  const { data: tokens } = await query
   if (!tokens?.length) return res.status(200).json({ skipped: true })
 
-  await getMessaging().sendEachForMulticast({
-    tokens: tokens.map(t => t.fcm_token),
-    data: { action: 'sync' },
-    android: { priority: 'high' },
-  })
+  const fcmTokens = tokens.map(t => t.fcm_token)
+  const chunkSize = 500
+  let totalSent = 0
+  for (let i = 0; i < fcmTokens.length; i += chunkSize) {
+    const chunk = fcmTokens.slice(i, i + chunkSize)
+    await getMessaging().sendEachForMulticast({
+      tokens: chunk,
+      data: { action: 'sync' },
+      android: { priority: 'high' },
+    })
+    totalSent += chunk.length
+  }
 
-  res.status(200).json({ sent: tokens.length })
+  res.status(200).json({ sent: totalSent })
 }
