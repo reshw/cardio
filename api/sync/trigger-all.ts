@@ -1,10 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
-import * as admin from 'firebase-admin'
+import { getApps, initializeApp, cert } from 'firebase-admin/app'
+import { getMessaging } from 'firebase-admin/messaging'
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
@@ -33,7 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let totalSent = 0
   for (let i = 0; i < fcmTokens.length; i += chunkSize) {
     const chunk = fcmTokens.slice(i, i + chunkSize)
-    await admin.messaging().sendEachForMulticast({
+    await getMessaging().sendEachForMulticast({
       tokens: chunk,
       data: { action: 'sync' },
       android: { priority: 'high' },
