@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
-import admin from 'firebase-admin'
+import * as admin from 'firebase-admin'
 
 if (!admin.apps.length) {
   admin.initializeApp({

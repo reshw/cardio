@@ -151,6 +151,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         moving_seconds: activity.moving_time ?? null,
         average_speed: activity.average_speed ?? null,
         average_heartrate: activity.average_heartrate ?? null,
+        calories: activity.calories != null ? Math.round(activity.calories) : null,
         device_name: activity.device_name ?? null,
         timezone: activity.timezone ?? null,
         utc_offset: activity.utc_offset != null ? Math.round(activity.utc_offset) : null,

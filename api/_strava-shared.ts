@@ -280,7 +280,8 @@ export async function generateStravaCard(
 }
 
 export async function getValidToken(
-  supabaseClient: ReturnType<typeof createClient>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabaseClient: ReturnType<typeof createClient<any, any, any>>,
   integration: { id: string; access_token: string; refresh_token: string; token_expires_at: string }
 ): Promise<string | null> {
   if (new Date(integration.token_expires_at) > new Date(Date.now() + 60_000)) {
