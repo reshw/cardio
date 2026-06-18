@@ -62,7 +62,7 @@ html {
   max-width: 100%;
   margin: 0 auto;
   padding: 16px;
-  min-height: calc(100vh - 60px - 70px);
+  min-height: calc(100dvh - 60px - 70px);
   overflow-x: hidden;
 }
 
@@ -328,7 +328,7 @@ html {
 .app-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding-bottom: 70px;
 }
 
@@ -618,7 +618,7 @@ html {
   border-radius: 20px;
   max-width: 500px;
   width: 100%;
-  max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
   box-shadow: var(--shadow-lg);
 }
@@ -2149,7 +2149,7 @@ body.search-modal-open .bottom-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 60px - 70px);
+  min-height: calc(100dvh - 60px - 70px);
 }
 
 .join-card {
@@ -5840,7 +5840,7 @@ body.search-modal-open .bottom-nav {
   max-width: 100%;
   margin: 0 auto;
   padding: 0;
-  min-height: calc(100vh - 60px - 70px);
+  min-height: calc(100dvh - 60px - 70px);
   background: var(--bg-color);
 }
 
