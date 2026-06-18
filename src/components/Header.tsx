@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, CirclePlus, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -125,7 +126,7 @@ export const Header = () => {
       </header>
 
       {/* 클럽 액션 선택 모달 */}
-      {showClubActionModal && (
+      {showClubActionModal && createPortal(
         <div className="modal-overlay" onClick={() => setShowClubActionModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -167,18 +168,20 @@ export const Header = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 클럽 생성 모달 */}
-      {showCreateModal && (
+      {showCreateModal && createPortal(
         <CreateClubModal
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);
             window.location.reload();
           }}
-        />
+        />,
+        document.body
       )}
     </>
   );
