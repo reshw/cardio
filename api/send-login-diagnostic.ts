@@ -12,7 +12,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { userAgent, url, origin, inAppKind, sessionExists, sessionError, screenSize, timestamp } = req.body;
+    const { userAgent, url, origin, inAppKind, sessionExists, sessionError, screenSize, timestamp, logs } = req.body;
+    const logLines: string[] = Array.isArray(logs) ? logs : [];
 
     const { error } = await resend.emails.send({
       from: 'Cardio Club <ai@scnd.kr>',
@@ -31,6 +32,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             <p><strong>화면 크기:</strong> ${screenSize}</p>
             <p style="word-break: break-all;"><strong>User-Agent:</strong><br>${userAgent}</p>
           </div>
+          ${logLines.length > 0 ? `
+          <h3 style="margin-top: 24px;">플로우 로그 (${logLines.length}개)</h3>
+          <pre style="background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 8px; font-size: 12px; line-height: 1.6; overflow-x: auto; white-space: pre-wrap;">${logLines.join('\n')}</pre>
+          ` : '<p style="color:#888; font-size:13px;">로그 없음 (로그인 시도 전 접수)</p>'}
         </div>
       `,
     });

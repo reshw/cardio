@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
+import { diagLog } from '../lib/diagLog';
 
 interface User {
   id: string;
@@ -87,7 +88,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // 초기 세션 복원 (새로고침·탭 재방문)
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      diagLog.add('auth', `getSession session=${!!session} error=${error?.message || 'none'}`);
       if (session?.user) {
         fetchPublicUser(session.user.id);
       } else {
@@ -98,6 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // 세션 변경 감지 (로그인·로그아웃·토큰 갱신)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      diagLog.add('auth', `onAuthStateChange: ${_event} session=${!!session}`);
       if (session?.user) {
         setLoading(true); // fetchPublicUser 완료 전까지 로딩 유지
         fetchPublicUser(session.user.id);

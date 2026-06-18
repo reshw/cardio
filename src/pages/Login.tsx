@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import KakaoLogin from '../components/KakaoLogin';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { diagLog } from '../lib/diagLog';
 
 type InAppKind = 'kakaotalk' | 'naver' | 'facebook' | 'instagram' | 'line' | null;
 
@@ -34,6 +35,8 @@ export const Login = () => {
   const handleDiagnostic = async () => {
     setDiagSending(true);
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    diagLog.add('login-diag', `진단 요청 — session=${!!session}`);
+    const logs = diagLog.getAll();
     await fetch('/api/send-login-diagnostic', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -46,6 +49,7 @@ export const Login = () => {
         sessionError: sessionError?.message || null,
         screenSize: `${window.screen.width}x${window.screen.height}`,
         timestamp: Date.now(),
+        logs,
       }),
     }).catch(() => {});
     setDiagSending(false);
