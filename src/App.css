@@ -625,8 +625,6 @@ html {
   box-shadow: var(--shadow-lg);
   position: relative;
   z-index: 1;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 /* 검색 등 키보드 올라오는 모달 — 상단 고정 */
@@ -8042,8 +8040,6 @@ body.workout-detail-open .bottom-nav {
   flex-direction: column;
   position: relative;
   z-index: 1;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .workout-sheet-header {
