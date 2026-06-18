@@ -51,11 +51,6 @@ body {
   background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 50%, #FFF5F8 100%);
   background-attachment: fixed;
   color: var(--text-primary);
-  overflow-x: clip;
-}
-
-html {
-  overflow-x: clip;
 }
 
 .container {
