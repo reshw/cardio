@@ -610,6 +610,8 @@ html {
   justify-content: center;
   z-index: 1050;
   padding: 16px;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .modal-content {
@@ -621,6 +623,10 @@ html {
   max-height: 90dvh;
   overflow-y: auto;
   box-shadow: var(--shadow-lg);
+  position: relative;
+  z-index: 1;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 /* 검색 등 키보드 올라오는 모달 — 상단 고정 */
@@ -834,6 +840,8 @@ body.search-modal-open .bottom-nav {
   z-index: 1100;
   display: flex;
   align-items: flex-end;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .cmenu-sheet {
@@ -2550,6 +2558,8 @@ body.search-modal-open .bottom-nav {
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: flex-end;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .member-detail-sheet {
@@ -2691,6 +2701,8 @@ body.search-modal-open .bottom-nav {
   z-index: 1100;
   display: flex;
   align-items: flex-end;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .feedback-sheet {
@@ -8016,6 +8028,8 @@ body.workout-detail-open .bottom-nav {
   z-index: 1100;
   display: flex;
   align-items: flex-end;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .workout-sheet {
@@ -8026,7 +8040,10 @@ body.workout-detail-open .bottom-nav {
   max-height: 90dvh;
   display: flex;
   flex-direction: column;
-  animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  position: relative;
+  z-index: 1;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .workout-sheet-header {
