@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { diagLog } from '../lib/diagLog';
 import type { Session } from '@supabase/supabase-js';
 
 const KakaoCallback = () => {
@@ -85,12 +86,17 @@ const KakaoCallback = () => {
       navigate(redirectTo, { replace: true });
     };
 
+    diagLog.add('kakao-callback', `진입 URL=${window.location.href.slice(0, 120)}`);
+
     // URL에 에러 파라미터가 있으면 즉시 에러 표시
     const params = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
     const oauthError = params.get('error') || hashParams.get('error');
     const oauthErrorDesc = params.get('error_description') || hashParams.get('error_description');
+    const hasCode = !!params.get('code');
+    diagLog.add('kakao-callback', `code=${hasCode} error=${oauthError || 'none'}`);
     if (oauthError) {
+      diagLog.add('kakao-callback', `OAuth 에러: ${oauthErrorDesc || oauthError}`);
       console.error('[KakaoCallback] OAuth error:', oauthError, oauthErrorDesc);
       setErrorMsg(`로그인 실패: ${oauthErrorDesc || oauthError}`);
       return;
@@ -99,13 +105,16 @@ const KakaoCallback = () => {
     // Case 1: 코드 교환이 이미 완료된 경우
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
+        diagLog.add('kakao-callback', `getSession 에러: ${error.message}`);
         console.error('[KakaoCallback] getSession error:', error);
       }
+      diagLog.add('kakao-callback', `getSession session=${!!session}`);
       if (session) handleSession(session);
     });
 
     // Case 2: PKCE 코드 교환이 아직 진행 중인 경우
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      diagLog.add('kakao-callback', `authStateChange: ${event} session=${!!session}`);
       console.log('[KakaoCallback] authStateChange:', event, !!session);
       if (session) handleSession(session);
     });
@@ -113,6 +122,7 @@ const KakaoCallback = () => {
     // 30초 타임아웃: 코드 교환이 끝까지 안 되면 에러 표시
     const timeout = window.setTimeout(() => {
       if (!processed.current) {
+        diagLog.add('kakao-callback', '30s 타임아웃 — 세션 미수신');
         console.error('[KakaoCallback] 30s timeout — code exchange가 완료되지 않음');
         setErrorMsg('로그인 응답을 받지 못했습니다. 카카오톡 인앱 브라우저인 경우 외부 브라우저(Chrome/Safari)로 다시 시도해주세요.');
       }
