@@ -107,23 +107,23 @@ export const DiagOverlay = () => {
     <div
       style={{
         position: 'fixed',
-        top: 'env(safe-area-inset-top, 0px)',
+        bottom: 'env(safe-area-inset-bottom, 0px)',
         left: 0,
         right: 0,
-        minHeight: `${Math.floor(window.innerHeight * 0.7)}px`,
-        maxHeight: `${Math.floor(window.innerHeight * 0.85)}px`,
+        minHeight: `${Math.floor(window.innerHeight * 0.35)}px`,
+        maxHeight: `${Math.floor(window.innerHeight * 0.4)}px`,
         overflowY: 'auto',
         background: 'rgba(255, 255, 0, 0.96)',
         color: '#000',
         fontFamily: 'monospace',
-        fontSize: '15px',
+        fontSize: '13px',
         lineHeight: 1.35,
-        padding: '12px 14px',
+        padding: '10px 12px',
         zIndex: 2147483647,
         pointerEvents: 'auto',
         whiteSpace: 'pre-wrap',
         wordBreak: 'break-all',
-        borderBottom: '3px solid #000',
+        borderTop: '3px solid #000',
       }}
     >
       {`tick ${tick} viewport ${innerWidth}x${innerHeight}\n`}
