@@ -604,13 +604,12 @@ html {
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
   height: 100dvh;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1050;
   padding: 16px;
 }
 
@@ -830,7 +829,9 @@ body.search-modal-open .bottom-nav {
 /* ── Club Menu Bottom Sheet ─────────────────────────────── */
 .cmenu-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 100dvh;
   background: rgba(0, 0, 0, 0.45);
   z-index: 1100;
@@ -2545,9 +2546,11 @@ body.search-modal-open .bottom-nav {
 
 .member-detail-panel {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 100dvh;
-  z-index: 1001;
+  z-index: 1100;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: flex-end;
@@ -2686,7 +2689,9 @@ body.search-modal-open .bottom-nav {
    ============================================ */
 .feedback-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 100dvh;
   background: rgba(0, 0, 0, 0.45);
   z-index: 1100;
@@ -2930,7 +2935,6 @@ body.search-modal-open .bottom-nav {
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
   height: 100dvh;
   background: rgba(0, 0, 0, 0.95);
   z-index: 2000;
@@ -4428,7 +4432,9 @@ body.search-modal-open .bottom-nav {
 
 .pace-info-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 100dvh;
   background: rgba(0, 0, 0, 0.5);
   z-index: 200;
@@ -8010,7 +8016,9 @@ body.workout-detail-open .bottom-nav {
 
 .workout-sheet-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 100dvh;
   background: rgba(0, 0, 0, 0.5);
   z-index: 1100;
