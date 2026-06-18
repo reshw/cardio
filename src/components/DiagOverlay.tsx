@@ -76,10 +76,6 @@ const collectAncestorStacking = (selector: string): string[] => {
 };
 
 const STORAGE_KEY = 'diag-enabled';
-const TAP_COUNT_KEY = 'diag-tap-count';
-const TAP_TIME_KEY = 'diag-tap-time';
-const TAP_WINDOW_MS = 1500;
-const TAP_THRESHOLD = 7;
 
 export const DiagOverlay = () => {
   const [tick, setTick] = useState(0);
@@ -89,27 +85,11 @@ export const DiagOverlay = () => {
       localStorage.getItem(STORAGE_KEY) === '1'
   );
 
-  // "기록" 탭 1.5초 내 7번 연속 탭 시 활성화 (안드로이드 빌드넘버 패턴)
+  // Header 의 "디버그 보기" (시스템관리자 전용) 에서 dispatch 하는 이벤트 수신
   useEffect(() => {
-    const handler = (e: Event) => {
-      const t = e.target as HTMLElement | null;
-      const item = t?.closest('a, button');
-      if (!item) return;
-      if (!(item.textContent || '').includes('기록')) return;
-      const now = Date.now();
-      const last = Number(localStorage.getItem(TAP_TIME_KEY) || 0);
-      const prev = Number(localStorage.getItem(TAP_COUNT_KEY) || 0);
-      const count = now - last > TAP_WINDOW_MS ? 1 : prev + 1;
-      localStorage.setItem(TAP_TIME_KEY, String(now));
-      localStorage.setItem(TAP_COUNT_KEY, String(count));
-      if (count >= TAP_THRESHOLD) {
-        localStorage.setItem(STORAGE_KEY, '1');
-        localStorage.removeItem(TAP_COUNT_KEY);
-        setEnabled(true);
-      }
-    };
-    document.addEventListener('click', handler, true);
-    return () => document.removeEventListener('click', handler, true);
+    const handler = () => setEnabled(localStorage.getItem(STORAGE_KEY) === '1');
+    window.addEventListener('diag-toggle', handler);
+    return () => window.removeEventListener('diag-toggle', handler);
   }, []);
 
   useEffect(() => {

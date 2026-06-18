@@ -165,6 +165,22 @@ export const Header = () => {
                     </div>
                   </button>
                 )}
+                {user?.is_admin && (
+                  <button
+                    className="club-action-modal-button"
+                    onClick={() => {
+                      setShowClubActionModal(false);
+                      localStorage.setItem('diag-enabled', '1');
+                      window.dispatchEvent(new Event('diag-toggle'));
+                    }}
+                  >
+                    <span className="action-icon">🐛</span>
+                    <div className="action-text">
+                      <div className="action-title">디버그 보기 <span style={{ fontSize: '11px', color: '#FF6B6B', fontWeight: '600' }}>🔒 시스템 관리자 전용</span></div>
+                      <div className="action-desc">화면 하단에 진단 오버레이 표시</div>
+                    </div>
+                  </button>
+                )}
               </div>
             </div>
           </div>
