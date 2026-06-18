@@ -42,6 +42,7 @@ import KakaoCallback from './components/KakaoCallback';
 import PhotoUpload from './pages/PhotoUpload';
 import { AppAuthBridge } from './pages/AppAuthBridge';
 import { useIsNativeApp } from './hooks/useIsNativeApp';
+import { DiagOverlay } from './components/DiagOverlay';
 import './App.css';
 
 function ProtectedRoutes() {
@@ -166,6 +167,7 @@ function App() {
   return (
     <ErrorBoundary>
     <AuthProvider>
+      <DiagOverlay />
       <BrowserRouter>
         <Routes>
           {/* Public routes */}
