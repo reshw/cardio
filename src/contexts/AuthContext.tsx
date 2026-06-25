@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { diagLog } from '../lib/diagLog';
@@ -46,52 +46,108 @@ const fetchUserByTmpNumber = async (tmp: number) => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const fetchingRef = useRef<string | null>(null);
 
   const fetchPublicUser = async (authId: string) => {
-    // session 은 있는데 users 조회 실패 시: 네트워크 일시 실패 가능성 있어 1회 재시도.
-    // 그래도 실패하면 supabase auth 자체를 끊어 사용자가 깨끗한 상태에서 다시 로그인 가능하게 함.
-    // — 이전엔 silent 하게 user=null 박아 Login 화면이 계속 보이며 "로그인 안 됨" 으로 오인됐음.
-    const fetchOnce = () =>
-      supabase
-        .from('users')
-        .select('id, username, display_name, email, kakao_id, provider, profile_image, is_admin, is_super_admin, is_sub_admin')
-        .eq('auth_id', authId)
-        .maybeSingle();
-
-    let { data, error } = await fetchOnce();
-    if (error || !data) {
-      diagLog.add(
-        'auth',
-        `fetchPublicUser 1차 실패 authId=${authId.slice(0, 8)} error=${error?.message || 'no-row'} — 재시도`
-      );
-      await new Promise((r) => setTimeout(r, 500));
-      const retry = await fetchOnce();
-      data = retry.data;
-      error = retry.error;
-    }
-
-    if (error || !data) {
-      diagLog.add(
-        'auth',
-        `fetchPublicUser 최종 실패 authId=${authId.slice(0, 8)} error=${error?.message || 'no-row'} — auth signOut 진행`
-      );
-      try {
-        await supabase.auth.signOut();
-      } catch {}
-      setUser(null);
-      setLoading(false);
+    if (fetchingRef.current === authId) {
+      diagLog.add('auth', `fetchPublicUser 중복 호출 무시 authId=${authId.slice(0, 8)}`);
       return;
     }
+    fetchingRef.current = authId;
+    try {
+      const fetchOnce = () =>
+        supabase
+          .from('users')
+          .select('id, username, display_name, email, kakao_id, provider, profile_image, is_admin, is_super_admin, is_sub_admin')
+          .eq('auth_id', authId)
+          .maybeSingle();
 
-    diagLog.add('auth', `fetchPublicUser 성공 userId=${data.id.slice(0, 8)}`);
-    setUser(data);
-    setLoading(false);
+      let { data, error } = await fetchOnce();
+      if (error || !data) {
+        diagLog.add(
+          'auth',
+          `fetchPublicUser 1차 실패 authId=${authId.slice(0, 8)} error=${error?.message || 'no-row'} — 재시도`
+        );
+        await new Promise((r) => setTimeout(r, 500));
+        const retry = await fetchOnce();
+        data = retry.data;
+        error = retry.error;
+      }
 
-    fetch('/api/sync/trigger', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: data.id }),
-    }).catch(() => {});
+      if (error || !data) {
+        // KakaoCallback이 실행되지 않아 public.users row가 없는 경우 폴백:
+        // 세션의 kakao identity로 link_or_create_user 직접 호출 후 재조회.
+        // (전화번호·생년·성별은 다음 정상 로그인 시 KakaoCallback에서 채워짐)
+        diagLog.add(
+          'auth',
+          `fetchPublicUser no-row authId=${authId.slice(0, 8)} — link_or_create 폴백 시도`
+        );
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const kakaoIdentity = session?.user?.identities?.find(i => i.provider === 'kakao');
+          const kakaoId = String(
+            kakaoIdentity?.identity_data?.sub
+              || session?.user?.user_metadata?.provider_id
+              || ''
+          );
+
+          if (kakaoId) {
+            await supabase.rpc('link_or_create_user', {
+              p_auth_id:       authId,
+              p_kakao_id:      kakaoId,
+              p_email:         session?.user?.email ?? null,
+              p_display_name:  session?.user?.user_metadata?.name
+                               ?? session?.user?.user_metadata?.full_name
+                               ?? null,
+              p_profile_image: session?.user?.user_metadata?.avatar_url
+                               ?? session?.user?.user_metadata?.picture
+                               ?? null,
+            });
+            diagLog.add('auth', `link_or_create_user 폴백 완료 kakaoId=${kakaoId.slice(0, 8)}`);
+
+            const { data: created } = await fetchOnce();
+            if (created) {
+              diagLog.add('auth', `fetchPublicUser 폴백 성공 userId=${created.id.slice(0, 8)}`);
+              setUser(created);
+              setLoading(false);
+              fetch('/api/sync/trigger', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: created.id }),
+              }).catch(() => {});
+              return;
+            }
+          } else {
+            diagLog.add('auth', 'link_or_create_user 폴백 불가 — kakaoId 없음');
+          }
+        } catch (rpcErr) {
+          diagLog.add('auth', `link_or_create_user 폴백 실패: ${rpcErr instanceof Error ? rpcErr.message : String(rpcErr)}`);
+        }
+
+        diagLog.add(
+          'auth',
+          `fetchPublicUser 최종 실패 authId=${authId.slice(0, 8)} error=${error?.message || 'no-row'} — auth signOut 진행`
+        );
+        try {
+          await supabase.auth.signOut();
+        } catch {}
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      diagLog.add('auth', `fetchPublicUser 성공 userId=${data.id.slice(0, 8)}`);
+      setUser(data);
+      setLoading(false);
+
+      fetch('/api/sync/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: data.id }),
+      }).catch(() => {});
+    } finally {
+      fetchingRef.current = null;
+    }
   };
 
   useEffect(() => {
@@ -115,22 +171,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // 초기 세션 복원 (새로고침·탭 재방문)
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      diagLog.add('auth', `getSession session=${!!session} error=${error?.message || 'none'}`);
-      if (session?.user) {
-        fetchPublicUser(session.user.id);
-      } else {
-        setUser(null);
-        setLoading(false);
-      }
-    });
-
-    // 세션 변경 감지 (로그인·로그아웃·토큰 갱신)
+    // INITIAL_SESSION 이벤트가 getSession() 역할(초기 세션 복원)을 대체하므로 별도 호출 불필요.
+    // onAuthStateChange 단일 구독으로 초기 복원·로그인·로그아웃·토큰 갱신 모두 처리.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       diagLog.add('auth', `onAuthStateChange: ${_event} session=${!!session}`);
       if (session?.user) {
-        setLoading(true); // fetchPublicUser 완료 전까지 로딩 유지
+        setLoading(true);
         fetchPublicUser(session.user.id);
       } else {
         setUser(null);
