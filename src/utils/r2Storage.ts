@@ -15,7 +15,15 @@ const compressImageForUpload = (file: File): Promise<File> =>
       URL.revokeObjectURL(url);
       const MAX = 1280;
       let { width, height } = img;
-      if (width > MAX) { height = Math.round((height * MAX) / width); width = MAX; }
+      if (width > MAX || height > MAX) {
+        if (width >= height) {
+          height = Math.round((height * MAX) / width);
+          width = MAX;
+        } else {
+          width = Math.round((width * MAX) / height);
+          height = MAX;
+        }
+      }
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
