@@ -6,9 +6,48 @@ interface UploadResponse {
   thumbnailUrl: string;
 }
 
+// JPEG EXIF orientation 읽기 (canvas.drawImage는 EXIF를 무시하므로 직접 파싱)
+function getExifOrientation(file: File): Promise<number> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const view = new DataView(e.target!.result as ArrayBuffer);
+        if (view.getUint16(0, false) !== 0xFFD8) { resolve(1); return; }
+        let offset = 2;
+        while (offset < view.byteLength) {
+          const marker = view.getUint16(offset, false);
+          offset += 2;
+          if (marker === 0xFFE1) {
+            if (view.getUint32(offset + 2, false) !== 0x45786966) { resolve(1); return; }
+            const little = view.getUint16(offset + 8, false) === 0x4949;
+            const ifdOffset = view.getUint32(offset + 14, little);
+            const entries = view.getUint16(offset + 8 + ifdOffset, little);
+            for (let i = 0; i < entries; i++) {
+              const entryOffset = offset + 8 + ifdOffset + 2 + i * 12;
+              if (view.getUint16(entryOffset, little) === 0x0112) {
+                resolve(view.getUint16(entryOffset + 8, little));
+                return;
+              }
+            }
+            resolve(1); return;
+          }
+          if ((marker & 0xFF00) !== 0xFF00) break;
+          offset += view.getUint16(offset, false);
+        }
+      } catch { /* ignore */ }
+      resolve(1);
+    };
+    reader.onerror = () => resolve(1);
+    reader.readAsArrayBuffer(file.slice(0, 65536));
+  });
+}
+
 // Vercel Functions payload 제한 대비 — 모바일 원본(5~15MB)을 1MB 이하로 줄여서 전송
-const compressImageForUpload = (file: File): Promise<File> =>
-  new Promise((resolve) => {
+const compressImageForUpload = async (file: File): Promise<File> => {
+  const orientation = await getExifOrientation(file);
+
+  return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
@@ -24,15 +63,30 @@ const compressImageForUpload = (file: File): Promise<File> =>
           height = MAX;
         }
       }
+
+      // orientation 5~8은 90/270도 회전 → canvas 가로세로 뒤집기
+      const swap = orientation >= 5 && orientation <= 8;
       const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+      canvas.width = swap ? height : width;
+      canvas.height = swap ? width : height;
+
+      const ctx = canvas.getContext('2d')!;
+      switch (orientation) {
+        case 2: ctx.transform(-1, 0, 0, 1, canvas.width, 0); break;
+        case 3: ctx.transform(-1, 0, 0, -1, canvas.width, canvas.height); break;
+        case 4: ctx.transform(1, 0, 0, -1, 0, canvas.height); break;
+        case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
+        case 6: ctx.transform(0, 1, -1, 0, canvas.height, 0); break;
+        case 7: ctx.transform(0, -1, -1, 0, canvas.height, canvas.width); break;
+        case 8: ctx.transform(0, -1, 1, 0, 0, canvas.width); break;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+
       canvas.toBlob(
         (blob) => {
           if (blob) {
             const out = new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), { type: 'image/webp' });
-            console.log(`🗜️ 압축: ${(file.size / 1024 / 1024).toFixed(1)}MB → ${(out.size / 1024 / 1024).toFixed(1)}MB`);
+            console.log(`🗜️ 압축: ${(file.size / 1024 / 1024).toFixed(1)}MB → ${(out.size / 1024 / 1024).toFixed(1)}MB (orientation: ${orientation})`);
             resolve(out);
           } else {
             resolve(file);
@@ -45,6 +99,7 @@ const compressImageForUpload = (file: File): Promise<File> =>
     img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
     img.src = url;
   });
+};
 
 /**
  * R2에 이미지 업로드 (원본 + 썸네일)
