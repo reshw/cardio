@@ -1,0 +1,2 @@
+ALTER TABLE "public"."workouts"                                                                               ADD COLUMN IF NOT EXISTS "elapsed_seconds" integer,                                                         ADD COLUMN IF NOT EXISTS "moving_seconds" integer,                                                      
+    ADD COLUMN IF NOT EXISTS "average_speed" numeric(8,4),                                                      ADD COLUMN IF NOT EXISTS "average_heartrate" numeric(5,1);

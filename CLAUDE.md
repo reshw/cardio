@@ -1,5 +1,11 @@
 # Cardio 웹앱 개발 가이드
 
+## 협업 인박스 — 당신은 `web` 에이전트
+
+세 프로젝트(cardio / cardio-and / cardio-app)가 `D:\dev\cardio-comms\` 공유 폴더로 메시지를 주고받습니다. 당신의 인박스는 `D:\dev\cardio-comms\to-web\` 입니다. 상세 규칙은 아래 import 참조.
+
+@D:\dev\cardio-comms\protocol.md
+
 ## 프로젝트 개요
 Android 앱이 WebView로 이 React 웹앱을 표시하는 구조.
 - 프로덕션 도메인: `https://cardio.scnd.kr`

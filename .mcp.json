@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "cardio-comms": {
+      "command": "node",
+      "args": [
+        "--no-warnings=ExperimentalWarning",
+        "D:/dev/cardio-comms/mcp-server/index.mjs"
+      ],
+      "env": {
+        "CARDIO_AGENT": "web"
+      }
+    }
+  }
+}
