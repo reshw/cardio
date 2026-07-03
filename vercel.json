@@ -7,6 +7,9 @@
   "functions": {
     "api/webhooks/strava.ts": {
       "includeFiles": "api/fonts/**"
+    },
+    "api/webhooks/workout-inserted.ts": {
+      "includeFiles": "api/fonts/**"
     }
   },
   "rewrites": [
