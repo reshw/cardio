@@ -4,6 +4,7 @@ import {
   STRAVA_TYPE_MAP,
   generateStravaCard,
   getValidToken,
+  polylineToGeoJson,
 } from '../_strava-shared.js';
 
 const supabase = createClient(
@@ -74,6 +75,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       utc_offset: activity.utc_offset != null ? Math.round(activity.utc_offset) : null,
     };
 
+    const route = polylineToGeoJson(activity.map?.summary_polyline ?? null);
+
     const workoutData = {
       user_id: integration.user_id,
       category: mapping.category,
@@ -85,6 +88,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       source: 'strava',
       source_activity_id: String(object_id),
       ...stravaMetrics,
+      route: route ?? null,
     };
 
     let workoutId: string | null = null;
@@ -96,7 +100,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } else {
       const { data, error } = await supabase
         .from('workouts')
-        .update({ value, workout_time: activity.start_date, ...stravaMetrics })
+        .update({ value, workout_time: activity.start_date, ...stravaMetrics, route: route ?? null })
         .eq('user_id', integration.user_id)
         .eq('source', 'strava')
         .eq('source_activity_id', String(object_id))

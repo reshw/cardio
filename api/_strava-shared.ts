@@ -94,6 +94,21 @@ function decodePolyline(encoded: string): [number, number][] {
   return coords;
 }
 
+export interface GeoJsonLineString {
+  type: 'LineString';
+  coordinates: [number, number, number | null][];
+  times?: string[];
+}
+
+export function polylineToGeoJson(encoded: string | null | undefined): GeoJsonLineString | null {
+  if (!encoded || encoded.length < 5) return null;
+  const coords = decodePolyline(encoded);
+  return {
+    type: 'LineString',
+    coordinates: coords.map(([lat, lon]) => [lon, lat, null] as [number, number, null]),
+  };
+}
+
 function buildRouteData(encoded: string, aX: number, aY: number, aW: number, aH: number, pad = 30) {
   const coords = decodePolyline(encoded);
   if (coords.length < 2) return null;
