@@ -21,22 +21,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     record: WorkoutRow & { proof_image?: string | null };
   };
 
-  if (type !== 'INSERT' || table !== 'workouts') {
-    return res.status(200).json({ skipped: 'not an insert on workouts' });
+  if ((type !== 'INSERT' && type !== 'UPDATE') || table !== 'workouts') {
+    return res.status(200).json({ skipped: 'not an insert/update on workouts' });
   }
 
   if (record?.source !== 'google_health' && record?.source !== 'apple_health') {
     return res.status(200).json({ skipped: 'not a health source' });
   }
 
-  if (record?.proof_image) {
-    return res.status(200).json({ skipped: 'proof_image already set' });
+  // 자동생성 카드는 스탯 변경 시 재생성 대상, 사용자 업로드 사진은 보존
+  if (record?.proof_image && !record.proof_image.includes('/workout-cards/')) {
+    return res.status(200).json({ skipped: 'user-uploaded proof_image preserved' });
   }
 
   try {
     const imageUrl = await generateWorkoutCard(record);
     if (imageUrl) {
-      await supabase.from('workouts').update({ proof_image: imageUrl }).eq('id', record.id);
+      // 같은 id 재생성 시 R2 키가 동일 → 브라우저/CDN 캐시 무효화용 버전 쿼리
+      const versionedUrl = `${imageUrl}?v=${Date.now()}`;
+      await supabase.from('workouts').update({ proof_image: versionedUrl }).eq('id', record.id);
     }
   } catch (err) {
     console.error('workout-inserted handler error:', err);
