@@ -306,15 +306,20 @@ export const WorkoutFeedCard = ({
   };
 
   const getStravaSpeedLabel = () => {
-    if (workout.category === '달리기') return '페이스';
-    if (workout.category === '수영') return '페이스';
+    // '걷기'는 Health Connect 연동으로만 들어와 WorkoutCategory 유니온에 없음
+    const cat = workout.category as string;
+    if (cat === '달리기') return '페이스';
+    if (cat === '걷기') return '페이스';
+    if (cat === '수영') return '페이스';
     return '속도';
   };
 
+  // moving_seconds 없는 소스(apple/google health)는 elapsed_seconds로 계산
   const formatStravaSpeed = () => {
-    const mv = workout.moving_seconds;
+    const mv = workout.moving_seconds ?? workout.elapsed_seconds;
     const val = workout.value;
-    if (workout.category === '달리기' && mv && val > 0) {
+    const cat = workout.category as string;
+    if ((cat === '달리기' || cat === '걷기') && mv && val > 0) {
       const secPerKm = mv / val;
       const m = Math.floor(secPerKm / 60);
       const s = Math.round(secPerKm % 60);
@@ -326,8 +331,9 @@ export const WorkoutFeedCard = ({
       const s = Math.round(secPer100m % 60);
       return `${m}'${String(s).padStart(2, '0')}"/100m`;
     }
-    if ((workout.category === '사이클' || workout.category === '로잉') && workout.average_speed) {
-      return `${(workout.average_speed * 3.6).toFixed(1)} km/h`;
+    if (workout.category === '사이클' || workout.category === '로잉') {
+      if (workout.average_speed) return `${(workout.average_speed * 3.6).toFixed(1)} km/h`;
+      if (mv && val > 0 && workout.unit === 'km') return `${(val / (mv / 3600)).toFixed(1)} km/h`;
     }
     return null;
   };
@@ -603,19 +609,18 @@ export const WorkoutFeedCard = ({
                     {getSourceLabel(workout.source)} 데이터
                   </h3>
                   <div className="workout-detail-info">
-                    {workout.source === 'strava' && workout.moving_seconds ? (
+                    {workout.moving_seconds ? (
                       <div className="workout-detail-row">
                         <span className="label">이동 시간</span>
                         <span className="value">{formatDuration(workout.moving_seconds)}</span>
                       </div>
-                    ) : null}
-                    {workout.source === 'apple_health' && workout.elapsed_seconds ? (
+                    ) : workout.elapsed_seconds ? (
                       <div className="workout-detail-row">
                         <span className="label">운동 시간</span>
                         <span className="value">{formatDuration(workout.elapsed_seconds)}</span>
                       </div>
                     ) : null}
-                    {workout.source === 'strava' && formatStravaSpeed() && (
+                    {formatStravaSpeed() && (
                       <div className="workout-detail-row">
                         <span className="label">{getStravaSpeedLabel()}</span>
                         <span className="value">{formatStravaSpeed()}</span>

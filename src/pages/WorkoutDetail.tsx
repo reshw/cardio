@@ -187,6 +187,36 @@ export const WorkoutDetail = ({ workoutData: propWorkout, onClose }: WorkoutDeta
     return `${s}초`;
   };
 
+  // 연동 기록 페이스/속도 — average_speed 없으면 (moving ?? elapsed) + 거리로 계산
+  const formatConnectedPace = () => {
+    const secs = workout.moving_seconds ?? workout.elapsed_seconds;
+    const val = workout.value;
+    // '걷기'는 Health Connect 연동으로만 들어와 WorkoutCategory 유니온에 없음
+    const cat = workout.category as string;
+    if (secs && val > 0) {
+      if ((cat === '달리기' || cat === '걷기') && workout.unit === 'km') {
+        const secPerKm = secs / val;
+        const m = Math.floor(secPerKm / 60);
+        const s = Math.round(secPerKm % 60);
+        return `페이스 ${m}'${String(s).padStart(2, '0')}"/km`;
+      }
+      if (workout.category === '수영' && workout.unit === 'm') {
+        const secPer100m = secs / (val / 100);
+        const m = Math.floor(secPer100m / 60);
+        const s = Math.round(secPer100m % 60);
+        return `페이스 ${m}'${String(s).padStart(2, '0')}"/100m`;
+      }
+      if ((workout.category === '사이클' || workout.category === '로잉') && workout.unit === 'km') {
+        const kmh = workout.average_speed ? workout.average_speed * 3.6 : val / (secs / 3600);
+        return `평균 ${kmh.toFixed(1)} km/h`;
+      }
+    }
+    if (workout.average_speed != null) {
+      return `평균 ${(workout.average_speed * 3.6).toFixed(1)} km/h`;
+    }
+    return null;
+  };
+
   const getWorkoutLabel = () => {
     if (workout.category === '복싱') {
       return `${workout.category}-혼합`;
@@ -373,14 +403,13 @@ export const WorkoutDetail = ({ workoutData: propWorkout, onClose }: WorkoutDeta
                   {getSourceLabel(workout.source)} 연동 기록
                 </div>
                 <div className="strava-source-metrics">
-                  {workout.source === 'strava' && workout.moving_seconds != null && (
+                  {workout.moving_seconds != null ? (
                     <span>이동 {formatMovingTime(workout.moving_seconds)}</span>
-                  )}
-                  {workout.source === 'apple_health' && workout.elapsed_seconds != null && (
+                  ) : workout.elapsed_seconds != null ? (
                     <span>운동 시간 {formatMovingTime(workout.elapsed_seconds)}</span>
-                  )}
-                  {workout.source === 'strava' && workout.average_speed != null && (
-                    <span>평균 {(workout.average_speed * 3.6).toFixed(1)} km/h</span>
+                  ) : null}
+                  {formatConnectedPace() && (
+                    <span>{formatConnectedPace()}</span>
                   )}
                   {workout.average_heartrate != null && (
                     <span>심박 {Math.round(workout.average_heartrate)} bpm</span>
