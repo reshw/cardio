@@ -11,6 +11,7 @@ import clubService from '../services/clubService';
 import type { MyClubWithOrder } from '../services/clubService';
 import DatePickerSheet from '../components/DatePickerSheet';
 import ValuePickerSheet from '../components/ValuePickerSheet';
+import { getWorkoutEntryLimitDays, DEFAULT_ENTRY_LIMIT_DAYS } from '../services/settingsService';
 
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
 const SESSION_KEY = 'addworkout_draft_v3';
@@ -107,6 +108,8 @@ export const AddWorkout = () => {
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showValuePicker, setShowValuePicker] = useState(false);
+  // 수기 입력 허용 기간 (당일 포함 일수, null = 무제한) — 어드민 설정
+  const [entryLimitDays, setEntryLimitDays] = useState<number | null>(DEFAULT_ENTRY_LIMIT_DAYS);
   const [uploading, setUploading] = useState(false);
   const [intensity, setIntensity] = useState(editWorkout?.intensity ?? (savedDraft?.intensity ?? 4));
   const [memo, setMemo] = useState(editWorkout?.memo ?? (savedDraft?.memo ?? ''));
@@ -150,6 +153,10 @@ export const AddWorkout = () => {
       }
     };
     loadWorkoutTypes();
+  }, []);
+
+  useEffect(() => {
+    getWorkoutEntryLimitDays().then(setEntryLimitDays);
   }, []);
 
   useEffect(() => {
@@ -246,9 +253,13 @@ export const AddWorkout = () => {
         alert('미래 날짜는 기록할 수 없습니다.');
         return;
       }
-      if (nowCheck.getTime() - selectedTime.getTime() > 48 * 60 * 60 * 1000) {
-        alert('48시간 이전 기록은 추가할 수 없습니다.\n(최대 2일 전까지만 가능)');
-        return;
+      if (entryLimitDays !== null) {
+        // 달력일 기준: 오늘 00:00에서 (N-1)일 전 00:00 이후만 허용 (당일 포함 N일)
+        const earliest = new Date(nowCheck.getFullYear(), nowCheck.getMonth(), nowCheck.getDate() - (entryLimitDays - 1));
+        if (selectedTime < earliest) {
+          alert(`오늘 포함 최근 ${entryLimitDays}일 이내 기록만 추가할 수 있습니다.`);
+          return;
+        }
       }
     }
 
@@ -610,6 +621,7 @@ export const AddWorkout = () => {
                 <DatePickerSheet
                   value={workoutDate}
                   onChange={setWorkoutDate}
+                  maxDays={entryLimitDays}
                   onClose={() => setShowDatePicker(false)}
                 />
               )}

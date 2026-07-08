@@ -11881,6 +11881,24 @@ body.workout-detail-open .bottom-nav {
   margin: 20px 0 24px;
 }
 
+/* 제한일수 4일 이상이면 가로 스크롤 칩으로 전환 */
+.date-picker-day-tabs.scrollable {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+
+.date-picker-day-tabs.scrollable::-webkit-scrollbar {
+  display: none;
+}
+
+.date-picker-day-tabs.scrollable .date-picker-day-btn {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  white-space: nowrap;
+}
+
 .date-picker-day-btn {
   flex: 1;
   padding: 10px 0;

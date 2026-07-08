@@ -4,39 +4,49 @@ interface Props {
   value: string;        // YYYY-MM-DDTHH:mm (local)
   onChange: (v: string) => void;
   onClose: () => void;
+  maxDays?: number | null; // 당일 포함 선택 가능 일수, null = 무제한 (칩은 최근 90일까지)
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
+const WDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+const UNLIMITED_CHIP_DAYS = 90;
 
-export default function DatePickerSheet({ value, onChange, onClose }: Props) {
+const dayLabel = (date: Date, idx: number) => {
+  if (idx === 0) return '오늘';
+  if (idx === 1) return '어제';
+  if (idx === 2) return '이틀 전';
+  return `${date.getMonth() + 1}/${date.getDate()} (${WDAYS[date.getDay()]})`;
+};
+
+export default function DatePickerSheet({ value, onChange, onClose, maxDays = 3 }: Props) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today.getTime() - 86_400_000);
-  const twoDaysAgo = new Date(today.getTime() - 172_800_000);
-  const min48h = new Date(now.getTime() - 172_800_000);
+  const dayCount = Math.min(UNLIMITED_CHIP_DAYS, Math.max(1, maxDays ?? UNLIMITED_CHIP_DAYS));
+  const dayDates = Array.from({ length: dayCount }, (_, i) =>
+    new Date(today.getFullYear(), today.getMonth(), today.getDate() - i)
+  );
 
   const initState = () => {
     const d = new Date(value);
     const dDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-    let day: 0 | 1 | 2 = 0;
-    if (dDay === yesterday.getTime()) day = 1;
-    else if (dDay === twoDaysAgo.getTime()) day = 2;
-    return { day, hour: d.getHours(), minute: d.getMinutes() };
+    const idx = dayDates.findIndex(dd => dd.getTime() === dDay);
+    return { day: idx >= 0 ? idx : 0, hour: d.getHours(), minute: d.getMinutes() };
   };
 
   const init = initState();
-  const [pickerDay, setPickerDay] = useState<0 | 1 | 2>(init.day);
+  const [pickerDay, setPickerDay] = useState(init.day);
   const [pickerHour, setPickerHour] = useState(init.hour);
   const [pickerMinute, setPickerMinute] = useState(init.minute);
 
+  // 오늘은 현재 시각까지만, 과거 날짜는 종일 허용
   const getHourBounds = (day: number) => ({
-    min: day === 2 ? min48h.getHours() : 0,
+    min: 0,
     max: day === 0 ? now.getHours() : 23,
   });
   const getMinuteBounds = (day: number, hour: number) => {
     const hb = getHourBounds(day);
     return {
-      min: day === 2 && hour === hb.min ? min48h.getMinutes() : 0,
+      min: 0,
       max: day === 0 && hour === hb.max ? now.getMinutes() : 59,
     };
   };
@@ -52,7 +62,7 @@ export default function DatePickerSheet({ value, onChange, onClose }: Props) {
   }, [pickerHour, pickerDay]);
 
   const handleConfirm = () => {
-    const base = [today, yesterday, twoDaysAgo][pickerDay];
+    const base = dayDates[pickerDay];
     const str = `${base.getFullYear()}-${pad(base.getMonth() + 1)}-${pad(base.getDate())}T${pad(pickerHour)}:${pad(pickerMinute)}`;
     onChange(str);
     onClose();
@@ -60,8 +70,6 @@ export default function DatePickerSheet({ value, onChange, onClose }: Props) {
 
   const { min: minH, max: maxH } = getHourBounds(pickerDay);
   const { min: minM, max: maxM } = getMinuteBounds(pickerDay, pickerHour);
-
-  const DAY_LABELS = ['오늘', '어제', '이틀 전'];
 
   return (
     <div className="feedback-overlay" onClick={onClose}>
@@ -73,14 +81,14 @@ export default function DatePickerSheet({ value, onChange, onClose }: Props) {
           <button className="race-modal-close" type="button" onClick={onClose}>✕</button>
         </div>
 
-        <div className="date-picker-day-tabs">
-          {DAY_LABELS.map((label, idx) => (
+        <div className={`date-picker-day-tabs${dayCount > 3 ? ' scrollable' : ''}`}>
+          {dayDates.map((date, idx) => (
             <button
               key={idx}
               type="button"
               className={`date-picker-day-btn${pickerDay === idx ? ' active' : ''}`}
-              onClick={() => setPickerDay(idx as 0 | 1 | 2)}
-            >{label}</button>
+              onClick={() => setPickerDay(idx)}
+            >{dayLabel(date, idx)}</button>
           ))}
         </div>
 
