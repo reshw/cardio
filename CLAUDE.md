@@ -155,6 +155,31 @@ flex container 안에서 `flex: 1; overflow-y: auto`를 쓰는 자식은
 
 ---
 
+## 에러 처리 규칙 (필수)
+
+**"오류가 발생했습니다", "생성에 실패했습니다" 같은 원인 없는 메시지 절대 금지.**
+사용자에게 보이는 에러와 console 로그 모두 **실제 원인(에러 message/code/detail)을 반드시 포함**할 것.
+디버깅 왕복(사용자 재현 → 로그 요청)을 없애는 게 목적이다.
+
+```ts
+// 금지 — 원인이 사라짐
+} catch {
+  setError('생성에 실패했습니다.');
+}
+
+// 올바름 — 실제 supabase/JS 에러를 그대로 노출
+} catch (err: any) {
+  console.error('[기능명] 생성 실패 상세:', JSON.stringify(err), err);
+  const msg = err?.message || err?.error_description || err?.hint || JSON.stringify(err);
+  setError(`생성 실패: ${msg}`);
+}
+```
+
+- catch 블록은 `catch {}`(에러 바인딩 생략) 대신 `catch (err)`로 에러를 반드시 잡아 로그
+- supabase 에러는 `message`뿐 아니라 `code`/`details`/`hint`도 유용 → `JSON.stringify(error)`로 통째로 남길 것
+- 서비스 계층에서 `throw` 하기 전 `console.error`로 원인 로그, 다단계 작업은 단계별 성공/실패 로그
+- 사용자 노출 문구엔 최소한 에러 message를 붙여, 스크린샷만으로 원인 파악 가능하게
+
 ## Git / 배포 규칙
 
 - push 전 반드시 `npm run build` 통과 확인
