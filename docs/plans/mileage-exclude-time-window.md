@@ -2,8 +2,62 @@
 
 > 작성일: 2026-07-01
 > 최종 검토: 2026-07-02
-> 상태: **기획 확정, 구현 대기**
+> 착수 전 확정: 2026-07-13
+> 구현: 2026-07-13 (dev 브랜치, 빌드 통과)
+> 상태: **구현 완료 (마이그레이션 미적용 — supabase db push 대기)**
 > 관련: `docs/기안_마일리지_아키텍처_개선.md` (선행 이슈), `docs/수정사항_260409.md` (KST 처리)
+
+---
+
+## ⚠️ 착수 전 최종 확정 (2026-07-13) — 아래가 본문보다 우선
+
+계획서 작성(7/1) 이후 팀대항전·챌린지가 추가되어 스코프를 재확정함. **본문의 상충 항목은 이 절이 override 한다.**
+
+### D1. 기간 모델 → **특정 연도 한정 (일회성)** ✅
+- 본문 Q3의 "MM-DD 매년 반복 + wrap 지원"을 **폐기**. 대신 `date_from`/`date_to`를 **연도 포함 실제 날짜**(예: `2026-07-01` ~ `2026-08-31`)로 저장.
+- 규칙은 `date_to` 경과 시 자동으로 판정에서 미매칭(사실상 만료). 매년 쓰려면 매년 새 규칙 생성.
+- **스키마 영향**: `date_from`/`date_to` → `date NOT NULL` 타입. **wrap(연말~연초) 로직·MM-DD regex CHECK 전부 불필요** → 판정 로직 단순화(`w_kst::date BETWEEN date_from AND date_to`).
+- **진행중 매치 소급 우려 해소**: 기간이 특정 연도로 한정되므로 소급 영향 범위가 자연히 좁아짐. 별도 "진행중 매치 자동제외" 로직은 만들지 않고, 소급 재계산 모달의 경고 문구만 유지.
+
+### D2. 운동일수 처리 → **카테고리별 flag 전면 도입 (Phase 1 동반)** ✅
+- 본문 Phase 1(`club_mileage_configs.count_in_workout_days`)을 **이 작업에 포함**해서 함께 릴리즈.
+- 전역 `clubs.count_excluded_workouts_in_days` deprecated, 마이그레이션 시 값 승계(Q9-b).
+- 규칙 제외 운동의 운동일수는 카테고리 flag만 참조 → 폭염 미적립 달리기도 flag=true면 운동일수 인정.
+
+### D3. 초기 프리셋 → **폭염 프리셋 1개 제공** ✅
+- 규칙 편집 모달에 "폭염제외" 프리셋 버튼 1개: 클릭 시 이름="폭염제외", 대상=달리기·러닝, 시간=09~17시, 기간=올해 07-01~08-31로 폼 자동 채움(이후 수정 가능).
+- 프리셋은 클라이언트 상수. 계절 템플릿 다중 제공은 안 함.
+
+### 재확인(변동 없음)
+- 시작시각 KST 기준 판정, DB 함수에서만 판정, `exclusion_rule_id`+`exclusion_snapshot` 스냅샷 저장, 규칙당 종목 1개, 관리 권한 부방장+, 라벨 팔레트+HEX.
+
+### 판정 SQL 삽입 지점 (확인 완료)
+- `supabase/migrations/20260426000014_recalculate_fn_by_club.sql`의 `recalculate_club_mileage(club_id, year, month)` 안, `club_mileage_configs` JOIN 옆에 `club_mileage_exclusion_rules` LATERAL JOIN 추가. 매칭 시 mileage=0 + `exclusion_rule_id`/`exclusion_snapshot` 세팅. (일반/혼합 운동 INSERT 두 블록 모두)
+
+---
+
+## 구현 결과 (2026-07-13)
+
+### 추가/변경 파일
+| 파일 | 내용 |
+|------|------|
+| `supabase/migrations/20260713000004_club_mileage_exclusion_rules.sql` | 규칙 테이블 + `club_workout_mileage` 컬럼 2개 + `count_in_workout_days` 컬럼(전역값 승계) + RLS 헬퍼(`is_club_member`/`is_club_manager`) |
+| `supabase/migrations/20260713000005_apply_exclusion_rules_in_recalc.sql` | 판정 로직: 실시간 트리거 `sync_club_workout_mileage` + `recalculate_club_mileage` + `recalculate_club_mileage_custom` 3곳에 제외 규칙 매칭 |
+| `src/services/clubService.ts` | `ExclusionRule` 타입, CRUD, `recalculateAfterRuleChange(scope)`, 집계 로직 `count_in_workout_days` 전환, `getUserWorkoutMileageDetails`에 snapshot 추가 |
+| `src/components/ClubExclusionRulesSection.tsx` | 규칙 리스트/편집 모달(폭염 프리셋·팔레트+HEX)/소급 재계산 모달 (신규) |
+| `src/pages/ClubMileageSettings.tsx` | 규칙 섹션 embed + "운동일수 산입" 체크박스 |
+| `src/utils/workoutStatusLabel.ts` | 배지 공통 헬퍼 `getWorkoutStatusLabel` (신규) |
+| `src/components/ClubMemberDetailModal.tsx` | 제외 규칙 커스텀 배지 렌더 |
+| `src/pages/ClubGeneralSettings.tsx` | 전역 `count_excluded_workouts_in_days` 토글 제거(카테고리별로 이동 안내) |
+
+### 계획과 달라진 점 (개선)
+- **workout 수정/삭제 재판정**: 서비스 훅(R4) 대신 **기존 DB 트리거 `sync_club_workout_mileage`** 에 제외 로직을 넣어 자동 처리. workoutService 손 안 댐.
+- **RLS**: `WITH CHECK (true)` 관례 대신 팀대항전과 동일한 SECURITY DEFINER 헬퍼(`is_club_member`/`is_club_manager`)로 정확히 매핑.
+
+### 미완 / 후속 (follow-up)
+- **피드 카드 배지**: `WorkoutFeedCard`(Club.tsx 피드)는 아직 규칙 미적립을 배지로 표시하지 않음. 피드가 per-workout 스냅샷을 로드하지 않기 때문. 데이터(마일리지)는 정확히 0으로 반영됨 — 시각 배지만 후속. 멤버 상세 모달에는 커스텀 배지 표시됨.
+- **`recalculate_club_mileage_month`(전 클럽)**: 앱/웹훅 미사용이라 제외 로직 미반영. 사용 시 추가 필요.
+- **마이그레이션 미적용**: `supabase db push` 는 배포 액션이라 미실행. 사용자 승인 후 적용.
 
 ---
 

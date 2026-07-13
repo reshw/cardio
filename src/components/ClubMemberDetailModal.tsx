@@ -4,9 +4,11 @@ import { ChevronLeft, ChevronRight, X, CircleOff, Heart, MessageCircle } from 'l
 import workoutService from '../services/workoutService';
 import type { Workout } from '../services/workoutService';
 import clubService from '../services/clubService';
+import type { ExclusionSnapshot } from '../services/clubService';
 import feedService from '../services/feedService';
 import { CommentSection } from './CommentSection';
 import { useAuth } from '../contexts/AuthContext';
+import { getWorkoutStatusLabel } from '../utils/workoutStatusLabel';
 
 interface Props {
   clubId: string;
@@ -37,6 +39,8 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, initialYear, i
   const [isBlocked, setIsBlocked] = useState(false);
   // workout_id → 클럽 기준 마일리지 (club_workout_mileage 스냅샷)
   const [mileageMap, setMileageMap] = useState<Map<string, number>>(new Map());
+  // workout_id → 제외 규칙 스냅샷 (있으면 커스텀 미적립 배지)
+  const [exclusionMap, setExclusionMap] = useState<Map<string, ExclusionSnapshot>>(new Map());
 
   // 좋아요 / 댓글 상태
   const [likesInfo, setLikesInfo] = useState<Map<string, { count: number; isLikedByMe: boolean }>>(new Map());
@@ -124,8 +128,13 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, initialYear, i
         clubId, userId, selectedYear, selectedMonth + 1
       );
       const newMap = new Map<string, number>();
-      mileageDetails.forEach((r) => newMap.set(r.workout_id, r.mileage));
+      const newExclMap = new Map<string, ExclusionSnapshot>();
+      mileageDetails.forEach((r) => {
+        newMap.set(r.workout_id, r.mileage);
+        if (r.exclusion_snapshot) newExclMap.set(r.workout_id, r.exclusion_snapshot);
+      });
       setMileageMap(newMap);
+      setExclusionMap(newExclMap);
 
       // 좋아요 / 댓글 수 배치 로드
       if (monthWorkouts.length > 0) {
@@ -340,6 +349,7 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, initialYear, i
                 <div className="member-workout-list">
                   {workouts.map((workout) => {
                     const disabled = isWorkoutDisabled(workout);
+                    const status = getWorkoutStatusLabel(mileageMap.get(workout.id), exclusionMap.get(workout.id));
                     return (
                       <div
                         key={workout.id}
@@ -347,10 +357,13 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, initialYear, i
                       >
                         {/* 카드 본문 (클릭 → 상세) */}
                         <div style={{ cursor: 'pointer' }} onClick={() => setSelectedWorkout(workout)}>
-                          {disabled && (
-                            <div className="feed-disabled-badge">
+                          {status.show && (
+                            <div
+                              className="feed-disabled-badge"
+                              style={status.isRuleExcluded ? { background: status.bgColor, color: status.fgColor } : undefined}
+                            >
                               <CircleOff size={11} />
-                              미적립
+                              {status.text}
                             </div>
                           )}
                           <div className="workout-card-header">

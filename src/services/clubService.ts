@@ -33,8 +33,39 @@ export interface ClubMileageConfigRow {
   sub_type: string | null;
   coefficient: number;
   enabled: boolean;
+  count_in_workout_days: boolean; // 운동일수(활동일수) 산입 여부 — 마일리지 미적립이어도 true면 산입
   updated_at: string;
 }
+
+// 마일리지 제외 규칙 (특정 종목·기간·시간대 → 미적립)
+export interface ExclusionRule {
+  id: string;
+  club_id: string;
+  name: string;
+  label_bg_color: string;
+  label_fg_color: string;
+  category: string;
+  sub_type: string | null;
+  date_from: string; // 'YYYY-MM-DD' (특정 연도 한정)
+  date_to: string;   // 'YYYY-MM-DD'
+  hour_from: number; // 0-23
+  hour_to: number;   // 1-24 (24 = 자정까지)
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ExclusionRuleInput = Omit<ExclusionRule, 'id' | 'club_id' | 'created_at' | 'updated_at'>;
+
+// 스냅샷에 저장되는 제외 규칙 표시용 정보
+export interface ExclusionSnapshot {
+  name: string;
+  label_bg_color: string;
+  label_fg_color: string;
+}
+
+// 소급 재계산 범위
+export type RecalcScope = 'current_month' | 'last_3_months' | 'all' | 'none';
 
 export interface ClubMember {
   id: string;
@@ -944,23 +975,21 @@ class ClubService {
     clubId: string,
     month?: { year: number; month: number }
   ): Promise<ClubDetailedStats[]> {
-    // 클럽 설정 조회
-    const { data: clubSettings } = await supabase
-      .from('clubs')
-      .select('count_excluded_workouts_in_days')
-      .eq('id', clubId)
-      .single();
-    const countExcludedWorkouts = clubSettings?.count_excluded_workouts_in_days ?? true;
-
-    // 활성화된 카테고리를 club_mileage_configs 테이블에서 조회
+    // 활성화된 카테고리 + 운동일수 산입 flag를 club_mileage_configs 에서 조회
     const { data: configRows } = await supabase
       .from('club_mileage_configs')
-      .select('category, sub_type')
+      .select('category, sub_type, count_in_workout_days')
       .eq('club_id', clubId)
       .eq('enabled', true);
     const enabledCategories = (configRows || []).map((r) =>
       r.sub_type ? `${r.category}-${r.sub_type}` : r.category
     );
+    // 카테고리별 운동일수 산입 여부 맵 (기본 true)
+    const countInDaysMap: Record<string, boolean> = {};
+    (configRows || []).forEach((r) => {
+      const key = r.sub_type ? `${r.category}-${r.sub_type}` : r.category;
+      countInDaysMap[key] = r.count_in_workout_days ?? true;
+    });
 
     // 클럽 멤버 조회
     const { data: members } = await supabase
@@ -1085,8 +1114,8 @@ class ClubService {
         return;
       }
 
-      // 운동일수 집계 (미산입 운동 포함 여부 확인)
-      if (workoutDate && (countExcludedWorkouts || mileage > 0)) {
+      // 운동일수 집계 (카테고리별 count_in_workout_days flag 기준, 기본 true)
+      if (workoutDate && (countInDaysMap[category] ?? true)) {
         userStatsMap[record.user_id].workoutDates.add(workoutDate);
       }
 
@@ -1140,21 +1169,19 @@ class ClubService {
     endDate: string,
     allowedCategories?: string[] | null
   ): Promise<ClubDetailedStats[]> {
-    const { data: clubSettings } = await supabase
-      .from('clubs')
-      .select('count_excluded_workouts_in_days')
-      .eq('id', clubId)
-      .single();
-    const countExcludedWorkouts = clubSettings?.count_excluded_workouts_in_days ?? true;
-
     const { data: configRows } = await supabase
       .from('club_mileage_configs')
-      .select('category, sub_type')
+      .select('category, sub_type, count_in_workout_days')
       .eq('club_id', clubId)
       .eq('enabled', true);
     let enabledCategories = (configRows || []).map((r) =>
       r.sub_type ? `${r.category}-${r.sub_type}` : r.category
     );
+    const countInDaysMap: Record<string, boolean> = {};
+    (configRows || []).forEach((r) => {
+      const key = r.sub_type ? `${r.category}-${r.sub_type}` : r.category;
+      countInDaysMap[key] = r.count_in_workout_days ?? true;
+    });
     // 챌린지 허용 종목이 있으면 교집합으로 제한
     if (allowedCategories && allowedCategories.length > 0) {
       enabledCategories = enabledCategories.filter((c) => allowedCategories.includes(c));
@@ -1232,7 +1259,7 @@ class ClubService {
       const value = workoutValueMap[record.workout_id] || 0;
       const unit = workoutUnitMap[record.workout_id] || '';
       if (!category || !enabledCategories.includes(category)) return;
-      if (record.workout_date && (countExcludedWorkouts || mileage > 0)) {
+      if (record.workout_date && (countInDaysMap[category] ?? true)) {
         userStatsMap[record.user_id].workoutDates.add(record.workout_date);
       }
       if (mileage > 0) {
@@ -1483,7 +1510,8 @@ class ClubService {
 
   async updateClubMileageConfigs(
     clubId: string,
-    configs: Pick<ClubMileageConfigRow, 'category' | 'sub_type' | 'coefficient' | 'enabled'>[]
+    configs: (Pick<ClubMileageConfigRow, 'category' | 'sub_type' | 'coefficient' | 'enabled'> &
+      Partial<Pick<ClubMileageConfigRow, 'count_in_workout_days'>>)[]
   ): Promise<void> {
     // DELETE+INSERT (NULL sub_type 때문에 upsert onConflict 대신 사용)
     const { error: deleteError } = await supabase
@@ -1501,6 +1529,7 @@ class ClubService {
       sub_type: c.sub_type ?? null,
       coefficient: c.coefficient,
       enabled: c.enabled,
+      count_in_workout_days: c.count_in_workout_days ?? true,
       updated_at: new Date().toISOString(),
     }));
 
@@ -1909,10 +1938,10 @@ class ClubService {
     userId: string,
     year: number,
     month: number
-  ): Promise<{ workout_id: string; mileage: number }[]> {
+  ): Promise<{ workout_id: string; mileage: number; exclusion_snapshot: ExclusionSnapshot | null }[]> {
     const { data, error } = await supabase
       .from('club_workout_mileage')
-      .select('workout_id, mileage')
+      .select('workout_id, mileage, exclusion_snapshot')
       .eq('club_id', clubId)
       .eq('user_id', userId)
       .eq('year', year)
@@ -1923,7 +1952,117 @@ class ClubService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map((r: any) => ({
+      workout_id: r.workout_id,
+      mileage: r.mileage,
+      exclusion_snapshot: (r.exclusion_snapshot as ExclusionSnapshot | null) ?? null,
+    }));
+  }
+
+  // ============================================
+  // 마일리지 제외 규칙 (club_mileage_exclusion_rules)
+  // ============================================
+
+  async getExclusionRules(clubId: string): Promise<ExclusionRule[]> {
+    const { data, error } = await supabase
+      .from('club_mileage_exclusion_rules')
+      .select('*')
+      .eq('club_id', clubId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('제외 규칙 조회 실패 상세:', JSON.stringify(error), error);
+      throw error;
+    }
+    return (data || []) as ExclusionRule[];
+  }
+
+  async createExclusionRule(clubId: string, input: ExclusionRuleInput): Promise<ExclusionRule> {
+    const { data, error } = await supabase
+      .from('club_mileage_exclusion_rules')
+      .insert({ club_id: clubId, ...input })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('제외 규칙 생성 실패 상세:', JSON.stringify(error), error);
+      throw error;
+    }
+    return data as ExclusionRule;
+  }
+
+  async updateExclusionRule(ruleId: string, input: Partial<ExclusionRuleInput>): Promise<ExclusionRule> {
+    const { data, error } = await supabase
+      .from('club_mileage_exclusion_rules')
+      .update({ ...input, updated_at: new Date().toISOString() })
+      .eq('id', ruleId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('제외 규칙 수정 실패 상세:', JSON.stringify(error), error);
+      throw error;
+    }
+    return data as ExclusionRule;
+  }
+
+  async deleteExclusionRule(ruleId: string): Promise<void> {
+    const { error } = await supabase
+      .from('club_mileage_exclusion_rules')
+      .delete()
+      .eq('id', ruleId);
+
+    if (error) {
+      console.error('제외 규칙 삭제 실패 상세:', JSON.stringify(error), error);
+      throw error;
+    }
+  }
+
+  /**
+   * 규칙 변경(생성/수정/삭제/토글) 후 소급 재계산.
+   * scope에 따라 해당 (year, month) 들을 recalculate_club_mileage 로 재계산.
+   * 'none' 이면 아무 것도 하지 않음(신규 저장분부터 트리거로 적용).
+   */
+  async recalculateAfterRuleChange(clubId: string, scope: RecalcScope): Promise<void> {
+    if (scope === 'none') return;
+
+    const now = new Date();
+    const months: { year: number; month: number }[] = [];
+
+    if (scope === 'current_month') {
+      months.push({ year: now.getFullYear(), month: now.getMonth() + 1 });
+    } else if (scope === 'last_3_months') {
+      for (let i = 0; i < 3; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push({ year: d.getFullYear(), month: d.getMonth() + 1 });
+      }
+    } else if (scope === 'all') {
+      // 이 클럽 스냅샷에 존재하는 모든 (year, month) 를 재계산
+      const { data, error } = await supabase
+        .from('club_workout_mileage')
+        .select('year, month')
+        .eq('club_id', clubId);
+      if (error) {
+        console.error('소급 재계산 대상 월 조회 실패 상세:', JSON.stringify(error), error);
+        throw error;
+      }
+      const seen = new Set<string>();
+      (data || []).forEach((r: any) => {
+        const key = `${r.year}-${r.month}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          months.push({ year: r.year, month: r.month });
+        }
+      });
+      // 스냅샷이 비어있어도 최소 이번 달은 재계산
+      if (months.length === 0) {
+        months.push({ year: now.getFullYear(), month: now.getMonth() + 1 });
+      }
+    }
+
+    for (const m of months) {
+      await this.recalculateClubMonthMileage(clubId, m.year, m.month);
+    }
   }
 
   /**

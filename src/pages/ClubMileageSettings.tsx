@@ -6,6 +6,7 @@ import clubService from '../services/clubService';
 import workoutTypeService from '../services/workoutTypeService';
 import type { MileageConfig } from '../services/clubService';
 import type { WorkoutType } from '../services/workoutTypeService';
+import { ClubExclusionRulesSection } from '../components/ClubExclusionRulesSection';
 
 // 운동 종목을 마일리지 설정 카테고리로 변환
 interface WorkoutCategory {
@@ -79,6 +80,8 @@ export const ClubMileageSettings = () => {
 
   const [mileageConfig, setMileageConfig] = useState<MileageConfig>({});
   const [enabledCategories, setEnabledCategories] = useState<string[]>([]);
+  // 카테고리별 운동일수 산입 여부 (기본 true)
+  const [countInDays, setCountInDays] = useState<Record<string, boolean>>({});
   const [updating, setUpdating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -116,13 +119,16 @@ export const ClubMileageSettings = () => {
       if (rows.length > 0) {
         const config: MileageConfig = {};
         const enabled: string[] = [];
+        const cid: Record<string, boolean> = {};
         rows.forEach((r) => {
           const key = r.sub_type ? `${r.category}-${r.sub_type}` : r.category;
           config[key] = r.coefficient;
           if (r.enabled) enabled.push(key);
+          cid[key] = r.count_in_workout_days ?? true;
         });
         setMileageConfig(config);
         setEnabledCategories(enabled);
+        setCountInDays(cid);
       } else {
         // 마이그레이션 전 클럽 폴백
         const defaultConfig = await clubService.getDefaultMileageConfig();
@@ -178,6 +184,7 @@ export const ClubMileageSettings = () => {
           sub_type,
           coefficient: mileageConfig[cat.key] ?? 1,
           enabled: enabledCategories.includes(cat.key),
+          count_in_workout_days: countInDays[cat.key] ?? true,
         };
       });
       await clubService.updateClubMileageConfigs(clubId, configs);
@@ -334,6 +341,16 @@ export const ClubMileageSettings = () => {
                 <div className="mileage-edit-preview">
                   {getExplanation(mileageConfig[category.key as keyof MileageConfig], category.unit)}
                 </div>
+                <label className="mileage-edit-countdays">
+                  <input
+                    type="checkbox"
+                    checked={countInDays[category.key] ?? true}
+                    onChange={(e) =>
+                      setCountInDays((prev) => ({ ...prev, [category.key]: e.target.checked }))
+                    }
+                  />
+                  <span>운동일수 산입 {(countInDays[category.key] ?? true) ? '' : '(제외)'}</span>
+                </label>
               </div>
             );
           })}
@@ -342,6 +359,15 @@ export const ClubMileageSettings = () => {
         <button type="submit" className="primary-button-full" disabled={updating}>
           {updating ? '저장 중...' : '저장하기'}
         </button>
+
+        {clubId && (
+          <ClubExclusionRulesSection
+            clubId={clubId}
+            categories={workoutCategories
+              .filter((c) => enabledCategories.includes(c.key))
+              .map((c) => ({ key: c.key, label: c.label, emoji: c.emoji }))}
+          />
+        )}
       </form>
 
       {/* 확인 모달 */}

@@ -15,7 +15,6 @@ export const ClubGeneralSettings = () => {
   const [inviteCode, setInviteCode] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [countExcludedWorkouts, setCountExcludedWorkouts] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +34,6 @@ export const ClubGeneralSettings = () => {
       setDescription(club.description || '');
       setInviteCode(club.invite_code);
       setLogoPreview(club.logo_url || null);
-      setCountExcludedWorkouts(club.count_excluded_workouts_in_days ?? true);
     } catch (error) {
       console.error('클럽 정보 불러오기 실패:', error);
       alert('클럽 정보를 불러올 수 없습니다.');
@@ -195,20 +193,12 @@ export const ClubGeneralSettings = () => {
         </div>
 
         <div className="form-group">
-          <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={countExcludedWorkouts}
-              onChange={(e) => setCountExcludedWorkouts(e.target.checked)}
-              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-            />
-            <span style={{ fontSize: '15px', fontWeight: '600' }}>
-              📊 미산입 운동도 운동일수에 포함 (상세통계)
-            </span>
-          </label>
+          <span style={{ fontSize: '15px', fontWeight: '600' }}>
+            📊 운동일수 산입 설정
+          </span>
           <p className="form-hint">
-            마일리지 계수가 0인 운동(미산입)도 운동일수 집계에 포함합니다.<br />
-            체크 해제 시, 마일리지가 0보다 큰 운동만 운동일수로 계산됩니다.
+            운동일수 산입 여부는 이제 <strong>카테고리별</strong>로 설정합니다.<br />
+            <strong>마일리지 계수 설정</strong> 화면의 각 종목 아래 "운동일수 산입" 체크박스에서 조정하세요.
           </p>
         </div>
 

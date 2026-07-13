@@ -6405,6 +6405,171 @@ body.search-modal-open .bottom-nav {
   text-align: center;
 }
 
+.mileage-edit-countdays {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.mileage-edit-countdays input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary-color);
+}
+
+/* ============================================
+   마일리지 제외 규칙 (특정 종목/기간/시간대 미적립)
+   ============================================ */
+
+.exclusion-rule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.exclusion-rule-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+.exclusion-rule-item.disabled {
+  opacity: 0.55;
+}
+
+.exclusion-rule-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.exclusion-rule-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.exclusion-rule-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  word-break: keep-all;
+}
+.exclusion-rule-off {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.exclusion-rule-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.exclusion-rule-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.exclusion-rule-actions button:hover {
+  background: var(--border-color);
+}
+
+.exclusion-rule-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  border-radius: 10px;
+  color: var(--primary-color);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.exclusion-preset-btn {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 14px;
+  background: rgba(79, 195, 247, 0.1);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.exclusion-field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 12px 0 6px;
+}
+
+.exclusion-field-row {
+  display: flex;
+  gap: 10px;
+}
+
+.exclusion-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.exclusion-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.exclusion-retro-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+.exclusion-retro-actions button {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+.exclusion-retro-actions button:disabled {
+  opacity: 0.5;
+}
+.exclusion-retro-none {
+  color: var(--text-secondary) !important;
+  background: transparent !important;
+}
+
 /* ============================================
    어드민 관련 스타일
    ============================================ */
