@@ -52,6 +52,7 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated, onTeamM
     if (isTeamMatch) {
       setSubmitting(true);
       try {
+        console.log('[team_match] 생성 시작 — 1단계 챌린지 생성');
         const challenge = await challengeService.createTeamMatch({
           club_id: club.id,
           created_by: userId,
@@ -63,10 +64,12 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated, onTeamM
             avg_denominator: recordedOnly ? 'recorded' : 'all',
           },
         });
+        console.log('[team_match] 2단계 팀 생성 시작, challengeId=', challenge.id);
         await teamMatchService.createTeams(
           challenge.id,
           TEAM_PRESETS.slice(0, teamCount).map((p) => ({ name: p.name, color: p.color }))
         );
+        console.log('[team_match] 생성 완료 — 배정 모달로 이동');
         if (onTeamMatchCreated) {
           onTeamMatchCreated({
             id: challenge.id,
@@ -74,8 +77,10 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated, onTeamM
             baselineMonths: DEFAULT_TEAM_MATCH_META.baseline_months,
           });
         } else onCreated();
-      } catch {
-        setError('팀 대항전 생성에 실패했습니다.');
+      } catch (err: any) {
+        console.error('[team_match] 생성 실패 상세:', JSON.stringify(err), err);
+        const msg = err?.message || err?.error_description || err?.hint || JSON.stringify(err);
+        setError(`팀 대항전 생성 실패: ${msg}`);
       } finally {
         setSubmitting(false);
       }

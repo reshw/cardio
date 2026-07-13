@@ -128,8 +128,13 @@ const teamMatchService = {
       color: t.color,
       sort_order: i,
     }));
+    console.log('[team_match] createTeams 시도:', challengeId, JSON.stringify(rows));
     const { data, error } = await supabase.from('challenge_teams').insert(rows).select();
-    if (error) throw error;
+    if (error) {
+      console.error('[team_match] createTeams INSERT 실패:', JSON.stringify(error), error);
+      throw error;
+    }
+    console.log('[team_match] createTeams OK, 생성된 팀 수=', data?.length, JSON.stringify(data));
     return (data || []) as ChallengeTeam[];
   },
 

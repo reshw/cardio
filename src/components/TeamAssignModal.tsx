@@ -45,6 +45,7 @@ export const TeamAssignModal = ({ challengeId, club, startDate, baselineMonths =
         teamMatchService.getBaselineMileage(club.id, startDate, baselineMonths),
       ]);
 
+      console.log('[team_match] 배정모달 로드 — 팀 수=', t.length, '기존 배정=', existing.length, 'clubMembers=', clubMembers.length);
       setTeams(t);
 
       const rows: MemberRow[] = clubMembers.map((m: any) => ({
@@ -74,17 +75,24 @@ export const TeamAssignModal = ({ challengeId, club, startDate, baselineMonths =
   useEffect(() => { load(); }, [load]);
 
   const runDraft = async () => {
+    if (teams.length === 0) {
+      setError('팀이 없습니다. 이 매치는 팀 생성이 누락되었습니다. (아래 "팀 없음" 참고)');
+      console.error('[team_match] 드래프트 불가 — teams 비어있음. challengeId=', challengeId);
+      return;
+    }
     if (!confirm('자동 드래프트를 실행하면 현재 배정이 모두 교체됩니다. 진행할까요?')) return;
     try {
+      console.log('[team_match] 드래프트 시작, teams=', teams.length, 'members=', members.length);
       const result = await teamMatchService.computeSnakeDraft(club.id, startDate, teams, baselineMonths);
+      console.log('[team_match] 드래프트 결과 배정 수=', result.length);
       const asg: Record<string, string | null> = {};
       members.forEach((r) => { asg[r.user_id] = null; });
       result.forEach((r) => { asg[r.user_id] = r.team_id; });
       setAssignment(asg);
       setCaptains({});
-    } catch (e) {
-      console.error('드래프트 실패:', e);
-      setError('자동 드래프트에 실패했습니다.');
+    } catch (e: any) {
+      console.error('[team_match] 드래프트 실패 상세:', JSON.stringify(e), e);
+      setError(`자동 드래프트 실패: ${e?.message || e?.hint || JSON.stringify(e)}`);
     }
   };
 
@@ -121,9 +129,9 @@ export const TeamAssignModal = ({ challengeId, club, startDate, baselineMonths =
         }));
       await teamMatchService.replaceAssignments(challengeId, assignments);
       onSaved();
-    } catch (e) {
-      console.error('팀 배정 저장 실패:', e);
-      setError('저장에 실패했습니다.');
+    } catch (e: any) {
+      console.error('[team_match] 배정 저장 실패 상세:', JSON.stringify(e), e);
+      setError(`저장 실패: ${e?.message || e?.hint || JSON.stringify(e)}`);
     } finally {
       setSaving(false);
     }

@@ -169,7 +169,11 @@ const challengeService = {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[team_match] createTeamMatch INSERT 실패:', JSON.stringify(error), error);
+      throw error;
+    }
+    console.log('[team_match] createTeamMatch OK, id=', created?.id);
     return created;
   },
 
