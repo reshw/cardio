@@ -12001,3 +12001,382 @@ body.workout-detail-open .bottom-nav {
 .date-picker-footer {
   margin-top: 4px;
 }
+
+/* ============================================
+   팀 대항전 (team_match)
+   ============================================ */
+
+/* 공통: 팀 색상 점 */
+.team-color-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* 생성 모달 — 프리셋 미리보기 */
+.team-preset-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.team-preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--input-bg);
+  border-radius: 12px;
+  padding: 4px 10px;
+}
+.team-match-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  background: var(--input-bg);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+/* 배정 모달 */
+.team-assign-sheet { gap: 12px; }
+.team-assign-loading {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 24px 0;
+}
+.team-assign-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+.team-draft-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 11px;
+  border: 1px solid var(--primary-color);
+  background: none;
+  color: var(--primary-color);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.team-assign-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.team-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.team-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--input-bg);
+  border-radius: 12px;
+  padding: 8px 10px;
+  flex: 1 1 calc(50% - 4px);
+  min-width: 0;
+}
+.team-summary-name { font-size: 13px; font-weight: 600; }
+.team-summary-stat {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+.team-member-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.team-member-list-head {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 8px 12px;
+  background: var(--input-bg);
+}
+.team-member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-color);
+}
+.team-member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.team-member-name { font-size: 13px; color: var(--text-primary); }
+.team-member-baseline { font-size: 11px; color: var(--text-secondary); }
+.team-member-picks {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.team-pick-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+.team-pick-btn.active {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  font-weight: 700;
+}
+.team-pick-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.4;
+  outline: 2px solid transparent;
+  transition: opacity 0.15s, outline-color 0.15s;
+}
+.team-pick-dot.active {
+  opacity: 1;
+  outline-color: var(--text-primary);
+}
+.team-captain-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: none;
+  color: var(--text-muted, #94a3b8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.team-captain-btn.active {
+  color: #f59e0b;
+  border-color: #f59e0b;
+}
+
+/* 매치 카드 */
+.team-match-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.team-match-card.ended { opacity: 0.75; }
+.team-match-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+.team-match-meta { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.team-match-title {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.team-match-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: #dc2626;
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+.team-match-period { font-size: 11px; color: var(--text-secondary); }
+.team-dday { color: #f97316; font-weight: 600; }
+.team-dday.urgent { color: #dc2626; }
+.team-reassign-icon,
+.team-match-card .challenge-delete-icon {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+  display: inline-flex;
+}
+
+/* 순위 보드 (레이스 트랙) */
+.team-standings { display: flex; flex-direction: column; gap: 7px; }
+.team-standing-row { display: flex; align-items: center; gap: 8px; }
+.team-standing-emblem {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+.team-crown { color: #fde047; }
+.team-standing-name { width: 34px; font-size: 12px; flex-shrink: 0; }
+.team-standing-track {
+  flex: 1;
+  height: 16px;
+  background: var(--input-bg);
+  border-radius: 999px;
+  overflow: hidden;
+  min-width: 0;
+}
+.team-standing-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.team-standing-fill.leader { animation: teamPulse 2s ease-in-out infinite; }
+@keyframes teamPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+.team-standing-avg {
+  width: 46px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* 내 팀 밴드 */
+.team-my-band {
+  font-size: 12px;
+  color: var(--text-primary);
+  background: var(--input-bg);
+  border-left: 3px solid var(--border-color);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.team-my-diff { color: var(--text-secondary); }
+
+/* 팀 선택 패널 (미배정) */
+.team-pick-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--input-bg);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.team-pick-label { font-size: 12px; color: var(--text-secondary); }
+.team-pick-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.team-pick-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.team-pick-choice:disabled { opacity: 0.5; cursor: default; }
+.team-pick-count { font-size: 11px; color: var(--text-secondary); }
+
+/* 상세: 팀별 팀원 */
+.team-match-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 10px;
+}
+.team-detail-block { display: flex; flex-direction: column; gap: 4px; }
+.team-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.team-detail-name { font-size: 13px; font-weight: 600; }
+.team-detail-count { font-size: 11px; color: var(--text-secondary); margin-left: auto; }
+.team-detail-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 3px 0 3px 18px;
+}
+.team-detail-member.me { font-weight: 600; }
+.team-detail-member-name { display: flex; align-items: center; gap: 4px; }
+.team-captain-mark { color: #f59e0b; }
+.team-detail-member-mileage { color: var(--text-secondary); }
+.team-detail-empty {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 3px 0 3px 18px;
+}
+
+/* 종료 결과·시상 */
+.team-result-card {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--input-bg);
+}
+.team-result-winner {
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.team-result-crown { color: #f59e0b; }
+.team-result-award { font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.team-result-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--text-secondary);
+  border-radius: 5px;
+  padding: 1px 6px;
+}
+.team-result-sub { color: var(--text-secondary); }
+
+/* 마일리지 랭킹 팀 뱃지 */
+.ranking-team-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+  box-sizing: border-box;
+}

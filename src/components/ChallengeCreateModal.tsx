@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import challengeService from '../services/challengeService';
+import type { ChallengeType } from '../services/challengeService';
+import teamMatchService, { TEAM_PRESETS, DEFAULT_TEAM_MATCH_META } from '../services/teamMatchService';
 import type { MyClubWithOrder } from '../services/clubService';
 import workoutTypeService from '../services/workoutTypeService';
 import type { WorkoutType } from '../services/workoutTypeService';
@@ -10,10 +12,13 @@ interface Props {
   userId: string;
   onClose: () => void;
   onCreated: () => void;
+  // 팀 대항전 생성 완료 시 배정 모달을 열도록 정보 전달
+  onTeamMatchCreated?: (info: { id: string; startDate: string; baselineMonths: number }) => void;
 }
 
-export const ChallengeCreateModal = ({ club, userId, onClose, onCreated }: Props) => {
+export const ChallengeCreateModal = ({ club, userId, onClose, onCreated, onTeamMatchCreated }: Props) => {
   const today = new Date().toISOString().split('T')[0];
+  const [challengeType, setChallengeType] = useState<ChallengeType>('personal_goal');
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState('');
@@ -21,8 +26,13 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated }: Props
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [allAllowed, setAllAllowed] = useState(true);
   const [allowLateJoin, setAllowLateJoin] = useState(false);
+  // 팀 대항전 전용
+  const [teamCount, setTeamCount] = useState(2);
+  const [recordedOnly, setRecordedOnly] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const isTeamMatch = challengeType === 'team_match';
 
   useEffect(() => {
     workoutTypeService.getActiveWorkoutTypes().then(setWorkoutTypes);
@@ -38,6 +48,40 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated }: Props
     if (!title.trim()) { setError('챌린지 이름을 입력해주세요.'); return; }
     if (!endDate) { setError('종료일을 입력해주세요.'); return; }
     if (endDate < startDate) { setError('종료일이 시작일보다 빠를 수 없습니다.'); return; }
+
+    if (isTeamMatch) {
+      setSubmitting(true);
+      try {
+        const challenge = await challengeService.createTeamMatch({
+          club_id: club.id,
+          created_by: userId,
+          title: title.trim(),
+          start_date: startDate,
+          end_date: endDate,
+          meta: {
+            ...DEFAULT_TEAM_MATCH_META,
+            avg_denominator: recordedOnly ? 'recorded' : 'all',
+          },
+        });
+        await teamMatchService.createTeams(
+          challenge.id,
+          TEAM_PRESETS.slice(0, teamCount).map((p) => ({ name: p.name, color: p.color }))
+        );
+        if (onTeamMatchCreated) {
+          onTeamMatchCreated({
+            id: challenge.id,
+            startDate: challenge.start_date,
+            baselineMonths: DEFAULT_TEAM_MATCH_META.baseline_months,
+          });
+        } else onCreated();
+      } catch {
+        setError('팀 대항전 생성에 실패했습니다.');
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     if (!allAllowed && selectedCategories.length === 0) {
       setError('허용 종목을 하나 이상 선택해주세요.'); return;
     }
@@ -66,17 +110,36 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated }: Props
         <div className="feedback-handle" />
 
         <div className="race-modal-header">
-          <h3>챌린지 만들기</h3>
+          <h3>{isTeamMatch ? '팀 대항전 만들기' : '챌린지 만들기'}</h3>
           <button className="race-modal-close" onClick={onClose}><X size={20} /></button>
         </div>
 
         <div className="race-form">
+          {/* 타입 선택 */}
+          <div className="race-form-group">
+            <label>유형</label>
+            <div className="challenge-allowed-row">
+              <button
+                className={`challenge-scope-btn ${!isTeamMatch ? 'active' : ''}`}
+                onClick={() => setChallengeType('personal_goal')}
+              >
+                개인 목표
+              </button>
+              <button
+                className={`challenge-scope-btn ${isTeamMatch ? 'active' : ''}`}
+                onClick={() => setChallengeType('team_match')}
+              >
+                팀 대항전
+              </button>
+            </div>
+          </div>
+
           {/* 챌린지 이름 */}
           <div className="race-form-group">
-            <label>챌린지 이름</label>
+            <label>{isTeamMatch ? '매치 이름' : '챌린지 이름'}</label>
             <input
               className="race-input"
-              placeholder="예: 5월 연휴 챌린지!"
+              placeholder={isTeamMatch ? '예: 7월 팀 대항 마일리지 매치' : '예: 5월 연휴 챌린지!'}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={40}
@@ -106,7 +169,61 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated }: Props
             </div>
           </div>
 
-          {/* 허용 종목 */}
+          {/* ===== 팀 대항전 전용 ===== */}
+          {isTeamMatch && (
+            <>
+              <div className="race-form-group">
+                <label>팀 수</label>
+                <div className="challenge-allowed-row">
+                  {[2, 3, 4].map((n) => (
+                    <button
+                      key={n}
+                      className={`challenge-scope-btn ${teamCount === n ? 'active' : ''}`}
+                      onClick={() => setTeamCount(n)}
+                    >
+                      {n}팀
+                    </button>
+                  ))}
+                </div>
+                <div className="team-preset-preview">
+                  {TEAM_PRESETS.slice(0, teamCount).map((p) => (
+                    <span key={p.name} className="team-preset-chip">
+                      <span
+                        className="team-color-dot"
+                        style={{
+                          background: p.color,
+                          border: p.needsBorder ? '1px solid #94a3b8' : 'none',
+                        }}
+                      />
+                      {p.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <label className="challenge-toggle-row">
+                <span className="challenge-toggle-label">
+                  기록 보유자만 평균 계산
+                  <span className="challenge-toggle-hint">끄면 배정 전원으로 나눔 (무기록자 포함)</span>
+                </span>
+                <input
+                  type="checkbox"
+                  className="challenge-toggle-input"
+                  checked={recordedOnly}
+                  onChange={(e) => setRecordedOnly(e.target.checked)}
+                />
+                <span className={`challenge-toggle-track ${recordedOnly ? 'on' : ''}`} />
+              </label>
+
+              <p className="team-match-hint">
+                생성 후 팀 배정 화면으로 이동합니다. 자동 드래프트로 최근 3개월 기록 기준 균형 배정 후 조정할 수 있습니다.
+              </p>
+            </>
+          )}
+
+          {/* 허용 종목 (개인 목표 전용) */}
+          {!isTeamMatch && (
+          <>
           <div className="race-form-group">
             <label>허용 종목</label>
             <div className="challenge-allowed-row">
@@ -152,6 +269,8 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated }: Props
             />
             <span className={`challenge-toggle-track ${allowLateJoin ? 'on' : ''}`} />
           </label>
+          </>
+          )}
 
           {error && <p className="challenge-create-error">{error}</p>}
 
@@ -160,7 +279,7 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated }: Props
             onClick={handleSubmit}
             disabled={submitting}
           >
-            {submitting ? '생성 중...' : '챌린지 열기'}
+            {submitting ? '생성 중...' : isTeamMatch ? '팀 배정하러 가기' : '챌린지 열기'}
           </button>
         </div>
       </div>

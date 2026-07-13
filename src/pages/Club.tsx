@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
+import teamMatchService from '../services/teamMatchService';
 import { getExpressions } from '../utils/mileageExpressions';
 import { CreateClubModal } from '../components/CreateClubModal';
 import { MileageConfigModal } from '../components/MileageConfigModal';
@@ -12,6 +13,7 @@ import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
+import { TeamAssignModal } from '../components/TeamAssignModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, BarChart2, Lock } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
@@ -72,6 +74,8 @@ export const Club = () => {
   const [showChallengeCreate, setShowChallengeCreate] = useState(false);
   const [showChallengeArchive, setShowChallengeArchive] = useState(false);
   const [challengeRefreshKey, setChallengeRefreshKey] = useState(0);
+  const [assignInfo, setAssignInfo] = useState<{ id: string; startDate: string; baselineMonths: number } | null>(null);
+  const [teamBadges, setTeamBadges] = useState<Record<string, { color: string; name: string }>>({});
   const [showLockTooltip, setShowLockTooltip] = useState(false);
 
   // 멤버 상세 모달
@@ -163,6 +167,10 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
       setRanking(data);
       const total = data.reduce((s: number, m: any) => s + m.total_mileage, 0);
       if (total >= 10) setMileageExpressions(getExpressions(total, 1));
+      // 진행 중 팀 대항전 뱃지 (없으면 빈 객체)
+      teamMatchService.getActiveTeamBadges(clubId)
+        .then((b) => { if (requestId === rankingRequestId.current) setTeamBadges(b); })
+        .catch(() => {});
     } catch (error) {
       if (requestId !== rankingRequestId.current) return;
       console.error('랭킹 불러오기 실패:', error);
@@ -617,6 +625,11 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           club={selectedClub}
           userId={user.id}
           isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
+          onReassignTeams={(c) => setAssignInfo({
+            id: c.id,
+            startDate: c.start_date,
+            baselineMonths: c.meta_data?.team_match?.baseline_months ?? 3,
+          })}
         />
       )}
 
@@ -988,6 +1001,16 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                             {renderProfileImage(member)}
                             <div className="ranking-info">
                               <div className="ranking-name">
+                                {teamBadges[member.user_id] && (
+                                  <span
+                                    className="ranking-team-dot"
+                                    title={teamBadges[member.user_id].name}
+                                    style={{
+                                      background: teamBadges[member.user_id].color,
+                                      border: teamBadges[member.user_id].color.toLowerCase() === '#e2e8f0' ? '1px solid #94a3b8' : 'none',
+                                    }}
+                                  />
+                                )}
                                 {member.display_name}
                                 {isMyRank && <span className="my-rank-badge">나</span>}
                                 {member.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
@@ -1375,6 +1398,28 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           onClose={() => setShowChallengeCreate(false)}
           onCreated={() => {
             setShowChallengeCreate(false);
+            setChallengeRefreshKey((k) => k + 1);
+          }}
+          onTeamMatchCreated={(info) => {
+            setShowChallengeCreate(false);
+            setAssignInfo(info);
+          }}
+        />
+      )}
+
+      {/* 팀 배정 모달 (팀 대항전 생성 직후 or 재배정) */}
+      {assignInfo && selectedClub && (
+        <TeamAssignModal
+          challengeId={assignInfo.id}
+          club={selectedClub}
+          startDate={assignInfo.startDate}
+          baselineMonths={assignInfo.baselineMonths}
+          onClose={() => {
+            setAssignInfo(null);
+            setChallengeRefreshKey((k) => k + 1);
+          }}
+          onSaved={() => {
+            setAssignInfo(null);
             setChallengeRefreshKey((k) => k + 1);
           }}
         />

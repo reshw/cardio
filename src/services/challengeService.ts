@@ -31,6 +31,8 @@ export const METRIC_UNITS: Record<GoalMetric, string> = {
   custom: '',
 };
 
+export type ChallengeType = 'personal_goal' | 'team_match';
+
 export interface Challenge {
   id: string;
   scope: 'global' | 'club';
@@ -38,6 +40,7 @@ export interface Challenge {
   created_by: string | null;
   title: string;
   description: string | null;
+  challenge_type: ChallengeType;
   goal_metric: GoalMetric | null;
   goal_value: number | null;
   current_value: number;
@@ -47,6 +50,7 @@ export interface Challenge {
   theme_color: string;
   allowed_categories: string[] | null;
   allow_late_join: boolean;
+  meta_data: Record<string, any> | null;
   created_at: string;
 }
 
@@ -131,6 +135,36 @@ const challengeService = {
         allow_late_join: data.allow_late_join ?? false,
         status: 'active',
         theme_color: '#8b5cf6',
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return created;
+  },
+
+  // 팀 대항전 챌린지 생성 (팀은 teamMatchService.createTeams로 별도 생성)
+  async createTeamMatch(data: {
+    club_id: string;
+    created_by: string;
+    title: string;
+    start_date: string;
+    end_date: string;
+    meta: Record<string, any>;
+  }): Promise<Challenge> {
+    const { data: created, error } = await supabase
+      .from('challenges')
+      .insert({
+        scope: 'club',
+        club_id: data.club_id,
+        created_by: data.created_by,
+        title: data.title,
+        challenge_type: 'team_match',
+        start_date: data.start_date,
+        end_date: data.end_date,
+        status: 'active',
+        theme_color: '#dc2626',
+        meta_data: { team_match: data.meta },
       })
       .select()
       .single();
