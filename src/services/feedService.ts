@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Workout } from './workoutService';
+import type { ExclusionSnapshot } from './clubService';
 
 export interface WorkoutLike {
   id: string;
@@ -47,6 +48,7 @@ export interface WorkoutFeedItem {
   comment_count: number;
   is_liked_by_me: boolean;
   is_disabled?: boolean; // 클럽에서 비활성화된 카테고리 여부
+  exclusion_snapshot?: ExclusionSnapshot | null; // 제외 규칙 미적립 (커스텀 배지)
   workout_number?: number; // 오늘의 n번째 운동
 }
 

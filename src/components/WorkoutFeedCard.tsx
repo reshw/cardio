@@ -360,12 +360,17 @@ export const WorkoutFeedCard = ({
   };
 
   return (
-    <div className={`feed-card ${item.is_disabled ? 'feed-card-disabled' : ''} ${isMyPost ? 'feed-card-my-post' : ''}`}>
-      {/* 비활성화 배지 */}
-      {item.is_disabled && (
-        <div className="feed-disabled-badge">
+    <div className={`feed-card ${(item.is_disabled || item.exclusion_snapshot) ? 'feed-card-disabled' : ''} ${isMyPost ? 'feed-card-my-post' : ''}`}>
+      {/* 미적립 배지 — 제외 규칙(커스텀 라벨) 우선, 없으면 비활성 카테고리 "미적립" */}
+      {(item.is_disabled || item.exclusion_snapshot) && (
+        <div
+          className="feed-disabled-badge"
+          style={item.exclusion_snapshot
+            ? { background: item.exclusion_snapshot.label_bg_color, color: item.exclusion_snapshot.label_fg_color }
+            : undefined}
+        >
           <CircleOff size={11} />
-          미적립
+          {item.exclusion_snapshot ? item.exclusion_snapshot.name : '미적립'}
         </div>
       )}
 

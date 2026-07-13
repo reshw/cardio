@@ -1707,6 +1707,18 @@ class ClubService {
       .eq('club_id', clubId)
       .in('workout_id', workoutIds);
 
+    // 4-1) 제외 규칙 미적립 스냅샷 조회 (커스텀 배지용)
+    const { data: mileageRows } = await supabase
+      .from('club_workout_mileage')
+      .select('workout_id, exclusion_snapshot')
+      .eq('club_id', clubId)
+      .in('workout_id', workoutIds);
+    const exclusionMap = new Map<string, ExclusionSnapshot>(
+      (mileageRows || [])
+        .filter((r: any) => r.exclusion_snapshot)
+        .map((r: any) => [r.workout_id, r.exclusion_snapshot as ExclusionSnapshot])
+    );
+
     // 5) 맵 구성 및 반환
     const userMap = new Map(users?.map((u) => [u.id, u]) || []);
     const nicknameMap = Object.fromEntries(
@@ -1748,6 +1760,7 @@ class ClubService {
         like_count: likeInfo.count,
         comment_count: commentsMap.get(workout.id) || 0,
         is_liked_by_me: likeInfo.isLiked,
+        exclusion_snapshot: exclusionMap.get(workout.id) ?? null,
         workout_number: workoutNumberMap.get(workout.id) ?? undefined, // 등록(created_at) 순서 기준
       };
     });
