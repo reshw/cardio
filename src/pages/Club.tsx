@@ -15,7 +15,7 @@ import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { TeamAssignModal } from '../components/TeamAssignModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, BarChart2, Lock } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, Lock, Image } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
 
 // 순서 변경 버튼이 있는 클럽 아이템
@@ -1508,6 +1508,14 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                   </div>
                   <ChevronRight size={16} className="cmenu-arrow" />
                 </button>
+                <button type="button" className="cmenu-row" onClick={() => { setShowClubMenu(false); navigate(`/club/gallery/${selectedClub.id}`); }}>
+                  <Image size={18} className="cmenu-row-icon" />
+                  <div className="cmenu-row-text">
+                    <div className="cmenu-row-title">사진 갤러리</div>
+                    <div className="cmenu-row-desc">증빙사진 모아보기</div>
+                  </div>
+                  <ChevronRight size={16} className="cmenu-arrow" />
+                </button>
               </div>
 
               {/* 챌린지 */}
@@ -1543,54 +1551,28 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                 )}
               </div>
 
-              {/* 마일리지 (관리자) → 허브 페이지 */}
+              {/* 클럽 관리 (관리자) → 설정 허브 페이지 */}
               {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
-                <div className="cmenu-group">
-                  <button type="button" className="cmenu-row" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/mileage`); }}>
-                    <TrendingUp size={18} className="cmenu-row-icon" />
-                    <div className="cmenu-row-text">
-                      <div className="cmenu-row-title">마일리지</div>
-                    </div>
-                    <span className="cmenu-badge">관리자</span>
-                    <ChevronRight size={16} className="cmenu-arrow" />
-                  </button>
-                </div>
-              )}
-
-              {/* 통계 (관리자) → 허브 페이지 */}
-              {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
-                <div className="cmenu-group">
-                  <button type="button" className="cmenu-row" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/stats`); }}>
-                    <BarChart2 size={18} className="cmenu-row-icon" />
-                    <div className="cmenu-row-text">
-                      <div className="cmenu-row-title">통계</div>
-                    </div>
-                    <span className="cmenu-badge">관리자</span>
-                    <ChevronRight size={16} className="cmenu-arrow" />
-                  </button>
-                </div>
-              )}
-
-              {/* 클럽 관리 (클럽장) → 설정 페이지 */}
-              {user && selectedClub.created_by === user.id && (
                 <div className="cmenu-group">
                   <button type="button" className="cmenu-row" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}`); }}>
                     <Settings size={18} className="cmenu-row-icon" />
                     <div className="cmenu-row-text">
                       <div className="cmenu-row-title">클럽 관리</div>
+                      <div className="cmenu-row-desc">마일리지, 통계, 클럽원 관리 등</div>
                     </div>
-                    <span className="cmenu-badge">클럽장</span>
+                    <span className="cmenu-badge">{user && selectedClub.created_by === user.id ? '클럽장' : '관리자'}</span>
                     <ChevronRight size={16} className="cmenu-arrow" />
                   </button>
                 </div>
               )}
 
-              {/* 클럽 탈퇴 (비클럽장) */}
-              {user && selectedClub.created_by !== user.id && (
+              {/* 클럽 탈퇴 (관리자는 비활성) */}
+              {user && (
                 <div className="cmenu-group cmenu-group--danger">
                   <button
                     type="button"
                     className="cmenu-row cmenu-row--danger"
+                    disabled={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
                     onClick={async () => {
                       if (!confirm(`${selectedClub.name}에서 탈퇴하시겠습니까?\n\n탈퇴 후에도 초대코드로 다시 가입할 수 있습니다.`)) return;
                       try {
@@ -1610,6 +1592,11 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                       <div className="cmenu-row-desc">이 클럽에서 나가기</div>
                     </div>
                   </button>
+                  {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
+                    <div className="cmenu-group-note">
+                      관리자 자격이 없어야 탈퇴할 수 있습니다.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
