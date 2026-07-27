@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useClubName } from '../hooks/useClubName';
-import { ChevronLeft, ChevronRight, Info, TrendingUp, UserCog, User, Users, BarChart2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, TrendingUp, UserCog, User, Users, BarChart2, Image } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
@@ -87,6 +87,17 @@ export const ClubSettings = () => {
             <div className="menu-item-left">
               <User size={20} />
               <span>내 정보 변경</span>
+            </div>
+            <ChevronRight size={20} />
+          </button>
+
+          <button
+            className="settings-menu-item"
+            onClick={() => navigate(`/club/gallery/${clubId}`)}
+          >
+            <div className="menu-item-left">
+              <Image size={20} />
+              <span>사진 갤러리</span>
             </div>
             <ChevronRight size={20} />
           </button>

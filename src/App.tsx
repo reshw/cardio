@@ -20,6 +20,7 @@ import { ClubGrowthDashboard } from './components/ClubGrowthDashboard';
 import { ClubMySettings } from './pages/ClubMySettings';
 import { ClubTransferOwnership } from './pages/ClubTransferOwnership';
 import { ClubMembers } from './pages/ClubMembers';
+import { ClubGallery } from './pages/ClubGallery';
 import { ProtectedClubRoute } from './components/ProtectedClubRoute';
 import { More } from './pages/More';
 import { BlockedMembers } from './pages/BlockedMembers';
@@ -142,6 +143,11 @@ function ProtectedRoutes() {
           <Route path="/club/members/:clubId" element={
             <ProtectedClubRoute>
               <ClubMembers />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/gallery/:clubId" element={
+            <ProtectedClubRoute>
+              <ClubGallery />
             </ProtectedClubRoute>
           } />
           <Route path="/join" element={<JoinClub />} />
