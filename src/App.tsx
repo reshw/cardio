@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { PageHeaderProvider } from './contexts/PageHeaderContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Login } from './pages/Login';
 import { History } from './pages/History';
@@ -67,7 +68,7 @@ function ProtectedRoutes() {
   }
 
   return (
-    <>
+    <PageHeaderProvider>
       <Header />
       <div className="main-content">
         <Routes>
@@ -167,7 +168,7 @@ function ProtectedRoutes() {
         </Routes>
       </div>
       {!isNativeApp && <BottomNav />}
-    </>
+    </PageHeaderProvider>
   );
 }
 

@@ -97,6 +97,63 @@ body {
   margin: 0;
 }
 
+/* 서브페이지가 글로벌 헤더 좌측을 대신 채울 때 (PageHeaderContext).
+   헤더를 두 겹으로 쌓지 않기 위한 슬롯이므로, 높이가 .main-content의
+   padding-top(60px)을 넘지 않도록 line-height까지 맞춰둘 것 */
+.header-page-slot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.header-back-button {
+  background: none;
+  border: none;
+  padding: 2px;
+  margin-left: -4px;
+  cursor: pointer;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.header-back-button:active {
+  background: var(--input-bg);
+}
+
+.header-slot-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.header-slot-crumb {
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-slot-titles h1 {
+  font-size: 17px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .header-profile {
   display: flex;
   align-items: center;
@@ -12638,11 +12695,58 @@ body.workout-detail-open .bottom-nav {
   color: var(--text-secondary);
 }
 
+.gallery-truncated-note {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 10px;
   padding: 16px 20px;
+}
+
+/* 날짜(KST) 구분 */
+.gallery-date-section {
+  border-top: 1px solid var(--border-color);
+}
+
+.gallery-date-section:first-of-type {
+  border-top: none;
+}
+
+.gallery-date-heading {
+  position: sticky;
+  /* 글로벌 헤더(60px) 바로 아래 — 갤러리는 서브헤더를 쌓지 않으므로 60px면 충분 */
+  top: 60px;
+  z-index: 5;
+  margin: 0;
+  padding: 10px 20px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.gallery-date-heading-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.gallery-date-section .gallery-grid {
+  padding-top: 12px;
 }
 
 .gallery-card {

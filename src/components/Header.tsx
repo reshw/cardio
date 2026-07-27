@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, CirclePlus, RefreshCw } from 'lucide-react';
+import { Bell, CirclePlus, RefreshCw, ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { usePageHeaderValue } from '../contexts/PageHeaderContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { NotificationDropdown } from './NotificationDropdown';
 import notificationService from '../services/notificationService';
@@ -18,6 +19,8 @@ export const Header = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [hasDeviceToken, setHasDeviceToken] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  // 서브페이지가 주입한 헤더 내용 (있으면 기본 페이지 타이틀 대신 표시)
+  const pageHeader = usePageHeaderValue();
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -73,9 +76,29 @@ export const Header = () => {
   return (
     <>
       <header className="app-header">
-        <div className="header-logo">
-          <h1>{getPageTitle()}</h1>
-        </div>
+        {pageHeader ? (
+          <div className="header-page-slot">
+            {pageHeader.showBack && (
+              <button
+                className="header-back-button"
+                onClick={() => navigate(-1)}
+                aria-label="뒤로가기"
+              >
+                <ChevronLeft size={24} />
+              </button>
+            )}
+            <div className="header-slot-titles">
+              {pageHeader.subtitle && (
+                <span className="header-slot-crumb">{pageHeader.subtitle}</span>
+              )}
+              <h1>{pageHeader.title}</h1>
+            </div>
+          </div>
+        ) : (
+          <div className="header-logo">
+            <h1>{getPageTitle()}</h1>
+          </div>
+        )}
 
         {user && (
           <div className="header-notification">
