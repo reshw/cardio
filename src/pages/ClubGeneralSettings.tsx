@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useClubName } from '../hooks/useClubName';
-import { ChevronLeft, Copy } from 'lucide-react';
+import { ChevronLeft, Copy, Lock } from 'lucide-react';
 import clubService from '../services/clubService';
+import { useAuth } from '../contexts/AuthContext';
 import { uploadToR2 } from '../utils/r2Storage';
 
 export const ClubGeneralSettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
   const clubName = useClubName(clubId);
+  const { user } = useAuth();
   const navigate = useNavigate();
 
+  // 부매니저도 이 화면에 들어오지만, 클럽 이름 변경은 방장만 가능
+  const [isOwner, setIsOwner] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [inviteCode, setInviteCode] = useState('');
@@ -22,7 +26,7 @@ export const ClubGeneralSettings = () => {
     if (clubId) {
       loadClub();
     }
-  }, [clubId]);
+  }, [clubId, user]);
 
   const loadClub = async () => {
     if (!clubId) return;
@@ -30,6 +34,7 @@ export const ClubGeneralSettings = () => {
     setLoading(true);
     try {
       const club = await clubService.getClubById(clubId);
+      setIsOwner(!!user && club.created_by === user.id);
       setName(club.name);
       setDescription(club.description || '');
       setInviteCode(club.invite_code);
@@ -78,7 +83,9 @@ export const ClubGeneralSettings = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!clubId || !name.trim()) {
+    if (!clubId) return;
+
+    if (isOwner && !name.trim()) {
       alert('클럽 이름을 입력해주세요.');
       return;
     }
@@ -98,7 +105,8 @@ export const ClubGeneralSettings = () => {
       }
 
       await clubService.updateClub(clubId, {
-        name: name.trim(),
+        // 방장이 아니면 이름은 payload에서 아예 제외 (input disabled만으로는 막을 수 없음)
+        ...(isOwner ? { name: name.trim() } : {}),
         description: description.trim(),
         logo_url: logoUrl || undefined,
       });
@@ -138,7 +146,9 @@ export const ClubGeneralSettings = () => {
 
       <form onSubmit={handleSubmit} className="settings-form">
         <div className="form-group">
-          <label htmlFor="name">클럽 이름 *</label>
+          <label htmlFor="name">
+            클럽 이름 {isOwner ? '*' : <Lock size={13} style={{ verticalAlign: '-2px' }} />}
+          </label>
           <input
             id="name"
             type="text"
@@ -146,9 +156,11 @@ export const ClubGeneralSettings = () => {
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="value-input"
-            required
+            required={isOwner}
+            disabled={!isOwner}
             maxLength={30}
           />
+          {!isOwner && <p className="form-hint">클럽 이름은 클럽장만 변경할 수 있습니다.</p>}
         </div>
 
         <div className="form-group">

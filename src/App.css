@@ -1165,6 +1165,11 @@ body.search-modal-open .bottom-nav {
   transition: all 0.2s;
 }
 
+.value-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .value-input:focus {
   outline: none;
   border-color: var(--primary-color);

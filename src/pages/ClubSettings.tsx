@@ -97,25 +97,23 @@ export const ClubSettings = () => {
               </div>
               <ChevronRight size={20} />
             </button>
+
+            <button
+              className="settings-menu-item"
+              onClick={() => navigate(`/club/settings/${clubId}/general`)}
+            >
+              <div className="menu-item-left">
+                <Info size={20} />
+                <span>클럽 일반정보 변경</span>
+              </div>
+              <ChevronRight size={20} />
+            </button>
           </div>
         )}
 
         {/* 방장 전용 설정 */}
         {isOwner && (
           <>
-            <div className="settings-section">
-              <button
-                className="settings-menu-item"
-                onClick={() => navigate(`/club/settings/${clubId}/general`)}
-              >
-                <div className="menu-item-left">
-                  <Info size={20} />
-                  <span>클럽 일반정보 변경</span>
-                </div>
-                <ChevronRight size={20} />
-              </button>
-            </div>
-
             <div className="settings-section danger-section">
               <button
                 className="settings-menu-item danger"
