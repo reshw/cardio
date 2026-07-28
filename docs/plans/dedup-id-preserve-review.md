@@ -1,10 +1,14 @@
 # 검토안: iOS dedup의 workout id 변경 문제 (app 메시지 #24)
 
-날짜: 2026-07-08 / 상태: 구현 완료 (dev 커밋) — push + 프로덕션 트리거 SQL 적용 대기
+날짜: 2026-07-08 / 상태: **완료** — push, 프로덕션 트리거 적용, 검증 3건 전부 통과, app에 완료 공지 발송
 
-- app 답장 발송 (#25, 스레드 24), and 작업요청 발송 (#26 — google_health 동일 정책 + 삼성헬스 HC 쓰기 버그 현황 문의)
-- 마이그레이션: `supabase/migrations/20260708000001_workout_card_update_trigger.sql`
-- 웹훅: UPDATE 수용 + 사용자 사진 보존 + `?v=` 캐시버스터
+- app 답장 발송 (#25, #27 완료공지, 스레드 24), and 작업요청 발송 (#26 — google_health 동일 정책 + 삼성헬스 HC 쓰기 버그 현황 문의, 회신 대기)
+- 마이그레이션: `supabase/migrations/20260708000001_workout_card_update_trigger.sql` — 프로덕션 적용 완료 (트리거 events = {INSERT,UPDATE} 확인)
+- 웹훅: UPDATE 수용 + 사용자 사진 보존 + `?v=` 캐시버스터 — 배포 + 프로덕션 테스트 레코드로 검증 완료
+  1. INSERT → 카드 생성 정상
+  2. UPDATE(내용 필드 변경) → 카드 재생성 + `?v=` 갱신 확인
+  3. 사용자 사진 상태에서 UPDATE → 보존 확인
+- app에는 UPDATE-in-place 전환해도 된다고 통보함
 
 ## 1. 문제 정의
 
