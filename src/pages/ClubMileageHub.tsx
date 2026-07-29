@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useClubName } from '../hooks/useClubName';
-import { ChevronLeft, ChevronRight, TrendingUp, Star, EyeOff, RefreshCw, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, TrendingUp, Star, EyeOff, RefreshCw, Clock, Filter, ShieldOff } from 'lucide-react';
 import { useState } from 'react';
 import clubService from '../services/clubService';
 
@@ -66,6 +66,26 @@ export const ClubMileageHub = () => {
               <div>
                 <div>탭 숨김 기간</div>
                 <div className="settings-menu-desc">특정 기간 마일리지 탭 숨기기</div>
+              </div>
+            </div>
+            <ChevronRight size={20} />
+          </button>
+          <button className="settings-menu-item" onClick={() => navigate(`/club/settings/${clubId}/mileage-filter`)}>
+            <div className="menu-item-left">
+              <Filter size={20} />
+              <div>
+                <div>순위 필터 칩</div>
+                <div className="settings-menu-desc">랭킹 화면 종목별 필터에 노출할 종목 선택</div>
+              </div>
+            </div>
+            <ChevronRight size={20} />
+          </button>
+          <button className="settings-menu-item" onClick={() => navigate(`/club/settings/${clubId}/mileage-exclusion`)}>
+            <div className="menu-item-left">
+              <ShieldOff size={20} />
+              <div>
+                <div>제외 규칙</div>
+                <div className="settings-menu-desc">특정 기간·시간대 마일리지 미적립 처리</div>
               </div>
             </div>
             <ChevronRight size={20} />

@@ -22,6 +22,7 @@ export interface Club {
   count_excluded_workouts_in_days?: boolean; // 미산입 운동도 운동일수에 포함할지 여부
   rookie_league_enabled?: boolean; // 루키리그 기능 활성화 여부
   mileage_hide_periods?: { from: number; to: number }[]; // 마일리지 탭 숨김 기간 목록
+  mileage_filter_categories?: string[] | null; // 마일리지 탭 종목별 필터 칩 화이트리스트 (null = 활성화 종목 전체 노출)
 }
 
 // 동적 마일리지 설정 (모든 운동 종목 지원)
@@ -427,7 +428,7 @@ class ClubService {
   // 클럽 정보 수정
   async updateClub(
     clubId: string,
-    data: { name?: string; description?: string; mileage_config?: MileageConfig; logo_url?: string; enabled_categories?: string[]; mileage_hide_periods?: { from: number; to: number }[] }
+    data: { name?: string; description?: string; mileage_config?: MileageConfig; logo_url?: string; enabled_categories?: string[]; mileage_hide_periods?: { from: number; to: number }[]; mileage_filter_categories?: string[] | null }
   ): Promise<Club> {
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
@@ -436,6 +437,7 @@ class ClubService {
     if (data.logo_url !== undefined) updateData.logo_url = data.logo_url;
     if (data.enabled_categories !== undefined) updateData.enabled_categories = data.enabled_categories;
     if (data.mileage_hide_periods !== undefined) updateData.mileage_hide_periods = data.mileage_hide_periods;
+    if (data.mileage_filter_categories !== undefined) updateData.mileage_filter_categories = data.mileage_filter_categories;
 
     const { data: club, error } = await supabase
       .from('clubs')

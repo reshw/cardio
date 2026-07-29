@@ -6,7 +6,6 @@ import clubService from '../services/clubService';
 import workoutTypeService from '../services/workoutTypeService';
 import type { MileageConfig } from '../services/clubService';
 import type { WorkoutType } from '../services/workoutTypeService';
-import { ClubExclusionRulesSection } from '../components/ClubExclusionRulesSection';
 
 // 운동 종목을 마일리지 설정 카테고리로 변환
 interface WorkoutCategory {
@@ -359,15 +358,6 @@ export const ClubMileageSettings = () => {
         <button type="submit" className="primary-button-full" disabled={updating}>
           {updating ? '저장 중...' : '저장하기'}
         </button>
-
-        {clubId && (
-          <ClubExclusionRulesSection
-            clubId={clubId}
-            categories={workoutCategories
-              .filter((c) => enabledCategories.includes(c.key))
-              .map((c) => ({ key: c.key, label: c.label, emoji: c.emoji }))}
-          />
-        )}
       </form>
 
       {/* 확인 모달 */}

@@ -11859,6 +11859,10 @@ body.workout-detail-open .bottom-nav {
 }
 
 .myrank-view-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 12px;
   color: var(--text-secondary);
   margin-bottom: 10px;
@@ -11868,6 +11872,16 @@ body.workout-detail-open .bottom-nav {
 .myrank-view-summary strong {
   color: var(--primary-color);
   font-size: 16px;
+}
+
+.myrank-view-summary-filter {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #FF6B9D;
+  background: rgba(255, 107, 157, 0.12);
+  border-radius: 999px;
+  padding: 3px 10px;
 }
 
 /* ============================================

@@ -15,7 +15,7 @@ import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { TeamAssignModal } from '../components/TeamAssignModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, Lock, Image } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, Lock, Image, Filter } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
 
 // 순서 변경 버튼이 있는 클럽 아이템
@@ -68,6 +68,7 @@ export const Club = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMileageConfig, setShowMileageConfig] = useState(false);
   const [showDetailedStats, setShowDetailedStats] = useState(false);
+  const [showCategoryFilterMenu, setShowCategoryFilterMenu] = useState(false);
   const [showClubMenu, setShowClubMenu] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [challengeMenuOpen, setChallengeMenuOpen] = useState(false);
@@ -110,10 +111,11 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [rookieOnly, setRookieOnly] = useState(false);
   const rankingRequestId = useRef(0);
 
-  // 종목별 마일리지 필터 (null = 전체 종목 합산)
+  // 종목별 마일리지 필터 (null = 전체 종목 합산). 값은 상위 카테고리명 — 하위분류(러닝/트레드밀 등)는
+  // 칩 하나로 합쳐서 보여주고 필터 시 그 카테고리의 모든 하위분류 마일리지를 합산한다.
   const [mileageCategoryFilter, setMileageCategoryFilter] = useState<string | null>(null);
   const [mileageCategoryOptions, setMileageCategoryOptions] = useState<
-    { key: string; category: string; sub_type: string | null }[]
+    { category: string; keys: string[] }[]
   >([]);
   const [categoryStats, setCategoryStats] = useState<ClubDetailedStats[] | null>(null);
   const [categoryStatsLoading, setCategoryStatsLoading] = useState(false);
@@ -408,14 +410,21 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         enabledRows.map((r) => (r.sub_type ? `${r.category}-${r.sub_type}` : r.category))
       );
       setEnabledCategorySet(keys);
+
+      // 하위분류(러닝/트레드밀 등)를 상위 카테고리 하나로 합쳐서 칩 개수를 줄인다.
+      const byCategory = new Map<string, string[]>();
+      enabledRows.forEach((r) => {
+        const key = r.sub_type ? `${r.category}-${r.sub_type}` : r.category;
+        if (!byCategory.has(r.category)) byCategory.set(r.category, []);
+        byCategory.get(r.category)!.push(key);
+      });
+      // 클럽 관리자가 필터 칩에 노출할 카테고리를 직접 골라둔 경우 그 목록만 노출 (null = 전체)
+      const whitelist = selectedClub.mileage_filter_categories;
       setMileageCategoryOptions(
-        enabledRows
-          .map((r) => ({
-            key: r.sub_type ? `${r.category}-${r.sub_type}` : r.category,
-            category: r.category,
-            sub_type: r.sub_type,
-          }))
-          .sort((a, b) => a.key.localeCompare(b.key))
+        [...byCategory.entries()]
+          .filter(([category]) => !whitelist || whitelist.includes(category))
+          .map(([category, catKeys]) => ({ category, keys: catKeys }))
+          .sort((a, b) => a.category.localeCompare(b.category))
       );
     });
     // 클럽이 바뀌면 이전 클럽의 종목 필터·캐시는 무효
@@ -814,6 +823,62 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               >
                 <Table size={16} />
               </button>
+              {mileageCategoryOptions.length > 0 && (
+                <div style={{ position: 'relative' }}>
+                  <button
+                    className="dashboard-action-button"
+                    onClick={() => setShowCategoryFilterMenu((v) => !v)}
+                    title="종목 필터"
+                    style={mileageCategoryFilter ? { color: '#FF6B9D', borderColor: '#FF6B9D' } : undefined}
+                  >
+                    <Filter size={16} />
+                  </button>
+                  {showCategoryFilterMenu && (
+                    <>
+                      <div
+                        style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                        onClick={() => setShowCategoryFilterMenu(false)}
+                      />
+                      <div style={{
+                        position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                        background: 'var(--card-bg)', border: '1px solid var(--border-color)',
+                        borderRadius: '10px', padding: '6px', minWidth: '140px',
+                        zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      }}>
+                        <button
+                          type="button"
+                          onClick={() => { setMileageCategoryFilter(null); setShowCategoryFilterMenu(false); }}
+                          style={{
+                            display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px',
+                            background: mileageCategoryFilter === null ? 'var(--input-bg)' : 'none',
+                            border: 'none', borderRadius: '6px', cursor: 'pointer',
+                            fontSize: '14px', fontWeight: mileageCategoryFilter === null ? 600 : 400,
+                            color: 'var(--text-color)',
+                          }}
+                        >
+                          전체 종목
+                        </button>
+                        {mileageCategoryOptions.map((opt) => (
+                          <button
+                            key={opt.category}
+                            type="button"
+                            onClick={() => { setMileageCategoryFilter(opt.category); setShowCategoryFilterMenu(false); }}
+                            style={{
+                              display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px',
+                              background: mileageCategoryFilter === opt.category ? 'var(--input-bg)' : 'none',
+                              border: 'none', borderRadius: '6px', cursor: 'pointer',
+                              fontSize: '14px', fontWeight: mileageCategoryFilter === opt.category ? 600 : 400,
+                              color: 'var(--text-color)',
+                            }}
+                          >
+                            {opt.category}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -875,27 +940,6 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             </button>
           </div>
 
-          {/* 종목별 마일리지 필터 */}
-          {mileageCategoryOptions.length > 0 && (
-            <div className="mileage-category-chips">
-              <button
-                className={`mileage-category-chip ${mileageCategoryFilter === null ? 'active' : ''}`}
-                onClick={() => setMileageCategoryFilter(null)}
-              >
-                전체 종목
-              </button>
-              {mileageCategoryOptions.map((opt) => (
-                <button
-                  key={opt.key}
-                  className={`mileage-category-chip ${mileageCategoryFilter === opt.key ? 'active' : ''}`}
-                  onClick={() => setMileageCategoryFilter(opt.key)}
-                >
-                  {opt.category}{opt.sub_type ? ` · ${opt.sub_type}` : ''}
-                </button>
-              ))}
-            </div>
-          )}
-
           {rankingLoading ? (
             <div className="loading-screen">
               <div className="spinner"></div>
@@ -915,12 +959,15 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                   </div>
                 );
               }
+              // 선택된 카테고리에 속한 하위분류(러닝/트레드밀 등) 전부의 마일리지를 합산
+              const keys = mileageCategoryOptions.find(o => o.category === mileageCategoryFilter)?.keys
+                ?? [mileageCategoryFilter];
               const rankingByUser = new Map(ranking.map(m => [m.user_id, m]));
               source = categoryStats
                 .filter(s => rankingByUser.has(s.user_id))
                 .map(s => {
                   const base = rankingByUser.get(s.user_id)!;
-                  const mileage = s.by_workout[mileageCategoryFilter] || 0;
+                  const mileage = keys.reduce((sum, k) => sum + (s.by_workout[k] || 0), 0);
                   return { ...base, total_mileage: mileage, workout_count: mileage > 0 ? 1 : 0 };
                 });
             }
@@ -973,7 +1020,12 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               const slice = reranked.slice(start, end);
               return (
                 <div className="myrank-view">
-                  <div className="myrank-view-summary">전체 {reranked.length}명 중 <strong>{myEntry.rank}위</strong></div>
+                  <div className="myrank-view-summary">
+                    <span>전체 {reranked.length}명 중 <strong>{myEntry.rank}위</strong></span>
+                    {mileageCategoryFilter && (
+                      <span className="myrank-view-summary-filter">{mileageCategoryFilter} 필터중</span>
+                    )}
+                  </div>
                   <div className="my-rank-context">
                     {start > 0 && <div className="my-rank-context-ellipsis">⋯ 위 {start}명</div>}
                     {slice.map(m => {
@@ -1015,6 +1067,9 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                         <input type="checkbox" checked={rookieOnly} onChange={e => setRookieOnly(e.target.checked)} />
                         <span>루키리그</span>
                       </label>
+                    )}
+                    {mileageCategoryFilter && (
+                      <span className="myrank-view-summary-filter" style={{ marginLeft: 'auto' }}>{mileageCategoryFilter} 필터중</span>
                     )}
                   </div>
                   <div className="empty-state"><p>운동 기록이 없습니다.</p></div>
@@ -1061,6 +1116,9 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                       <input type="checkbox" checked={rookieOnly} onChange={e => { setRookieOnly(e.target.checked); setShowFullList(false); }} />
                       <span>루키리그</span>
                     </label>
+                  )}
+                  {mileageCategoryFilter && (
+                    <span className="myrank-view-summary-filter" style={{ marginLeft: 'auto' }}>{mileageCategoryFilter} 필터중</span>
                   )}
                 </div>
 
@@ -1334,6 +1392,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                           setShowFullList(false);
                           setShowMemberSearch(false);
                           setMemberSearchQuery('');
+                          setRankingTab('all');
                         }}
                         style={{
                           display: 'flex',

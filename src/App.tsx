@@ -12,6 +12,8 @@ import { ClubGeneralSettings } from './pages/ClubGeneralSettings';
 import { ClubMileageHub } from './pages/ClubMileageHub';
 import { ClubMileageSettings } from './pages/ClubMileageSettings';
 import { ClubMileageHideSettings } from './pages/ClubMileageHideSettings';
+import { ClubMileageFilterSettings } from './pages/ClubMileageFilterSettings';
+import { ClubMileageExclusionSettings } from './pages/ClubMileageExclusionSettings';
 import { ClubMileageRetroactive } from './pages/ClubMileageRetroactive';
 import { ClubStatsHub } from './pages/ClubStatsHub';
 import { ClubSocialSettings } from './pages/ClubSocialSettings';
@@ -109,6 +111,16 @@ function ProtectedRoutes() {
           <Route path="/club/settings/:clubId/mileage-hide" element={
             <ProtectedClubRoute requireAdmin>
               <ClubMileageHideSettings />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId/mileage-filter" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubMileageFilterSettings />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId/mileage-exclusion" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubMileageExclusionSettings />
             </ProtectedClubRoute>
           } />
           <Route path="/club/settings/:clubId/transfer" element={
