@@ -18,8 +18,12 @@ CREATE INDEX IF NOT EXISTS idx_social_points_club_year_month ON social_points(cl
 CREATE INDEX IF NOT EXISTS idx_social_points_user ON social_points(user_id);
 
 -- 카톡 공유 하루 1회 중복 방지 인덱스
+-- DATE_TRUNC('day', timestamptz) 는 세션 타임존에 의존해 STABLE 이라 인덱스 표현식으로 못 씀
+-- (CREATE UNIQUE INDEX ... DATE_TRUNC(...) 는 "functions in index expression must be marked
+-- IMMUTABLE" 에러로 실패함). AT TIME ZONE 뒤에 INTERVAL(고정 오프셋)을 쓰면 timezone(interval,
+-- timestamptz) 함수가 호출되어 IMMUTABLE 이 되므로, KST 고정 오프셋(+09:00)으로 하루 경계를 계산.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_social_points_share_daily
-  ON social_points(club_id, user_id, action_type, DATE_TRUNC('day', created_at))
+  ON social_points(club_id, user_id, action_type, ((created_at AT TIME ZONE INTERVAL '+09:00')::date))
   WHERE action_type = 'share';
 
 ALTER TABLE social_points DISABLE ROW LEVEL SECURITY;

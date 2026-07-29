@@ -925,7 +925,12 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                 });
             }
 
-            const withRecord = source.filter(m => m.workout_count > 0 && m.total_mileage > 0);
+            // categoryStats 는 종목 합산 총점 기준으로 정렬되어 있어, 특정 종목만 골라낸 뒤에는
+            // 그 정렬이 더 이상 유효하지 않다 (예: 종합 1위가 러닝은 안 해서 실제로는 하위권일 수 있음).
+            // 순위(rank)는 배열 인덱스로 매기므로 여기서 항상 다시 정렬해야 함.
+            const withRecord = source
+              .filter(m => m.workout_count > 0 && m.total_mileage > 0)
+              .sort((a, b) => b.total_mileage - a.total_mileage);
 
             // 필터 체크박스 적용
             let filtered = withRecord;
