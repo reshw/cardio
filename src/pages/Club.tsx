@@ -9,7 +9,7 @@ import { MileageConfigModal } from '../components/MileageConfigModal';
 import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
 import { WorkoutFeed } from '../components/WorkoutFeed';
 import { ClubMemberDetailModal } from '../components/ClubMemberDetailModal';
-import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
+import type { MyClubWithOrder, ClubRanking, ClubDetailedStats } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
@@ -109,6 +109,16 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [hideHof, setHideHof] = useState(false);
   const [rookieOnly, setRookieOnly] = useState(false);
   const rankingRequestId = useRef(0);
+
+  // 종목별 마일리지 필터 (null = 전체 종목 합산)
+  const [mileageCategoryFilter, setMileageCategoryFilter] = useState<string | null>(null);
+  const [mileageCategoryOptions, setMileageCategoryOptions] = useState<
+    { key: string; category: string; sub_type: string | null }[]
+  >([]);
+  const [categoryStats, setCategoryStats] = useState<ClubDetailedStats[] | null>(null);
+  const [categoryStatsLoading, setCategoryStatsLoading] = useState(false);
+  const categoryStatsRequestId = useRef(0);
+  const categoryStatsKeyRef = useRef<string | null>(null); // 마지막으로 fetch 성공한 club-year-month
   const [showMemberSearch, setShowMemberSearch] = useState(false);
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [highlightedUserId, setHighlightedUserId] = useState<string | null>(null);
@@ -389,18 +399,58 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     };
   }, [selectedClub, selectedMonth]);
 
-  // 클럽 변경 시 활성화 카테고리 로드 (피드 비활성 뱃지용)
+  // 클럽 변경 시 활성화 카테고리 로드 (피드 비활성 뱃지 + 종목별 마일리지 필터 옵션)
   useEffect(() => {
     if (!selectedClub) return;
     clubService.getClubMileageConfigs(selectedClub.id).then((rows) => {
+      const enabledRows = rows.filter((r) => r.enabled);
       const keys = new Set(
-        rows.filter((r) => r.enabled).map((r) =>
-          r.sub_type ? `${r.category}-${r.sub_type}` : r.category
-        )
+        enabledRows.map((r) => (r.sub_type ? `${r.category}-${r.sub_type}` : r.category))
       );
       setEnabledCategorySet(keys);
+      setMileageCategoryOptions(
+        enabledRows
+          .map((r) => ({
+            key: r.sub_type ? `${r.category}-${r.sub_type}` : r.category,
+            category: r.category,
+            sub_type: r.sub_type,
+          }))
+          .sort((a, b) => a.key.localeCompare(b.key))
+      );
     });
+    // 클럽이 바뀌면 이전 클럽의 종목 필터·캐시는 무효
+    setMileageCategoryFilter(null);
+    setCategoryStats(null);
+    categoryStatsKeyRef.current = null;
   }, [selectedClub?.id]);
+
+  // 종목별 마일리지 필터가 선택되면 클럽 상세 통계(종목별 마일리지)를 조회
+  // (월이 바뀌면 캐시 키가 달라져 자동 재조회됨)
+  useEffect(() => {
+    if (!selectedClub || !mileageCategoryFilter) return;
+    const key = `${selectedClub.id}-${selectedMonth.getFullYear()}-${selectedMonth.getMonth() + 1}`;
+    if (categoryStatsKeyRef.current === key) return;
+
+    const requestId = ++categoryStatsRequestId.current;
+    setCategoryStatsLoading(true);
+    clubService
+      .getClubDetailedStats(selectedClub.id, {
+        year: selectedMonth.getFullYear(),
+        month: selectedMonth.getMonth() + 1,
+      })
+      .then((data) => {
+        if (requestId !== categoryStatsRequestId.current) return;
+        setCategoryStats(data);
+        categoryStatsKeyRef.current = key;
+      })
+      .catch((error) => {
+        if (requestId !== categoryStatsRequestId.current) return;
+        console.error('[클럽 마일리지] 종목별 통계 조회 실패 상세:', JSON.stringify(error), error);
+      })
+      .finally(() => {
+        if (requestId === categoryStatsRequestId.current) setCategoryStatsLoading(false);
+      });
+  }, [selectedClub?.id, selectedMonth, mileageCategoryFilter]);
 
   // 마일리지 탭 잠금 기간에 ranking 탭이 활성이면 feed로 초기 전환
   useEffect(() => {
@@ -825,13 +875,57 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             </button>
           </div>
 
+          {/* 종목별 마일리지 필터 */}
+          {mileageCategoryOptions.length > 0 && (
+            <div className="mileage-category-chips">
+              <button
+                className={`mileage-category-chip ${mileageCategoryFilter === null ? 'active' : ''}`}
+                onClick={() => setMileageCategoryFilter(null)}
+              >
+                전체 종목
+              </button>
+              {mileageCategoryOptions.map((opt) => (
+                <button
+                  key={opt.key}
+                  className={`mileage-category-chip ${mileageCategoryFilter === opt.key ? 'active' : ''}`}
+                  onClick={() => setMileageCategoryFilter(opt.key)}
+                >
+                  {opt.category}{opt.sub_type ? ` · ${opt.sub_type}` : ''}
+                </button>
+              ))}
+            </div>
+          )}
+
           {rankingLoading ? (
             <div className="loading-screen">
               <div className="spinner"></div>
               <p>랭킹 불러오는 중...</p>
             </div>
           ) : (() => {
-            const withRecord = ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0);
+            // 종목별 필터 선택 시 클럽 상세 통계(종목별 마일리지)로 소스 교체.
+            // ranking 에 있는 유저로만 제한하는 이유: getClubDetailedStats 는 show_mileage=false
+            // 로 랭킹을 숨긴 멤버까지 포함하므로, 그대로 쓰면 숨김 설정을 무시하고 노출된다.
+            let source: ClubRanking[] = ranking;
+            if (mileageCategoryFilter) {
+              if (!categoryStats) {
+                return (
+                  <div className="loading-screen">
+                    <div className="spinner"></div>
+                    <p>{categoryStatsLoading ? '종목별 순위 불러오는 중...' : '종목별 순위 준비 중...'}</p>
+                  </div>
+                );
+              }
+              const rankingByUser = new Map(ranking.map(m => [m.user_id, m]));
+              source = categoryStats
+                .filter(s => rankingByUser.has(s.user_id))
+                .map(s => {
+                  const base = rankingByUser.get(s.user_id)!;
+                  const mileage = s.by_workout[mileageCategoryFilter] || 0;
+                  return { ...base, total_mileage: mileage, workout_count: mileage > 0 ? 1 : 0 };
+                });
+            }
+
+            const withRecord = source.filter(m => m.workout_count > 0 && m.total_mileage > 0);
 
             // 필터 체크박스 적용
             let filtered = withRecord;

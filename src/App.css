@@ -9697,6 +9697,35 @@ body.workout-detail-open .bottom-nav {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* 종목별 마일리지 필터 칩 */
+.mileage-category-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 2px 10px;
+  margin-bottom: 6px;
+}
+
+.mileage-category-chip {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.mileage-category-chip.active {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(79, 195, 247, 0.08);
+}
+
 /* 명예의 전당 하이라이트 (랭킹 아이템) */
 .ranking-item.hof-highlight {
   background: linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%) !important;
