@@ -4,27 +4,37 @@ interface Props {
   value: string;        // YYYY-MM-DDTHH:mm (local)
   onChange: (v: string) => void;
   onClose: () => void;
-  maxDays?: number | null; // 당일 포함 선택 가능 일수, null = 무제한 (칩은 최근 90일까지)
+  maxDays?: number | null; // 기준일 포함 선택 가능 일수, null = 무제한 (칩은 최근 90일까지)
+  anchorDate?: Date;     // 0번 탭(맨 앞)에 해당하는 기준일. 기본값 = 오늘.
+                         // 수정 모드에서는 "최초 저장된 날"을 넘겨 그 날짜부터 과거로만 보정 가능하게 한다.
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const WDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const UNLIMITED_CHIP_DAYS = 90;
 
-const dayLabel = (date: Date, idx: number) => {
+const relativeDayLabel = (date: Date, idx: number) => {
   if (idx === 0) return '오늘';
   if (idx === 1) return '어제';
   if (idx === 2) return '이틀 전';
   return `${date.getMonth() + 1}/${date.getDate()} (${WDAYS[date.getDay()]})`;
 };
 
-export default function DatePickerSheet({ value, onChange, onClose, maxDays = 3 }: Props) {
+export default function DatePickerSheet({ value, onChange, onClose, maxDays = 3, anchorDate }: Props) {
   const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const realToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const anchor = anchorDate
+    ? new Date(anchorDate.getFullYear(), anchorDate.getMonth(), anchorDate.getDate())
+    : realToday;
+  const isAnchorRealToday = anchor.getTime() === realToday.getTime();
+
   const dayCount = Math.min(UNLIMITED_CHIP_DAYS, Math.max(1, maxDays ?? UNLIMITED_CHIP_DAYS));
   const dayDates = Array.from({ length: dayCount }, (_, i) =>
-    new Date(today.getFullYear(), today.getMonth(), today.getDate() - i)
+    new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() - i)
   );
+  // 기준일이 실제 오늘이면 기존처럼 "오늘/어제/이틀 전" 상대 라벨, 아니면 항상 절대 날짜 표기
+  const dayLabel = (date: Date, idx: number) =>
+    isAnchorRealToday ? relativeDayLabel(date, idx) : `${date.getMonth() + 1}/${date.getDate()} (${WDAYS[date.getDay()]})`;
 
   const initState = () => {
     const d = new Date(value);
@@ -38,16 +48,17 @@ export default function DatePickerSheet({ value, onChange, onClose, maxDays = 3 
   const [pickerHour, setPickerHour] = useState(init.hour);
   const [pickerMinute, setPickerMinute] = useState(init.minute);
 
-  // 오늘은 현재 시각까지만, 과거 날짜는 종일 허용
+  // 실제 오늘 날짜인 탭만 현재 시각까지, 그 외(과거 날짜, 또는 기준일이 오늘이 아닌 수정 모드)는 종일 허용
+  const isRealToday = (day: number) => dayDates[day]?.getTime() === realToday.getTime();
   const getHourBounds = (day: number) => ({
     min: 0,
-    max: day === 0 ? now.getHours() : 23,
+    max: isRealToday(day) ? now.getHours() : 23,
   });
   const getMinuteBounds = (day: number, hour: number) => {
     const hb = getHourBounds(day);
     return {
       min: 0,
-      max: day === 0 && hour === hb.max ? now.getMinutes() : 59,
+      max: isRealToday(day) && hour === hb.max ? now.getMinutes() : 59,
     };
   };
 

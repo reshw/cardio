@@ -576,16 +576,18 @@ export const AddWorkout = () => {
           const timeStr = `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}`;
           const activeIdx = DIFF_LEVELS.findIndex(l => intensity >= l.min && intensity <= l.max);
 
+          // 수정 모드에서 날짜·시간 선택 가능 범위: "오늘"이 아니라
+          // "최초 저장된 날"을 기준(0번 탭)으로 삼아 그 날부터 과거 N일(entryLimitDays)까지만 허용.
+          // 예: N=3, 5/31에 저장된 기록 → 5/29~5/31 사이에서만 보정 가능 (임의로 훨씬 이전으로 옮기는 것 방지).
+          const editAnchorDate = editWorkout ? new Date(editWorkout.created_at) : undefined;
+
           return (
             <form onSubmit={handleSubmit} className="step3-form">
 
               {/* ① 날짜 카드 — 최상단, 컨텍스트 헤더 역할 */}
               <div
                 className="step3-date-card"
-                onClick={() => editWorkout
-                  ? dateInputRef.current?.showPicker?.()
-                  : setShowDatePicker(true)
-                }
+                onClick={() => setShowDatePicker(true)}
               >
                 <div className="step3-date-inner">
                   <div className="step3-date-workout-name">
@@ -605,23 +607,23 @@ export const AddWorkout = () => {
                   </div>
                 </div>
                 {/* datetime-local은 항상 DOM에 유지 (9a49807 구조 복원) —
-                    Samsung Internet이 form 내 datetime-local 부재 시 파일피커 동작 달라짐 */}
-                {(editWorkout || true) && (
-                  <input
-                    ref={dateInputRef}
-                    type="datetime-local"
-                    value={workoutDate}
-                    onChange={(e) => setWorkoutDate(e.target.value)}
-                    className="step3-date-hidden-input"
-                    style={editWorkout ? undefined : { pointerEvents: 'none' }}
-                  />
-                )}
+                    Samsung Internet이 form 내 datetime-local 부재 시 파일피커 동작 달라짐.
+                    실제 조작은 커스텀 DatePickerSheet로 하므로 항상 pointerEvents:none. */}
+                <input
+                  ref={dateInputRef}
+                  type="datetime-local"
+                  value={workoutDate}
+                  onChange={(e) => setWorkoutDate(e.target.value)}
+                  className="step3-date-hidden-input"
+                  style={{ pointerEvents: 'none' }}
+                />
               </div>
               {showDatePicker && (
                 <DatePickerSheet
                   value={workoutDate}
                   onChange={setWorkoutDate}
                   maxDays={entryLimitDays}
+                  anchorDate={editAnchorDate}
                   onClose={() => setShowDatePicker(false)}
                 />
               )}
