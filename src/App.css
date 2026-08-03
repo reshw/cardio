@@ -8247,6 +8247,12 @@ body.workout-detail-open .bottom-nav {
   bottom: 0;
   left: unset;
   right: unset;
+  /* 데스크톱 미디어쿼리의 translateX(-50%)는 position:fixed; left:50% 조합 전제라
+     sticky 로 바뀐 여기선 left 가 없어 버튼바가 자기 너비 절반만큼 왼쪽으로 밀려남
+     (수정 버튼이 시트 밖으로 잘림). sticky 컨테이너 자체가 이미 시트 폭으로 잡혀있어
+     transform 자체가 불필요 — 무효화. */
+  transform: none;
+  max-width: none;
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
