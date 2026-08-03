@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { X, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useClubName } from '../hooks/useClubName';
 import { usePageHeader } from '../contexts/PageHeaderContext';
 import photoGalleryService from '../services/photoGalleryService';
 import type { GalleryPhoto } from '../services/photoGalleryService';
+import { WorkoutDetail } from './WorkoutDetail';
 
 type SortOrder = 'new' | 'old' | 'nick';
 
@@ -60,7 +61,7 @@ export const ClubGallery = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortOrder>('new');
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
 
   useEffect(() => {
     if (clubId) loadPhotos();
@@ -107,7 +108,7 @@ export const ClubGallery = () => {
   }, [visiblePhotos, sort]);
 
   const renderCard = (p: GalleryPhoto) => (
-    <div className="gallery-card" key={p.id} onClick={() => setLightboxUrl(p.url)}>
+    <div className="gallery-card" key={p.id} onClick={() => setSelectedWorkoutId(p.id)}>
       <img src={p.url} alt="증빙" loading="lazy" />
       <div className="gallery-card-meta">
         <div className="gallery-card-nick">{p.nickname}</div>
@@ -191,18 +192,12 @@ export const ClubGallery = () => {
         <div className="gallery-grid">{visiblePhotos.map(renderCard)}</div>
       )}
 
-      {lightboxUrl && (
-        <div className="image-viewer-overlay" onClick={() => setLightboxUrl(null)}>
-          <button className="image-viewer-close" onClick={() => setLightboxUrl(null)}>
-            <X size={32} />
-          </button>
-          <img
-            src={lightboxUrl}
-            alt="증빙 전체 이미지"
-            className="image-viewer-content"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
+      {selectedWorkoutId && clubId && (
+        <WorkoutDetail
+          workoutId={selectedWorkoutId}
+          clubId={clubId}
+          onClose={() => setSelectedWorkoutId(null)}
+        />
       )}
     </div>
   );

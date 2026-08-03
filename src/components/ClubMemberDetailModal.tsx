@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, X, CircleOff, Heart, MessageCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CircleOff, Heart, MessageCircle } from 'lucide-react';
 import workoutService from '../services/workoutService';
 import type { Workout } from '../services/workoutService';
 import clubService from '../services/clubService';
 import type { ExclusionSnapshot } from '../services/clubService';
 import feedService from '../services/feedService';
 import { CommentSection } from './CommentSection';
+import { WorkoutDetail } from '../pages/WorkoutDetail';
 import { useAuth } from '../contexts/AuthContext';
 import { getWorkoutStatusLabel } from '../utils/workoutStatusLabel';
 
@@ -35,7 +36,6 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, initialYear, i
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
   // workout_id → 클럽 기준 마일리지 (club_workout_mileage 스냅샷)
   const [mileageMap, setMileageMap] = useState<Map<string, number>>(new Map());
@@ -229,31 +229,6 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, initialYear, i
   // 스냅샷에서 마일리지 조회 (리더보드와 동일 소스)
   const getMileage = (workout: Workout) => mileageMap.get(workout.id) ?? 0;
 
-  const getRatioDisplay = (workout: Workout) => {
-    if (workout.category !== '요가' && workout.category !== '복싱') return null;
-    if (!workout.sub_type_ratios) return null;
-    const entries = Object.entries(workout.sub_type_ratios as Record<string, number>);
-    if (entries.length === 0 || (entries.length === 1 && entries[0][1] === 1.0)) return null;
-    return entries.map(([type, ratio]) => `${type} ${Math.round(ratio * 100)}%`).join(' | ');
-  };
-
-  const getIntensityLabel = (intensity: number) => {
-    if (intensity <= 2) return '편안';
-    if (intensity <= 4) return '경쾌';
-    if (intensity <= 6) return '자극';
-    if (intensity <= 8) return '고강도';
-    return '한계돌파';
-  };
-
-  const getIntensityColor = (intensity: number) => {
-    if (intensity <= 2) return '#4ade80';
-    if (intensity <= 4) return '#22c55e';
-    if (intensity <= 6) return '#eab308';
-    if (intensity <= 8) return '#f97316';
-    if (intensity === 9) return '#ef4444';
-    return '#dc2626';
-  };
-
   // 총 마일리지: 스냅샷 합산 (리더보드와 동일)
   const totalMileage = workouts.reduce((sum, w) => sum + (mileageMap.get(w.id) ?? 0), 0);
 
@@ -432,68 +407,17 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, initialYear, i
         </div>
       </div>
 
-      {/* 운동 상세 모달 */}
+      {/* 운동 상세 (기록/피드/갤러리와 공유하는 컴포넌트) — 마일리지는 이 화면 리스트에서만 보여주고
+          상세로 들어가면 클럽별로 값이 달라지는 마일리지는 보여주지 않음 */}
       {selectedWorkout && (
-        <div className="modal-overlay" style={{ zIndex: 1100 }} onClick={() => setSelectedWorkout(null)}>
-          <div className="modal-content workout-detail-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>운동 상세</h2>
-              <button className="modal-close" onClick={() => setSelectedWorkout(null)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="workout-detail-section">
-                <h3>운동 정보</h3>
-                <div className="workout-detail-info">
-                  <div className="workout-detail-row">
-                    <span className="label">종류</span>
-                    <span className="value">
-                      {getWorkoutLabel(selectedWorkout)}
-                      {getRatioDisplay(selectedWorkout) && (
-                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                          {getRatioDisplay(selectedWorkout)}
-                        </div>
-                      )}
-                    </span>
-                  </div>
-                  <div className="workout-detail-row">
-                    <span className="label">거리/시간</span>
-                    <span className="value">{selectedWorkout.value} {selectedWorkout.unit}</span>
-                  </div>
-                  <div className="workout-detail-row">
-                    <span className="label">마일리지</span>
-                    <span className="value">{getMileage(selectedWorkout).toFixed(1)}</span>
-                  </div>
-                  <div className="workout-detail-row">
-                    <span className="label">체감 난이도</span>
-                    <span className="value intensity-value" style={{ color: getIntensityColor(selectedWorkout.intensity) }}>
-                      {getIntensityLabel(selectedWorkout.intensity)}
-                    </span>
-                  </div>
-                  <div className="workout-detail-row">
-                    <span className="label">시간</span>
-                    <span className="value">{new Date(selectedWorkout.workout_time).toLocaleString('ko-KR')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {selectedWorkout.proof_image && (
-                <div className="workout-detail-section">
-                  <h3>인증 사진</h3>
-                  <div
-                    className="workout-detail-image"
-                    style={{ cursor: 'zoom-in' }}
-                    onClick={() => setSelectedImage(selectedWorkout.proof_image!)}
-                  >
-                    <img src={selectedWorkout.proof_image} alt="운동 인증" />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <WorkoutDetail
+          workoutData={selectedWorkout}
+          clubId={clubId}
+          onClose={() => setSelectedWorkout(null)}
+        />
       )}
 
-      {/* 이미지 뷰어 */}
+      {/* 월 선택 모달 */}
       {showMonthPicker && (
         <div className="modal-overlay modal-overlay--top" onClick={() => setShowMonthPicker(false)}>
           <div
@@ -594,19 +518,6 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, initialYear, i
         </div>
       )}
 
-      {selectedImage && (
-        <div className="image-viewer-overlay" style={{ zIndex: 1200 }} onClick={() => setSelectedImage(null)}>
-          <button className="image-viewer-close" onClick={() => setSelectedImage(null)}>
-            <X size={32} />
-          </button>
-          <img
-            src={selectedImage}
-            alt="증빙 전체 이미지"
-            className="image-viewer-content"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
     </div>
   );
 };

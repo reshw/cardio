@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { Heart, MessageCircle, MoreVertical, Share, Copy, CircleOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import feedService from '../services/feedService';
 import { CommentSection } from './CommentSection';
-import { WorkoutSourceIcon, getSourceLabel, getSourceColor } from './WorkoutSourceIcon';
+import { WorkoutDetail } from '../pages/WorkoutDetail';
 import type { WorkoutFeedItem } from '../services/feedService';
 
 const REPORT_REASONS = ['스팸', '욕설/혐오발언', '부적절한 내용', '기타'];
@@ -65,16 +64,6 @@ export const WorkoutFeedCard = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showMenu]);
-
-  // 운동상세 시트 열릴 때 BottomNav 숨김
-  useEffect(() => {
-    if (showDetail) {
-      document.body.classList.add('workout-detail-open');
-    } else {
-      document.body.classList.remove('workout-detail-open');
-    }
-    return () => document.body.classList.remove('workout-detail-open');
-  }, [showDetail]);
 
   const isMyPost = user?.id === item.workout.user_id;
 
@@ -220,33 +209,6 @@ export const WorkoutFeedCard = ({
     return workout.category;
   };
 
-  const getRatioDisplay = () => {
-    if (workout.category !== '요가' && workout.category !== '복싱') {
-      return null;
-    }
-
-    if (!workout.sub_type_ratios) {
-      return null;
-    }
-
-    const ratios = workout.sub_type_ratios as Record<string, number>;
-    const entries = Object.entries(ratios);
-
-    if (entries.length === 0) {
-      return null;
-    }
-
-    // 단일 타입 100%인 경우 비율 표시 안함
-    if (entries.length === 1 && entries[0][1] === 1.0) {
-      return null;
-    }
-
-    // 비율 표시
-    return entries
-      .map(([type, ratio]) => `${type} ${Math.round(ratio * 100)}%`)
-      .join(' | ');
-  };
-
   const renderAvatar = (profileImage: string | undefined, displayName: string, className: string) => {
     if (profileImage?.startsWith('default:')) {
       // default:color 형식 - 색상 아바타
@@ -278,64 +240,6 @@ export const WorkoutFeedCard = ({
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-  };
-
-  const getIntensityLabel = (intensity: number) => {
-    if (intensity <= 2) return '편안';
-    if (intensity <= 4) return '경쾌';
-    if (intensity <= 6) return '자극';
-    if (intensity <= 8) return '고강도';
-    return '한계돌파';
-  };
-
-  const getIntensityColor = (intensity: number) => {
-    if (intensity <= 2) return '#4ade80'; // green
-    if (intensity <= 4) return '#22c55e'; // green
-    if (intensity <= 6) return '#eab308'; // yellow
-    if (intensity <= 8) return '#f97316'; // orange
-    if (intensity === 9) return '#ef4444'; // red
-    return '#dc2626'; // dark red
-  };
-
-  const formatDuration = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    if (h > 0) return `${h}시간 ${m}분 ${String(s).padStart(2, '0')}초`;
-    return `${m}분 ${String(s).padStart(2, '0')}초`;
-  };
-
-  const getStravaSpeedLabel = () => {
-    // '걷기'는 Health Connect 연동으로만 들어와 WorkoutCategory 유니온에 없음
-    const cat = workout.category as string;
-    if (cat === '달리기') return '페이스';
-    if (cat === '걷기') return '페이스';
-    if (cat === '수영') return '페이스';
-    return '속도';
-  };
-
-  // moving_seconds 없는 소스(apple/google health)는 elapsed_seconds로 계산
-  const formatStravaSpeed = () => {
-    const mv = workout.moving_seconds ?? workout.elapsed_seconds;
-    const val = workout.value;
-    const cat = workout.category as string;
-    if ((cat === '달리기' || cat === '걷기') && mv && val > 0) {
-      const secPerKm = mv / val;
-      const m = Math.floor(secPerKm / 60);
-      const s = Math.round(secPerKm % 60);
-      return `${m}'${String(s).padStart(2, '0')}"/km`;
-    }
-    if (workout.category === '수영' && mv && val > 0) {
-      const secPer100m = mv / (val / 100);
-      const m = Math.floor(secPer100m / 60);
-      const s = Math.round(secPer100m % 60);
-      return `${m}'${String(s).padStart(2, '0')}"/100m`;
-    }
-    if (workout.category === '사이클' || workout.category === '로잉') {
-      if (workout.average_speed) return `${(workout.average_speed * 3.6).toFixed(1)} km/h`;
-      if (mv && val > 0 && workout.unit === 'km') return `${(val / (mv / 3600)).toFixed(1)} km/h`;
-    }
-    return null;
   };
 
   const handleLikeToggle = async () => {
@@ -552,188 +456,14 @@ export const WorkoutFeedCard = ({
         </div>
       )}
 
-      {/* 상세보기 바텀시트 */}
-      {showDetail && createPortal(
-        <div className="workout-sheet-overlay" onClick={() => setShowDetail(false)}>
-          <div className="workout-sheet" onClick={(e) => e.stopPropagation()}>
-            {/* 고정 헤더 */}
-            <div className="workout-sheet-header">
-              <h2>운동 상세</h2>
-              <button className="modal-close" onClick={() => setShowDetail(false)}>
-                ✕
-              </button>
-            </div>
-            {/* 스크롤 바디 */}
-            <div className="workout-sheet-body">
-              <div className="workout-detail-section">
-                <h3>운동 정보</h3>
-                <div className="workout-detail-info">
-                  <div className="workout-detail-row">
-                    <span className="label">종류</span>
-                    <span className="value">
-                      {getWorkoutLabel()}
-                      {getRatioDisplay() && (
-                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                          {getRatioDisplay()}
-                        </div>
-                      )}
-                    </span>
-                  </div>
-                  <div className="workout-detail-row">
-                    <span className="label">거리/시간</span>
-                    <span className="value">
-                      {workout.value} {workout.unit}
-                    </span>
-                  </div>
-                  <div className="workout-detail-row">
-                    <span className="label">체감 난이도</span>
-                    <span
-                      className="value intensity-value"
-                      style={{ color: getIntensityColor(workout.intensity) }}
-                    >
-                      {getIntensityLabel(workout.intensity)}
-                    </span>
-                  </div>
-                  {/* 마일리지는 클럽별로 다르므로 표시하지 않음 */}
-                  <div className="workout-detail-row">
-                    <span className="label">시간</span>
-                    <span className="value">
-                      {new Date(workout.workout_time).toLocaleString('ko-KR')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {workout.source && workout.source !== 'manual' && (
-                workout.elapsed_seconds || workout.moving_seconds || workout.average_heartrate || workout.max_heartrate ||
-                workout.device_name || workout.calories || workout.steps || workout.elevation_gain
-              ) && (
-                <div className="workout-detail-section">
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: 6, color: getSourceColor(workout.source) }}>
-                    <WorkoutSourceIcon source={workout.source} size={14} />
-                    {getSourceLabel(workout.source)} 데이터
-                  </h3>
-                  <div className="workout-detail-info">
-                    {workout.moving_seconds ? (
-                      <div className="workout-detail-row">
-                        <span className="label">이동 시간</span>
-                        <span className="value">{formatDuration(workout.moving_seconds)}</span>
-                      </div>
-                    ) : workout.elapsed_seconds ? (
-                      <div className="workout-detail-row">
-                        <span className="label">운동 시간</span>
-                        <span className="value">{formatDuration(workout.elapsed_seconds)}</span>
-                      </div>
-                    ) : null}
-                    {formatStravaSpeed() && (
-                      <div className="workout-detail-row">
-                        <span className="label">{getStravaSpeedLabel()}</span>
-                        <span className="value">{formatStravaSpeed()}</span>
-                      </div>
-                    )}
-                    {workout.average_heartrate ? (
-                      <div className="workout-detail-row">
-                        <span className="label">평균 심박수</span>
-                        <span className="value">{Math.round(workout.average_heartrate)} bpm</span>
-                      </div>
-                    ) : null}
-                    {workout.max_heartrate ? (
-                      <div className="workout-detail-row">
-                        <span className="label">최고 심박수</span>
-                        <span className="value">{Math.round(workout.max_heartrate)} bpm</span>
-                      </div>
-                    ) : null}
-                    {workout.calories ? (
-                      <div className="workout-detail-row">
-                        <span className="label">칼로리</span>
-                        <span className="value">{workout.calories} kcal</span>
-                      </div>
-                    ) : null}
-                    {workout.steps ? (
-                      <div className="workout-detail-row">
-                        <span className="label">걸음수</span>
-                        <span className="value">{workout.steps.toLocaleString()} 보</span>
-                      </div>
-                    ) : null}
-                    {workout.elevation_gain ? (
-                      <div className="workout-detail-row">
-                        <span className="label">누적 고도</span>
-                        <span className="value">{workout.elevation_gain} m</span>
-                      </div>
-                    ) : null}
-                    {workout.device_name ? (
-                      <div className="workout-detail-row">
-                        <span className="label">기록 기기</span>
-                        <span className="value">{workout.device_name}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              )}
-
-              {workout.memo && (
-                <div className="workout-detail-section">
-                  <h3>메모</h3>
-                  <p className="workout-detail-memo">{workout.memo}</p>
-                </div>
-              )}
-
-              {workout.proof_image && (
-                <div className="workout-detail-section">
-                  <h3>인증 사진</h3>
-                  <div className="workout-detail-image">
-                    <img src={workout.proof_image} alt="운동 인증" />
-                  </div>
-                </div>
-              )}
-
-              <div className="workout-detail-section">
-                <h3>기록자</h3>
-                <div className="workout-detail-user">
-                  {renderAvatar(item.user_profile_image, item.user_display_name, 'user-avatar-placeholder')}
-                  <span>{item.user_display_name}</span>
-                </div>
-              </div>
-
-              {/* 신고/차단 버튼 (내 글 제외) */}
-              {!isMyPost && (
-                <div className="workout-detail-actions">
-                  <button
-                    className="detail-action-btn detail-action-report"
-                    onClick={() => { setShowDetail(false); setShowReportModal(true); }}
-                  >
-                    신고하기
-                  </button>
-                  <button
-                    className="detail-action-btn detail-action-block"
-                    onClick={() => { setShowDetail(false); setShowBlockConfirm(true); }}
-                  >
-                    차단하기
-                  </button>
-                </div>
-              )}
-            </div>
-            {/* 고정 액션바 */}
-            <div className="workout-sheet-footer">
-              <button
-                className={`sheet-action-btn ${item.is_liked_by_me ? 'liked' : ''}`}
-                onClick={handleLikeToggle}
-                disabled={liking}
-              >
-                <Heart size={18} fill={item.is_liked_by_me ? 'currentColor' : 'none'} />
-                <span>{item.like_count}</span>
-              </button>
-              <button
-                className="sheet-action-btn"
-                onClick={() => { setShowDetail(false); setShowComments(true); }}
-              >
-                <MessageCircle size={18} />
-                <span>{item.comment_count}</span>
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
+      {/* 상세보기 바텀시트 (기록/갤러리/멤버상세와 공유하는 컴포넌트) */}
+      {showDetail && (
+        <WorkoutDetail
+          workoutData={workout}
+          clubId={clubId}
+          onClose={() => setShowDetail(false)}
+          onBlock={onBlock}
+        />
       )}
     </div>
   );

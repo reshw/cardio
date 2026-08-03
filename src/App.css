@@ -8272,6 +8272,16 @@ body.workout-detail-open .bottom-nav {
   z-index: 1;
 }
 
+@media (min-width: 768px) {
+  .workout-sheet-overlay {
+    justify-content: center;
+  }
+
+  .workout-sheet {
+    max-width: 600px;
+  }
+}
+
 .workout-sheet-header {
   display: flex;
   justify-content: space-between;

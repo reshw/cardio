@@ -1,23 +1,36 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Edit2, Trash2, X } from 'lucide-react';
+import { ChevronLeft, Edit2, Trash2, X, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import workoutService from '../services/workoutService';
 import feedService from '../services/feedService';
 import clubService from '../services/clubService';
 import type { Workout } from '../services/workoutService';
-import { uploadToR2 } from '../utils/r2Storage';
 import { IntegratedCommentSection } from '../components/IntegratedCommentSection';
 import { LikeStatsModal } from '../components/LikeStatsModal';
 import { useAuth } from '../contexts/AuthContext';
 import { WorkoutSourceIcon, getSourceLabel, getSourceColor } from '../components/WorkoutSourceIcon';
 
+const REPORT_REASONS = ['스팸', '욕설/혐오발언', '부적절한 내용', '기타'];
+
 interface WorkoutDetailProps {
   workoutData?: Workout;
+  /** workoutData 없이 id만 아는 경우(예: 갤러리 썸네일) — 열릴 때 자체적으로 조회 */
+  workoutId?: string;
   onClose?: (changed?: boolean) => void;
+  /**
+   * 클럽 컨텍스트(피드/갤러리/멤버 상세 등)에서 열 때 전달.
+   * - 좋아요 토글이 이 클럽 기준으로 귀속됨 (workout_likes.club_id)
+   * - 신고/차단은 클럽 컨텍스트가 있을 때만 노출 (club_id 필수 컬럼)
+   * 페이지 모드(/workout/:id?clubId=...)에서는 URL 쿼리로 대체됨.
+   */
+  clubId?: string;
+  /** 클럽 피드에서 차단 처리 후 목록에서 바로 빼고 싶을 때 */
+  onBlock?: (userId: string) => void;
 }
 
-export const WorkoutDetail = ({ workoutData: propWorkout, onClose }: WorkoutDetailProps = {}) => {
+export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkoutId, onClose, clubId, onBlock }: WorkoutDetailProps = {}) => {
   const isModal = !!onClose;
   const location = useLocation();
   const navigate = useNavigate();
@@ -25,42 +38,44 @@ export const WorkoutDetail = ({ workoutData: propWorkout, onClose }: WorkoutDeta
   const [searchParams] = useSearchParams();
   const highlightCommentId = isModal ? null : searchParams.get('commentId');
   const clubIdParam = isModal ? null : searchParams.get('clubId');
+  const effectiveClubId = clubId ?? clubIdParam ?? undefined;
   const { user, loading: authLoading } = useAuth();
 
   const [workout, setWorkout] = useState<Workout | null>(propWorkout || location.state?.workout || null);
   const [loading, setLoading] = useState(!workout);
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [value, setValue] = useState(workout?.value.toString() || '');
-  const toKSTInputValue = (utcString: string) => {
-    const kstDate = new Date(new Date(utcString).getTime() + 9 * 60 * 60 * 1000);
-    return kstDate.toISOString().slice(0, 16);
-  };
-
-  const [workoutTime, setWorkoutTime] = useState(
-    workout ? toKSTInputValue(workout.workout_time) : ''
-  );
-  const [intensity, setIntensity] = useState(workout?.intensity || 4);
-  const [memo, setMemo] = useState(workout?.memo ?? '');
-  const [proofImage, setProofImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const [ownerName, setOwnerName] = useState<string | null>(null);
 
-  // 좋아요 관련 state
+  // 좋아요 (전체 클럽 합산 — 보기 전용)
   const [totalLikes, setTotalLikes] = useState(0);
   const [showLikeStats, setShowLikeStats] = useState(false);
 
-  // 댓글 관련 state
+  // 좋아요 (이 클럽 기준 — 토글 가능, clubId 있을 때만)
+  const [clubLike, setClubLike] = useState<{ count: number; isLiked: boolean } | null>(null);
+  const [liking, setLiking] = useState(false);
+
+  // 댓글
   const [totalComments, setTotalComments] = useState(0);
+
+  // 신고/차단 (클럽 컨텍스트 + 남의 글일 때만)
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [selectedReason, setSelectedReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const goBack = (changed = false) => {
     if (onClose) { onClose(changed); return; }
     window.history.length > 1 ? navigate(-1) : navigate('/');
   };
+
+  // 바텀시트로 열려있는 동안 하단 네비게이션 숨김
+  useEffect(() => {
+    if (!isModal) return;
+    document.body.classList.add('workout-detail-open');
+    return () => document.body.classList.remove('workout-detail-open');
+  }, [isModal]);
 
   // 초기 로드: clubIdParam이 있으면 멤버십 체크 후 워크아웃 로드, 없으면 바로 로드
   useEffect(() => {
@@ -97,49 +112,58 @@ export const WorkoutDetail = ({ workoutData: propWorkout, onClose }: WorkoutDeta
     }
   }, [id, clubIdParam, user, authLoading]);
 
+  // 모달 모드에서 workoutData 없이 workoutId만 받은 경우 (예: 갤러리 썸네일) 자체 조회
+  useEffect(() => {
+    if (!isModal || workout || !propWorkoutId) return;
+    loadWorkout(propWorkoutId);
+  }, [isModal, workout, propWorkoutId]);
+
   // 타인 기록 진입 시 소유자 닉네임 로드 (클럽 닉네임 우선, fallback: username)
   useEffect(() => {
     if (!workout || !user || user.id === workout.user_id) return;
     const fetchOwner = async () => {
-      if (!clubIdParam) return;
+      if (!effectiveClubId) return;
       const { data: member } = await supabase
         .from('club_members')
         .select('club_nickname')
-        .eq('club_id', clubIdParam)
+        .eq('club_id', effectiveClubId)
         .eq('user_id', workout.user_id)
         .single();
       if (member?.club_nickname) setOwnerName(member.club_nickname);
     };
     fetchOwner();
-  }, [workout?.user_id, user?.id, clubIdParam]);
+  }, [workout?.user_id, user?.id, effectiveClubId]);
 
-  // 좋아요 개수 로드
+  // 좋아요 개수 로드 (전체 클럽 합산)
   useEffect(() => {
     if (workout) {
       loadTotalLikes();
     }
   }, [workout]);
 
-  const loadWorkout = async () => {
-    if (!id) {
-      navigate('/');
+  // 이 클럽 기준 좋아요 상태 로드
+  useEffect(() => {
+    loadClubLikeState();
+  }, [workout?.id, effectiveClubId, user?.id]);
+
+  const loadWorkout = async (targetId?: string) => {
+    const wid = targetId || id;
+    if (!wid) {
+      if (!isModal) navigate('/');
       return;
     }
 
     setLoading(true);
     try {
-      const data = await workoutService.getWorkoutById(id);
+      const data = await workoutService.getWorkoutById(wid);
       if (!data) {
-        navigate('/');
+        if (!isModal) navigate('/');
         return;
       }
       setWorkout(data);
-      setValue(data.value.toString());
-      setWorkoutTime(toKSTInputValue(data.workout_time));
-      setIntensity(data.intensity);
     } catch (error) {
-      console.error('운동 조회 실패:', error);
-      navigate('/');
+      console.error('[운동상세] 조회 실패:', JSON.stringify(error), error);
+      if (!isModal) navigate('/');
     } finally {
       setLoading(false);
     }
@@ -155,20 +179,99 @@ export const WorkoutDetail = ({ workoutData: propWorkout, onClose }: WorkoutDeta
     }
   };
 
-  if (loading) {
-    return (
-      <div className="container">
-        <div className="loading-screen">
-          <div className="spinner"></div>
-          <p>운동 정보 불러오는 중...</p>
-        </div>
+  const loadClubLikeState = async () => {
+    if (!workout || !effectiveClubId) {
+      setClubLike(null);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('workout_likes')
+        .select('user_id')
+        .eq('workout_id', workout.id)
+        .eq('club_id', effectiveClubId);
+      if (error) throw error;
+      const rows = data || [];
+      setClubLike({ count: rows.length, isLiked: !!user && rows.some((r) => r.user_id === user.id) });
+    } catch (error) {
+      console.error('[운동상세] 클럽 좋아요 조회 실패:', JSON.stringify(error), error);
+    }
+  };
+
+  const handleClubLikeToggle = async () => {
+    if (!workout || !effectiveClubId || !user || liking) return;
+    const wasLiked = clubLike?.isLiked ?? false;
+    setLiking(true);
+    setClubLike((prev) => (prev ? { count: prev.count + (wasLiked ? -1 : 1), isLiked: !wasLiked } : prev));
+    setTotalLikes((prev) => prev + (wasLiked ? -1 : 1));
+    try {
+      await feedService.toggleLike(workout.id, effectiveClubId, user.id, wasLiked);
+    } catch (error: any) {
+      console.error('[운동상세] 좋아요 토글 실패:', JSON.stringify(error), error);
+      setClubLike((prev) => (prev ? { count: prev.count + (wasLiked ? 1 : -1), isLiked: wasLiked } : prev));
+      setTotalLikes((prev) => prev + (wasLiked ? 1 : -1));
+      alert(`좋아요 처리 실패: ${error?.message || JSON.stringify(error)}`);
+    } finally {
+      setLiking(false);
+    }
+  };
+
+  const handleReport = async () => {
+    if (!user || !workout || !effectiveClubId || !selectedReason) return;
+    setSubmitting(true);
+    try {
+      await feedService.reportContent(user.id, workout.user_id, workout.id, effectiveClubId, selectedReason);
+      setShowReportModal(false);
+      setSelectedReason('');
+      alert('신고가 접수되었습니다.');
+    } catch (error: any) {
+      console.error('[운동상세] 신고 실패:', JSON.stringify(error), error);
+      alert(`신고 처리에 실패했습니다: ${error?.message || JSON.stringify(error)}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleBlock = async () => {
+    if (!user || !workout || !effectiveClubId) return;
+    setSubmitting(true);
+    try {
+      await feedService.blockUser(user.id, workout.user_id, effectiveClubId);
+      setShowBlockConfirm(false);
+      onBlock?.(workout.user_id);
+      goBack(true);
+    } catch (error: any) {
+      console.error('[운동상세] 차단 실패:', JSON.stringify(error), error);
+      alert(`차단 처리에 실패했습니다: ${error?.message || JSON.stringify(error)}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading || !workout) {
+    const loadingBody = loading ? (
+      <div className="loading-screen">
+        <div className="spinner"></div>
+        <p>운동 정보 불러오는 중...</p>
       </div>
+    ) : null;
+
+    if (!isModal) {
+      return loadingBody ? <div className="container">{loadingBody}</div> : null;
+    }
+    if (!loadingBody) return null;
+    return createPortal(
+      <div className="workout-sheet-overlay" onClick={() => goBack()}>
+        <div className="workout-sheet" onClick={(e) => e.stopPropagation()} style={{ minHeight: 200 }}>
+          <div className="workout-sheet-handle" />
+          {loadingBody}
+        </div>
+      </div>,
+      document.body
     );
   }
 
-  if (!workout) {
-    return null;
-  }
+  const isMyPost = user?.id === workout.user_id;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -276,51 +379,6 @@ export const WorkoutDetail = ({ workoutData: propWorkout, onClose }: WorkoutDeta
     return '#dc2626';
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setProofImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleUpdate = async () => {
-    if (!value || parseFloat(value) <= 0) {
-      alert('올바른 값을 입력해주세요.');
-      return;
-    }
-
-    setUpdating(true);
-
-    try {
-      let imageUrl = workout.proof_image;
-
-      if (proofImage) {
-        imageUrl = await uploadToR2(proofImage);
-      }
-
-      await workoutService.updateWorkout(workout.id, {
-        value: parseFloat(value),
-        workout_time: new Date(workoutTime + ':00+09:00').toISOString(),
-        intensity,
-        proof_image: imageUrl,
-        memo: memo.trim() || undefined,
-      });
-
-      alert('운동 기록이 수정되었습니다.');
-      goBack(true);
-    } catch (error) {
-      console.error('운동 기록 수정 실패:', error);
-      alert('운동 기록 수정에 실패했습니다.');
-    } finally {
-      setUpdating(false);
-    }
-  };
-
   const handleDelete = async () => {
     if (!confirm('정말로 이 운동 기록을 삭제하시겠습니까?')) {
       return;
@@ -364,317 +422,174 @@ export const WorkoutDetail = ({ workoutData: propWorkout, onClose }: WorkoutDeta
       )}
 
       <div className="detail-content">
-        {!isEditing ? (
-          <>
-            <div className="detail-section">
-              <div className="detail-label">운동 종류</div>
-              <div className="detail-value">
-                {getWorkoutLabel()}
-                {getRatioDisplay() && (
-                  <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                    {getRatioDisplay()}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="detail-section">
-              <div className="detail-label">기록</div>
-              <div className="detail-value">
-                {workout.value}
-                {workout.unit}
-              </div>
-            </div>
-
-            <div className="detail-section">
-              <div className="detail-label">날짜</div>
-              <div className="detail-value">{formatDate(workout.workout_time)}</div>
-            </div>
-
-            {workout.source && workout.source !== 'manual' && (
-              workout.elapsed_seconds != null || workout.moving_seconds != null || workout.average_speed != null ||
-              workout.average_heartrate != null || workout.max_heartrate != null ||
-              workout.calories != null || workout.steps != null || workout.elevation_gain != null ||
-              workout.device_name != null
-            ) && (
-              <div className="strava-source-card" style={{ background: workout.source === 'strava' ? '#fff5f2' : workout.source === 'apple_health' ? '#fff0f3' : '#f0f6ff', borderColor: workout.source === 'strava' ? '#ffd5c8' : workout.source === 'apple_health' ? '#ffcdd6' : '#c5d8ff' }}>
-                <div className="strava-source-title" style={{ color: getSourceColor(workout.source) }}>
-                  <WorkoutSourceIcon source={workout.source} size={14} />
-                  {getSourceLabel(workout.source)} 연동 기록
-                </div>
-                <div className="strava-source-metrics">
-                  {workout.moving_seconds != null ? (
-                    <span>이동 {formatMovingTime(workout.moving_seconds)}</span>
-                  ) : workout.elapsed_seconds != null ? (
-                    <span>운동 시간 {formatMovingTime(workout.elapsed_seconds)}</span>
-                  ) : null}
-                  {formatConnectedPace() && (
-                    <span>{formatConnectedPace()}</span>
-                  )}
-                  {workout.average_heartrate != null && (
-                    <span>심박 {Math.round(workout.average_heartrate)} bpm</span>
-                  )}
-                  {workout.max_heartrate != null && (
-                    <span>최고 심박 {Math.round(workout.max_heartrate)} bpm</span>
-                  )}
-                  {workout.calories != null && (
-                    <span>{workout.calories} kcal</span>
-                  )}
-                  {workout.steps != null && (
-                    <span>{workout.steps.toLocaleString()} 보</span>
-                  )}
-                  {workout.elevation_gain != null && (
-                    <span>고도 +{workout.elevation_gain} m</span>
-                  )}
-                  {workout.device_name != null && (
-                    <span>{workout.device_name}</span>
-                  )}
-                </div>
+        <div className="detail-section">
+          <div className="detail-label">운동 종류</div>
+          <div className="detail-value">
+            {getWorkoutLabel()}
+            {getRatioDisplay() && (
+              <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                {getRatioDisplay()}
               </div>
             )}
+          </div>
+        </div>
 
-            <div className="detail-section">
-              <div className="detail-label">체감 난이도</div>
-              <div
-                className="detail-value"
-                style={{ color: getIntensityColor(workout.intensity), fontWeight: 600 }}
+        <div className="detail-section">
+          <div className="detail-label">기록</div>
+          <div className="detail-value">
+            {workout.value}
+            {workout.unit}
+          </div>
+        </div>
+
+        <div className="detail-section">
+          <div className="detail-label">날짜</div>
+          <div className="detail-value">{formatDate(workout.workout_time)}</div>
+        </div>
+
+        {workout.source && workout.source !== 'manual' && (
+          workout.elapsed_seconds != null || workout.moving_seconds != null || workout.average_speed != null ||
+          workout.average_heartrate != null || workout.max_heartrate != null ||
+          workout.calories != null || workout.steps != null || workout.elevation_gain != null ||
+          workout.device_name != null
+        ) && (
+          <div className="strava-source-card" style={{ background: workout.source === 'strava' ? '#fff5f2' : workout.source === 'apple_health' ? '#fff0f3' : '#f0f6ff', borderColor: workout.source === 'strava' ? '#ffd5c8' : workout.source === 'apple_health' ? '#ffcdd6' : '#c5d8ff' }}>
+            <div className="strava-source-title" style={{ color: getSourceColor(workout.source) }}>
+              <WorkoutSourceIcon source={workout.source} size={14} />
+              {getSourceLabel(workout.source)} 연동 기록
+            </div>
+            <div className="strava-source-metrics">
+              {workout.moving_seconds != null ? (
+                <span>이동 {formatMovingTime(workout.moving_seconds)}</span>
+              ) : workout.elapsed_seconds != null ? (
+                <span>운동 시간 {formatMovingTime(workout.elapsed_seconds)}</span>
+              ) : null}
+              {formatConnectedPace() && (
+                <span>{formatConnectedPace()}</span>
+              )}
+              {workout.average_heartrate != null && (
+                <span>심박 {Math.round(workout.average_heartrate)} bpm</span>
+              )}
+              {workout.max_heartrate != null && (
+                <span>최고 심박 {Math.round(workout.max_heartrate)} bpm</span>
+              )}
+              {workout.calories != null && (
+                <span>{workout.calories} kcal</span>
+              )}
+              {workout.steps != null && (
+                <span>{workout.steps.toLocaleString()} 보</span>
+              )}
+              {workout.elevation_gain != null && (
+                <span>고도 +{workout.elevation_gain} m</span>
+              )}
+              {workout.device_name != null && (
+                <span>{workout.device_name}</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="detail-section">
+          <div className="detail-label">체감 난이도</div>
+          <div
+            className="detail-value"
+            style={{ color: getIntensityColor(workout.intensity), fontWeight: 600 }}
+          >
+            {getIntensityLabel(workout.intensity)}
+          </div>
+        </div>
+
+        {/* 좋아요 섹션 — 클럽 컨텍스트면 이 클럽 기준 토글, 아니면 전체 클럽 합산 보기 전용 */}
+        <div className="detail-section">
+          <div className="detail-label">좋아요</div>
+          <div className="detail-value like-stats-row">
+            {effectiveClubId ? (
+              <button
+                className={`sheet-action-btn ${clubLike?.isLiked ? 'liked' : ''}`}
+                onClick={handleClubLikeToggle}
+                disabled={liking}
               >
-                {getIntensityLabel(workout.intensity)}
-              </div>
-            </div>
-
-            {/* 좋아요 섹션 */}
-            <div className="detail-section">
-              <div className="detail-label">좋아요</div>
-              <div className="detail-value like-stats-row">
-                <span>❤ {totalLikes}개</span>
-                {totalLikes > 0 && (
-                  <button
-                    className="view-details-btn"
-                    onClick={() => setShowLikeStats(true)}
-                  >
-                    상세 보기 →
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* 댓글 섹션 */}
-            <div className="detail-section full-width">
-              <div className="detail-label">
-                댓글 {totalComments > 0 && `(총 ${totalComments}개)`}
-              </div>
-              <IntegratedCommentSection
-                workoutId={workout.id}
-                highlightCommentId={highlightCommentId || undefined}
-                onCommentCountChange={setTotalComments}
-              />
-            </div>
-
-            {workout.memo && (
-              <div className="detail-section">
-                <div className="detail-label">메모</div>
-                <div className="detail-value" style={{ whiteSpace: 'pre-wrap' }}>{workout.memo}</div>
-              </div>
+                <Heart size={15} fill={clubLike?.isLiked ? 'currentColor' : 'none'} />
+                {clubLike?.count ?? 0}
+              </button>
+            ) : (
+              <span>❤ {totalLikes}개</span>
             )}
-
-            {/* 증빙 이미지 */}
-            {workout.proof_image && (
-              <div className="detail-section">
-                <div className="detail-label">증빙 이미지</div>
-                <div
-                  className="detail-proof-image"
-                  onClick={() => setSelectedImage(workout.proof_image!)}
-                >
-                  <img src={workout.proof_image} alt="증빙" />
-                </div>
-              </div>
+            {totalLikes > 0 && (
+              <button
+                className="view-details-btn"
+                onClick={() => setShowLikeStats(true)}
+              >
+                {effectiveClubId ? `전체 클럽 합산 ${totalLikes}개 →` : '상세 보기 →'}
+              </button>
             )}
-          </>
-        ) : (
-          <>
-            <div className="form-group">
-              <label htmlFor="edit-value">기록 ({workout.unit})</label>
-              <input
-                id="edit-value"
-                type="number"
-                step="0.01"
-                min="0.01"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                className="value-input"
-              />
-            </div>
+          </div>
+        </div>
 
-            <div className="form-group">
-              <label htmlFor="edit-date">날짜 및 시간</label>
-              <input
-                id="edit-date"
-                type="datetime-local"
-                value={workoutTime}
-                onChange={(e) => setWorkoutTime(e.target.value)}
-                className="value-input"
-              />
-            </div>
+        {/* 댓글 섹션 */}
+        <div className="detail-section full-width">
+          <div className="detail-label">
+            댓글 {totalComments > 0 && `(총 ${totalComments}개)`}
+          </div>
+          <IntegratedCommentSection
+            workoutId={workout.id}
+            highlightCommentId={highlightCommentId || undefined}
+            onCommentCountChange={setTotalComments}
+          />
+        </div>
 
-            <div className="form-group">
-              <label>체감 난이도</label>
-
-              {/* 스펙트럼 바 */}
-              <div className="difficulty-spectrum-bar">
-                <div className="spectrum-gradient"></div>
-                <div
-                  className="spectrum-indicator"
-                  style={{ left: `${(intensity * 10) - 5}%` }}
-                ></div>
-              </div>
-
-              {/* 5단계 버튼 */}
-              <div className="difficulty-levels">
-                <button
-                  type="button"
-                  className={`difficulty-level-btn ${intensity <= 2 ? 'active' : ''}`}
-                  onClick={() => setIntensity(2)}
-                >
-                  <div className="difficulty-number">1</div>
-                  <div className="difficulty-label">편안</div>
-                </button>
-                <button
-                  type="button"
-                  className={`difficulty-level-btn ${intensity >= 3 && intensity <= 4 ? 'active' : ''}`}
-                  onClick={() => setIntensity(4)}
-                >
-                  <div className="difficulty-number">2</div>
-                  <div className="difficulty-label">경쾌</div>
-                </button>
-                <button
-                  type="button"
-                  className={`difficulty-level-btn ${intensity >= 5 && intensity <= 6 ? 'active' : ''}`}
-                  onClick={() => setIntensity(6)}
-                >
-                  <div className="difficulty-number">3</div>
-                  <div className="difficulty-label">자극</div>
-                </button>
-                <button
-                  type="button"
-                  className={`difficulty-level-btn ${intensity >= 7 && intensity <= 8 ? 'active' : ''}`}
-                  onClick={() => setIntensity(8)}
-                >
-                  <div className="difficulty-number">4</div>
-                  <div className="difficulty-label">고강도</div>
-                </button>
-                <button
-                  type="button"
-                  className={`difficulty-level-btn ${intensity >= 9 ? 'active' : ''}`}
-                  onClick={() => setIntensity(10)}
-                >
-                  <div className="difficulty-number">5</div>
-                  <div className="difficulty-label">한계돌파</div>
-                </button>
-              </div>
-
-              {/* 세부 조정 */}
-              {intensity > 0 && (
-                <div className="difficulty-fine-tune">
-                  <button
-                    type="button"
-                    className="fine-tune-adjust-btn"
-                    onClick={() => {
-                      const min = intensity <= 2 ? 1 : intensity <= 4 ? 3 : intensity <= 6 ? 5 : intensity <= 8 ? 7 : 9;
-                      if (intensity > min) setIntensity(intensity - 1);
-                    }}
-                    disabled={
-                      intensity === 1 || intensity === 3 || intensity === 5 || intensity === 7 || intensity === 9
-                    }
-                  >
-                    ◀ 조금 더 낮게
-                  </button>
-                  <button
-                    type="button"
-                    className="fine-tune-adjust-btn"
-                    onClick={() => {
-                      const max = intensity <= 2 ? 2 : intensity <= 4 ? 4 : intensity <= 6 ? 6 : intensity <= 8 ? 8 : 10;
-                      if (intensity < max) setIntensity(intensity + 1);
-                    }}
-                    disabled={
-                      intensity === 2 || intensity === 4 || intensity === 6 || intensity === 8 || intensity === 10
-                    }
-                  >
-                    조금 더 높게 ▶
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="edit-memo">메모 (선택)</label>
-              <textarea
-                id="edit-memo"
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-                placeholder="날씨, 컨디션, 느낀점 등..."
-                className="race-textarea"
-                rows={3}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="edit-proof">증빙 이미지 변경</label>
-              <input
-                id="edit-proof"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="file-input"
-              />
-              {imagePreview && (
-                <div className="image-preview">
-                  <img src={imagePreview} alt="새 증빙" />
-                </div>
-              )}
-            </div>
-          </>
+        {workout.memo && (
+          <div className="detail-section">
+            <div className="detail-label">메모</div>
+            <div className="detail-value" style={{ whiteSpace: 'pre-wrap' }}>{workout.memo}</div>
+          </div>
         )}
-      </div>
 
-      {/* 고정 액션 버튼 */}
-      <div className="detail-actions-fixed">
-        {!isEditing ? (
-          <>
-            {user?.id === workout.user_id && (
-              <>
-                <button className="action-button-full" onClick={() => navigate('/add-workout', { state: { editWorkout: workout } })}>
-                  <Edit2 size={18} />
-                  수정
-                </button>
-                <button className="action-button-full danger" onClick={handleDelete} disabled={deleting}>
-                  <Trash2 size={18} />
-                  {deleting ? '삭제 중...' : '삭제'}
-                </button>
-              </>
-            )}
-          </>
-        ) : (
-          <>
-            <button
-              className="action-button-full secondary"
-              onClick={() => {
-                setIsEditing(false);
-                setValue(workout.value.toString());
-                setWorkoutTime(toKSTInputValue(workout.workout_time));
-                setIntensity(workout.intensity);
-                setProofImage(null);
-                setImagePreview(null);
-              }}
+        {/* 증빙 이미지 */}
+        {workout.proof_image && (
+          <div className="detail-section">
+            <div className="detail-label">증빙 이미지</div>
+            <div
+              className="detail-proof-image"
+              onClick={() => setSelectedImage(workout.proof_image!)}
             >
-              취소
+              <img src={workout.proof_image} alt="증빙" />
+            </div>
+          </div>
+        )}
+
+        {/* 신고/차단 — 클럽 컨텍스트에서 남의 글일 때만 */}
+        {!isMyPost && effectiveClubId && (
+          <div className="workout-detail-actions">
+            <button
+              className="detail-action-btn detail-action-report"
+              onClick={() => setShowReportModal(true)}
+            >
+              신고하기
             </button>
-            <button className="action-button-full" onClick={handleUpdate} disabled={updating}>
-              {updating ? '저장 중...' : '저장'}
+            <button
+              className="detail-action-btn detail-action-block"
+              onClick={() => setShowBlockConfirm(true)}
+            >
+              차단하기
             </button>
-          </>
+          </div>
         )}
       </div>
+
+      {/* 고정 액션 버튼 (본인 글만) */}
+      {isMyPost && (
+        <div className="detail-actions-fixed">
+          <button className="action-button-full" onClick={() => navigate('/add-workout', { state: { editWorkout: workout } })}>
+            <Edit2 size={18} />
+            수정
+          </button>
+          <button className="action-button-full danger" onClick={handleDelete} disabled={deleting}>
+            <Trash2 size={18} />
+            {deleting ? '삭제 중...' : '삭제'}
+          </button>
+        </div>
+      )}
 
       {/* 이미지 뷰어 */}
       {selectedImage && (
@@ -697,17 +612,91 @@ export const WorkoutDetail = ({ workoutData: propWorkout, onClose }: WorkoutDeta
         onClose={() => setShowLikeStats(false)}
         workoutId={workout.id}
       />
+
+      {/* 신고 모달 */}
+      {showReportModal && (
+        <div className="modal-overlay" onClick={() => setShowReportModal(false)}>
+          <div className="modal-content" style={{ maxWidth: 320 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>신고하기</h2>
+              <button className="modal-close" onClick={() => setShowReportModal(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 16 }}>
+                신고 사유를 선택해주세요.
+              </p>
+              <div className="report-reasons">
+                {REPORT_REASONS.map((reason) => (
+                  <button
+                    key={reason}
+                    className={`report-reason-btn ${selectedReason === reason ? 'selected' : ''}`}
+                    onClick={() => setSelectedReason(reason)}
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+              <button
+                className="btn-primary"
+                style={{ width: '100%', marginTop: 20 }}
+                onClick={handleReport}
+                disabled={!selectedReason || submitting}
+              >
+                {submitting ? '처리 중...' : '신고 제출'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 차단 확인 모달 */}
+      {showBlockConfirm && (
+        <div className="modal-overlay" onClick={() => setShowBlockConfirm(false)}>
+          <div className="modal-content" style={{ maxWidth: 320 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>차단하기</h2>
+              <button className="modal-close" onClick={() => setShowBlockConfirm(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: 20, lineHeight: 1.6 }}>
+                <strong>{ownerName || '이 사용자'}</strong>님을 차단하시겠어요?<br />
+                <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+                  차단하면 이 클럽 피드에서 해당 유저의 게시물이 나에게만 보이지 않습니다.
+                </span>
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  className="btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setShowBlockConfirm(false)}
+                >
+                  취소
+                </button>
+                <button
+                  className="btn-danger"
+                  style={{ flex: 1 }}
+                  onClick={handleBlock}
+                  disabled={submitting}
+                >
+                  {submitting ? '처리 중...' : '차단하기'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
   if (isModal) {
-    return (
+    return createPortal(
       <div className="workout-sheet-overlay" onClick={() => goBack()}>
-        <div className="workout-sheet" onClick={e => e.stopPropagation()}>
+        <div className="workout-sheet" onClick={(e) => e.stopPropagation()}>
           <div className="workout-sheet-handle" />
           {detailContent}
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
   return detailContent;
