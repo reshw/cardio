@@ -12814,6 +12814,7 @@ body.workout-detail-open .bottom-nav {
 }
 
 .gallery-card {
+  position: relative;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -12833,6 +12834,30 @@ body.workout-detail-open .bottom-nav {
   object-fit: cover;
   display: block;
   background: var(--input-bg);
+}
+
+/* 좋아요/댓글 수 오버레이 배지 (사진 우상단) */
+.gallery-card-social {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.gallery-card-social-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .gallery-card-meta {
