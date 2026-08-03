@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Search, Heart, MessageCircle } from 'lucide-react';
+import { Search, Heart, MessageCircle, ArrowUp } from 'lucide-react';
 import { useClubName } from '../hooks/useClubName';
 import { usePageHeader } from '../contexts/PageHeaderContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -105,6 +105,31 @@ export const ClubGallery = () => {
     }
   };
 
+  // 인스타식 즉시 반영: 서버 응답을 기다리지 않고 프론트에서 먼저 카운트/하트 상태를 바꾸고,
+  // 실패하면 그때 되돌린다.
+  const handleQuickLike = async (e: React.MouseEvent, photo: GalleryPhoto) => {
+    e.stopPropagation();
+    if (!user || !clubId) return;
+    const prev = likesMap.get(photo.id) ?? { count: 0, isLikedByMe: false };
+    const wasLiked = prev.isLikedByMe;
+    setLikesMap((map) => {
+      const next = new Map(map);
+      next.set(photo.id, { count: prev.count + (wasLiked ? -1 : 1), isLikedByMe: !wasLiked });
+      return next;
+    });
+    try {
+      await feedService.toggleLike(photo.id, clubId, user.id, wasLiked);
+    } catch (error: any) {
+      console.error('[클럽 갤러리] 좋아요 토글 실패:', JSON.stringify(error), error);
+      setLikesMap((map) => {
+        const next = new Map(map);
+        next.set(photo.id, prev);
+        return next;
+      });
+      alert(`좋아요 처리 실패: ${error?.message || JSON.stringify(error)}`);
+    }
+  };
+
   const visiblePhotos = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = q ? photos.filter((p) => p.nickname.toLowerCase().includes(q)) : [...photos];
@@ -128,23 +153,29 @@ export const ClubGallery = () => {
   }, [visiblePhotos, sort]);
 
   const renderCard = (p: GalleryPhoto) => {
-    const likeCount = likesMap.get(p.id)?.count ?? 0;
+    const likeInfo = likesMap.get(p.id);
+    const likeCount = likeInfo?.count ?? 0;
+    const isLikedByMe = likeInfo?.isLikedByMe ?? false;
     const commentCount = commentCountsMap.get(p.id) ?? 0;
     return (
       <div className="gallery-card" key={p.id} onClick={() => setSelectedWorkoutId(p.id)}>
         <img src={p.url} alt="증빙" loading="lazy" />
-        {(likeCount > 0 || commentCount > 0) && (
-          <div className="gallery-card-social">
-            <span className="gallery-card-social-item">
-              <Heart size={12} fill="currentColor" />
-              {likeCount}
-            </span>
+        <div className="gallery-card-social">
+          <button
+            type="button"
+            className={`gallery-card-like-btn${isLikedByMe ? ' liked' : ''}`}
+            onClick={(e) => handleQuickLike(e, p)}
+          >
+            <Heart size={12} fill={isLikedByMe ? 'currentColor' : 'none'} />
+            {likeCount > 0 && likeCount}
+          </button>
+          {commentCount > 0 && (
             <span className="gallery-card-social-item">
               <MessageCircle size={12} />
               {commentCount}
             </span>
-          </div>
-        )}
+          )}
+        </div>
         <div className="gallery-card-meta">
           <div className="gallery-card-nick">{p.nickname}</div>
           <div className="gallery-card-sub">
@@ -218,8 +249,18 @@ export const ClubGallery = () => {
         dateGroups.map(([dateKey, items]) => (
           <section className="gallery-date-section" key={dateKey}>
             <h2 className="gallery-date-heading">
-              {kstDateLabel(dateKey)}
-              <span className="gallery-date-heading-count">{items.length}장</span>
+              <span>
+                {kstDateLabel(dateKey)}
+                <span className="gallery-date-heading-count">{items.length}장</span>
+              </span>
+              <button
+                type="button"
+                className="gallery-scroll-top-btn"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
+                <ArrowUp size={13} />
+                맨 위로
+              </button>
             </h2>
             <div className="gallery-grid">{items.map(renderCard)}</div>
           </section>
