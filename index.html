@@ -5,6 +5,10 @@
     <base href="/" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- iOS Safari/WebView 가 상태바·주소창 주변을 칠하는 색.
+         없으면 다크 테마에서도 상단이 흰색으로 남는다.
+         테마 전환 시 useTheme 이 이 태그의 content 를 갱신한다. -->
+    <meta name="theme-color" content="#FFFFFF" />
     <title>Cardio App</title>
 
     <!-- 테마 선적용: React 부팅 전에 실행돼야 새로고침 시 흰 화면 번쩍임(FOUC)이 없다.
@@ -14,6 +18,8 @@
         try {
           if (localStorage.getItem('cardio-theme') === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
+            var m = document.querySelector('meta[name="theme-color"]');
+            if (m) m.setAttribute('content', '#0F1115');
           }
         } catch (e) {
           /* localStorage 차단 환경(사파리 프라이빗 등)에선 라이트로 진행 */

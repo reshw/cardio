@@ -237,7 +237,7 @@ const GatheringModal: React.FC<{
           {selectedMembers.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
               {selectedMembers.map(m => (
-                <div key={m.user_id} style={{ background: 'var(--primary-bg)', borderRadius: 20, padding: '4px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div key={m.user_id} style={{ background: 'var(--gradient-light)', borderRadius: 20, padding: '4px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
                   {m.nickname}
                   <button onClick={() => removeMember(m.user_id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 0, lineHeight: 1 }}>×</button>
                 </div>
@@ -279,7 +279,7 @@ const GatheringModal: React.FC<{
 
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
             참가자: 나 + {selectedMembers.length}명 = 총 {selectedMembers.length + 1}명
-            {selectedMembers.length < 2 && <span style={{ color: 'var(--danger-color)' }}> (3인 이상 필요)</span>}
+            {selectedMembers.length < 2 && <span style={{ color: '#ef4444' }}> (3인 이상 필요)</span>}
           </div>
 
           <button

@@ -167,7 +167,7 @@ export const AdminStravaIntegrations = () => {
                 disabled={syncing}
                 style={{
                   width: '100%', padding: '10px 12px', borderRadius: 8,
-                  border: '1px solid var(--border-color)', background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)', background: 'var(--input-bg)',
                   color: 'var(--text-primary)', fontSize: 14,
                 }}
               >
@@ -187,7 +187,7 @@ export const AdminStravaIntegrations = () => {
                 disabled={syncing}
                 style={{
                   width: '100%', padding: '10px 12px', borderRadius: 8,
-                  border: '1px solid var(--border-color)', background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)', background: 'var(--input-bg)',
                   color: 'var(--text-primary)', fontSize: 14, boxSizing: 'border-box',
                 }}
               />
@@ -205,7 +205,7 @@ export const AdminStravaIntegrations = () => {
                 disabled={syncing}
                 style={{
                   width: '100%', padding: '8px 10px', borderRadius: 8,
-                  border: '1px solid var(--border-color)', background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)', background: 'var(--input-bg)',
                   color: 'var(--text-primary)', fontSize: 14,
                 }}
               />
@@ -220,7 +220,7 @@ export const AdminStravaIntegrations = () => {
                 disabled={syncing}
                 style={{
                   width: '100%', padding: '8px 10px', borderRadius: 8,
-                  border: '1px solid var(--border-color)', background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)', background: 'var(--input-bg)',
                   color: 'var(--text-primary)', fontSize: 14,
                 }}
               />
@@ -245,7 +245,7 @@ export const AdminStravaIntegrations = () => {
 
           {/* 결과 */}
           {syncResult && (
-            <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 12, marginTop: 12, fontSize: 13 }}>
+            <div style={{ background: 'var(--input-bg)', borderRadius: 8, padding: 12, marginTop: 12, fontSize: 13 }}>
               <div style={{ fontWeight: 600, marginBottom: 8 }}>
                 ✅ {syncResult.imported}개 가져옴 / {syncResult.skipped}개 스킵
                 {syncResult.failed > 0 && ` / ${syncResult.failed}개 실패`}
@@ -257,7 +257,7 @@ export const AdminStravaIntegrations = () => {
                 {syncResult.activities.map((a) => (
                   <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                     <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '72%' }}>
-                      {a.name} <span style={{ color: 'var(--text-tertiary)' }}>({a.type})</span>
+                      {a.name} <span style={{ color: 'var(--text-secondary)' }}>({a.type})</span>
                     </span>
                     <span style={{
                       color: a.status === 'imported' ? '#16a34a' : a.status === 'failed' ? '#dc2626' : '#9ca3af',

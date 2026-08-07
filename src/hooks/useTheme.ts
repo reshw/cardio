@@ -18,12 +18,22 @@ const readStoredTheme = (): Theme => {
   }
 };
 
+/**
+ * iOS Safari/WebView 는 이 값으로 상태바·주소창 주변을 칠한다.
+ * 갱신하지 않으면 다크 테마에서도 화면 상단이 흰색으로 남는다.
+ * (index.html 의 부팅 스크립트도 같은 값을 세팅한다 — 바꾸면 양쪽 다 수정할 것)
+ */
+const THEME_COLOR = { light: '#FFFFFF', dark: '#0F1115' } as const;
+
 const applyTheme = (theme: Theme) => {
   if (theme === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   } else {
     document.documentElement.removeAttribute('data-theme');
   }
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', THEME_COLOR[theme]);
 };
 
 /**

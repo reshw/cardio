@@ -46,7 +46,8 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const [ownerName, setOwnerName] = useState<string | null>(null);
+  // 기록 소유자 표시용 — 클럽 컨텍스트면 클럽 전용 닉네임/프로필을 우선 사용
+  const [owner, setOwner] = useState<{ name: string; image: string | null } | null>(null);
 
   // 좋아요 (전체 클럽 합산 — 보기 전용)
   const [totalLikes, setTotalLikes] = useState(0);
@@ -118,21 +119,47 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
     loadWorkout(propWorkoutId);
   }, [isModal, workout, propWorkoutId]);
 
-  // 타인 기록 진입 시 소유자 닉네임 로드 (클럽 닉네임 우선, fallback: username)
+  // 기록 소유자 정보 로드. 클럽 컨텍스트에서는 그 클럽 전용 닉네임/프로필 사진을 우선 쓰고,
+  // 설정이 없으면 전역 users 값으로 폴백한다. (본인 기록도 헤더에 표시하므로 항상 조회)
   useEffect(() => {
-    if (!workout || !user || user.id === workout.user_id) return;
+    if (!workout) return;
+    let cancelled = false;
+
     const fetchOwner = async () => {
-      if (!effectiveClubId) return;
-      const { data: member } = await supabase
-        .from('club_members')
-        .select('club_nickname')
-        .eq('club_id', effectiveClubId)
-        .eq('user_id', workout.user_id)
-        .single();
-      if (member?.club_nickname) setOwnerName(member.club_nickname);
+      try {
+        let name: string | null = null;
+        let image: string | null = null;
+
+        if (effectiveClubId) {
+          const { data: member } = await supabase
+            .from('club_members')
+            .select('club_nickname, club_profile_image')
+            .eq('club_id', effectiveClubId)
+            .eq('user_id', workout.user_id)
+            .maybeSingle();
+          name = member?.club_nickname ?? null;
+          image = member?.club_profile_image ?? null;
+        }
+
+        if (!name || !image) {
+          const { data: u } = await supabase
+            .from('users')
+            .select('display_name, profile_image')
+            .eq('id', workout.user_id)
+            .maybeSingle();
+          name = name ?? u?.display_name ?? null;
+          image = image ?? u?.profile_image ?? null;
+        }
+
+        if (!cancelled && name) setOwner({ name, image });
+      } catch (err) {
+        console.error('[운동상세] 기록자 정보 조회 실패:', JSON.stringify(err), err);
+      }
     };
+
     fetchOwner();
-  }, [workout?.user_id, user?.id, effectiveClubId]);
+    return () => { cancelled = true; };
+  }, [workout?.user_id, effectiveClubId]);
 
   // 좋아요 개수 로드 (전체 클럽 합산)
   useEffect(() => {
@@ -379,6 +406,27 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
     return '#dc2626';
   };
 
+  // 프로필 이미지는 'default:#색상' 형식이면 색 배경 + 이니셜로 렌더한다
+  const renderOwnerAvatar = () => {
+    if (!owner) return null;
+    const initial = owner.name[0]?.toUpperCase() ?? '?';
+    if (owner.image?.startsWith('default:')) {
+      return (
+        <div className="detail-owner-avatar" style={{ background: owner.image.replace('default:', '') }}>
+          {initial}
+        </div>
+      );
+    }
+    if (owner.image) {
+      return <img src={owner.image} alt={owner.name} className="detail-owner-avatar" />;
+    }
+    return (
+      <div className="detail-owner-avatar" style={{ background: 'var(--gradient-primary)' }}>
+        {initial}
+      </div>
+    );
+  };
+
   const handleDelete = async () => {
     if (!confirm('정말로 이 운동 기록을 삭제하시겠습니까?')) {
       return;
@@ -402,7 +450,14 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
     <div className={isModal ? 'workout-detail-modal-content' : 'container workout-detail-page'}>
       {isModal ? (
         <div className="detail-header-modal">
-          <h1>운동 상세</h1>
+          {owner ? (
+            <div className="detail-header-owner">
+              {renderOwnerAvatar()}
+              <h1>{owner.name}님의 기록</h1>
+            </div>
+          ) : (
+            <h1>운동 상세</h1>
+          )}
           <button className="detail-modal-close" onClick={() => goBack()}>
             <X size={22} />
           </button>
@@ -412,12 +467,7 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
           <button className="back-button" onClick={() => goBack()}>
             <ChevronLeft size={24} />
           </button>
-          <h1>운동 상세</h1>
-        </div>
-      )}
-      {ownerName && (
-        <div className="workout-owner-banner">
-          {ownerName}님의 기록
+          <h1>{owner ? `${owner.name}님의 기록` : '운동 상세'}</h1>
         </div>
       )}
 
@@ -659,7 +709,7 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
             </div>
             <div className="modal-body">
               <p style={{ marginBottom: 20, lineHeight: 1.6 }}>
-                <strong>{ownerName || '이 사용자'}</strong>님을 차단하시겠어요?<br />
+                <strong>{owner?.name || '이 사용자'}</strong>님을 차단하시겠어요?<br />
                 <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
                   차단하면 이 클럽 피드에서 해당 유저의 게시물이 나에게만 보이지 않습니다.
                 </span>

@@ -137,7 +137,7 @@ export const ClubMileageHideSettings = () => {
                 placeholder="시작일"
                 value={addFrom}
                 onChange={(e) => setAddFrom(e.target.value)}
-                style={{ width: '68px', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-color)', fontSize: '15px', textAlign: 'center' }}
+                style={{ width: '68px', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-primary)', fontSize: '15px', textAlign: 'center' }}
                 autoFocus
               />
               <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>일 ~</span>
@@ -148,7 +148,7 @@ export const ClubMileageHideSettings = () => {
                 placeholder="종료일"
                 value={addTo}
                 onChange={(e) => setAddTo(e.target.value)}
-                style={{ width: '68px', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-color)', fontSize: '15px', textAlign: 'center' }}
+                style={{ width: '68px', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-primary)', fontSize: '15px', textAlign: 'center' }}
               />
               <span style={{ fontSize: '14px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>일</span>
               <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>

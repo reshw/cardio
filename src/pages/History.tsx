@@ -478,7 +478,18 @@ export const History = () => {
                     }
                     return [`${Math.round(+val)}${METRIC_CONFIG[chartMetric].unit}`, METRIC_CONFIG[chartMetric].label];
                   }}
-                  contentStyle={{ borderRadius: 10, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: 13 }}
+                  // Recharts 는 툴팁을 자체 인라인 스타일로 그려서 기본값이 흰 배경이다.
+                  // 테마 토큰을 명시하지 않으면 다크에서도 흰 팝업이 뜬다.
+                  contentStyle={{
+                    borderRadius: 10,
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--card-bg)',
+                    color: 'var(--text-primary)',
+                    boxShadow: 'var(--shadow-md)',
+                    fontSize: 13,
+                  }}
+                  itemStyle={{ color: 'var(--text-primary)' }}
+                  labelStyle={{ color: 'var(--text-secondary)' }}
                   cursor={{ fill: 'rgba(79,195,247,0.08)' }}
                 />
                 <Bar

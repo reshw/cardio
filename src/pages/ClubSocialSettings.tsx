@@ -181,7 +181,7 @@ export const ClubSocialSettings: React.FC = () => {
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
                       {g.gathered_at} · 총 {g.members?.length ?? 0}명
                     </div>
-                    {g.description && <div style={{ fontSize: 13, marginTop: 4, color: 'var(--text-color)' }}>{g.description}</div>}
+                    {g.description && <div style={{ fontSize: 13, marginTop: 4, color: 'var(--text-primary)' }}>{g.description}</div>}
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button
@@ -192,7 +192,7 @@ export const ClubSocialSettings: React.FC = () => {
                     </button>
                     <button
                       onClick={() => handleRejectGathering(g.id)}
-                      style={{ background: 'var(--border-color)', color: 'var(--text-color)', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}
+                      style={{ background: 'var(--border-color)', color: 'var(--text-primary)', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}
                     >
                       <X size={14} /> 거절
                     </button>
@@ -213,13 +213,13 @@ export const ClubSocialSettings: React.FC = () => {
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             <button
               onClick={() => setAwardMode('single')}
-              style={{ flex: 1, padding: '8px', borderRadius: 8, border: `2px solid ${awardMode === 'single' ? 'var(--primary-color)' : 'var(--border-color)'}`, background: awardMode === 'single' ? 'var(--primary-bg)' : 'transparent', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
+              style={{ flex: 1, padding: '8px', borderRadius: 8, border: `2px solid ${awardMode === 'single' ? 'var(--primary-color)' : 'var(--border-color)'}`, background: awardMode === 'single' ? 'var(--gradient-light)' : 'transparent', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
             >
               개별 지급
             </button>
             <button
               onClick={() => setAwardMode('bulk')}
-              style={{ flex: 1, padding: '8px', borderRadius: 8, border: `2px solid ${awardMode === 'bulk' ? 'var(--primary-color)' : 'var(--border-color)'}`, background: awardMode === 'bulk' ? 'var(--primary-bg)' : 'transparent', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
+              style={{ flex: 1, padding: '8px', borderRadius: 8, border: `2px solid ${awardMode === 'bulk' ? 'var(--primary-color)' : 'var(--border-color)'}`, background: awardMode === 'bulk' ? 'var(--gradient-light)' : 'transparent', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
             >
               훈련 출결 일괄
             </button>
@@ -233,7 +233,7 @@ export const ClubSocialSettings: React.FC = () => {
                   <button
                     key={a.type}
                     onClick={() => setSelectedActionType(a.type)}
-                    style={{ padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${selectedActionType === a.type ? 'var(--primary-color)' : 'var(--border-color)'}`, background: selectedActionType === a.type ? 'var(--primary-bg)' : 'transparent', fontSize: 13, cursor: 'pointer', fontWeight: selectedActionType === a.type ? 700 : 400 }}
+                    style={{ padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${selectedActionType === a.type ? 'var(--primary-color)' : 'var(--border-color)'}`, background: selectedActionType === a.type ? 'var(--gradient-light)' : 'transparent', fontSize: 13, cursor: 'pointer', fontWeight: selectedActionType === a.type ? 700 : 400 }}
                   >
                     {getActionIcon(a.type)} {a.label}
                   </button>
@@ -265,7 +265,7 @@ export const ClubSocialSettings: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, background: 'var(--primary-bg)', padding: '8px 12px', borderRadius: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, background: 'var(--gradient-light)', padding: '8px 12px', borderRadius: 8 }}>
                   <span style={{ flex: 1, fontWeight: 600 }}>{selectedMember.nickname}</span>
                   <button onClick={() => setSelectedMember(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
                 </div>
@@ -330,7 +330,7 @@ export const ClubSocialSettings: React.FC = () => {
                   <button
                     key={m.user_id}
                     onClick={() => toggleBulkMember(m.user_id)}
-                    style={{ width: '100%', padding: '10px 16px', textAlign: 'left', background: selectedBulkMembers.has(m.user_id) ? 'var(--primary-bg)' : 'none', border: 'none', borderBottom: '1px solid var(--border-color)', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', gap: 10 }}
+                    style={{ width: '100%', padding: '10px 16px', textAlign: 'left', background: selectedBulkMembers.has(m.user_id) ? 'var(--gradient-light)' : 'none', border: 'none', borderBottom: '1px solid var(--border-color)', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', gap: 10 }}
                   >
                     <div style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${selectedBulkMembers.has(m.user_id) ? 'var(--primary-color)' : 'var(--border-color)'}`, background: selectedBulkMembers.has(m.user_id) ? 'var(--primary-color)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {selectedBulkMembers.has(m.user_id) && <Check size={12} color="white" />}

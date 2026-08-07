@@ -715,14 +715,14 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                 onClick={() => isMileageBlocked ? setShowLockTooltip(v => !v) : setActiveTab('ranking')}
                 style={isMileageBlocked ? { cursor: 'pointer', opacity: 0.5, width: '100%' } : { width: '100%' }}
               >
-                🏆 마일리지{isLockPeriod && <Lock size={12} style={{ marginLeft: 4, verticalAlign: 'middle' }} />}
+                마일리지{isLockPeriod && <Lock size={12} style={{ marginLeft: 4, verticalAlign: 'middle' }} />}
               </button>
               {isMileageBlocked && showLockTooltip && (
                 <div style={{
                   position: 'absolute', top: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
                   background: 'var(--card-bg)', border: '1px solid var(--border-color)',
                   borderRadius: '10px', padding: '8px 12px', whiteSpace: 'nowrap',
-                  fontSize: '13px', color: 'var(--text-color)', zIndex: 100,
+                  fontSize: '13px', color: 'var(--text-primary)', zIndex: 100,
                   boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                 }}>
                   <div style={{ position: 'absolute', top: -6, left: '50%', transform: 'translateX(-50%)', width: 10, height: 10, background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderBottom: 'none', borderRight: 'none', rotate: '45deg' }} />
@@ -739,7 +739,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               className={`tab ${activeTab === 'feed' ? 'active' : ''}`}
               onClick={() => setActiveTab('feed')}
             >
-              🏃 오늘의 운동
+              오늘의 운동
             </button>
           </div>
           </>
@@ -853,7 +853,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                             background: mileageCategoryFilter === null ? 'var(--input-bg)' : 'none',
                             border: 'none', borderRadius: '6px', cursor: 'pointer',
                             fontSize: '14px', fontWeight: mileageCategoryFilter === null ? 600 : 400,
-                            color: 'var(--text-color)',
+                            color: 'var(--text-primary)',
                           }}
                         >
                           전체 종목
@@ -868,7 +868,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                               background: mileageCategoryFilter === opt.category ? 'var(--input-bg)' : 'none',
                               border: 'none', borderRadius: '6px', cursor: 'pointer',
                               fontSize: '14px', fontWeight: mileageCategoryFilter === opt.category ? 600 : 400,
-                              color: 'var(--text-color)',
+                              color: 'var(--text-primary)',
                             }}
                           >
                             {opt.category}

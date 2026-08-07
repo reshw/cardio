@@ -65,6 +65,9 @@
   --gold-tint: linear-gradient(135deg, #FFFBEA 0%, #FFFDE7 100%);
   --gold-border: #FFD700;
 
+  /* rgba() 안에서 조합해 쓰기 위한 primary RGB 삼원색 (예: rgba(var(--primary-color-rgb), .1)) */
+  --primary-color-rgb: 79, 195, 247;
+
   /* 랭킹 행 강조 (명전 / 나 / 검색결과) — Club.tsx 인라인 스타일에서도 이 토큰을 쓴다 */
   --row-hof-bg: linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%);
   --row-hof-border: #FFD700;
@@ -112,6 +115,8 @@
   --gold-tint: linear-gradient(135deg, rgba(255, 215, 0, 0.16) 0%, rgba(255, 215, 0, 0.06) 100%);
   --gold-border: rgba(255, 215, 0, 0.55);
 
+  --primary-color-rgb: 93, 214, 255;
+
   --row-hof-bg: linear-gradient(135deg, rgba(255, 215, 0, 0.16) 0%, rgba(255, 215, 0, 0.06) 100%);
   --row-hof-border: rgba(255, 215, 0, 0.6);
   --row-me-bg: linear-gradient(135deg, rgba(93, 214, 255, 0.18) 0%, rgba(93, 214, 255, 0.06) 100%);
@@ -124,6 +129,12 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+/* iOS 고무줄 스크롤(overscroll) 시 body 밖 영역이 드러나는데,
+   html 에 배경이 없으면 다크 테마에서도 그 부분이 흰색으로 보인다 */
+html {
+  background: var(--bg-color);
 }
 
 body {
@@ -2718,7 +2729,7 @@ body.search-modal-open .bottom-nav {
   max-width: 480px;
   margin: 0 auto;
   height: 92%;
-  background: var(--bg-primary, #ffffff);
+  background: var(--card-bg);
   border-radius: 16px 16px 0 0;
   display: flex;
   flex-direction: column;
@@ -2742,7 +2753,7 @@ body.search-modal-open .bottom-nav {
   padding: 8px 16px 12px;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
-  background: var(--bg-primary);
+  background: var(--card-bg);
 }
 
 .member-detail-sheet-header h2 {
@@ -5709,7 +5720,7 @@ body.search-modal-open .bottom-nav {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--bg-secondary);
+  background: var(--input-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 6px 10px;
@@ -6819,7 +6830,7 @@ body.search-modal-open .bottom-nav {
 .admin-club-meta {
   margin: 0;
   font-size: 13px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
@@ -6953,7 +6964,7 @@ body.search-modal-open .bottom-nav {
 
 .admin-menu-arrow {
   flex-shrink: 0;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 @media (max-width: 768px) {
@@ -7875,9 +7886,9 @@ body.search-modal-open .bottom-nav {
 }
 
 .report-reason-btn.selected {
-  border-color: var(--primary, #4FC3F7);
+  border-color: var(--primary-color);
   background: rgba(79, 195, 247, 0.08);
-  color: var(--primary, #4FC3F7);
+  color: var(--primary-color);
   font-weight: 600;
 }
 
@@ -7944,7 +7955,7 @@ body.search-modal-open .bottom-nav {
 
 .blocked-user-club {
   font-size: 12px;
-  color: var(--primary, #4FC3F7);
+  color: var(--primary-color);
   margin-top: 2px;
   font-weight: 500;
 }
@@ -8251,9 +8262,51 @@ body.workout-detail-open .bottom-nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 18px 20px 16px;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
+  /* 헤더가 스크롤 컨테이너(.workout-detail-modal-content) 안에 있어서 그냥 두면
+     스크롤 시 제목과 X 버튼이 같이 사라진다 → 상단 고정 */
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--card-bg);
+  /* 컨테이너 좌우 padding(16px) 을 상쇄해 헤더 배경이 시트 폭 전체를 덮게 함 */
+  margin: 0 -16px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+/* 헤더 좌측: 기록자 프로필 + "닉네임님의 기록" */
+.detail-header-owner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.detail-header-owner h1 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detail-owner-avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--on-accent);
 }
 
 .detail-header-modal h1 {
@@ -8276,7 +8329,7 @@ body.workout-detail-open .bottom-nav {
 }
 
 .detail-modal-close:hover {
-  background: var(--hover-bg);
+  background: var(--hover-overlay);
 }
 
 .strava-source-card {
@@ -10579,7 +10632,7 @@ body.workout-detail-open .bottom-nav {
 }
 
 .header-action-button:hover {
-  background: rgba(var(--primary-color-rgb, 33, 150, 243), 0.1);
+  background: rgba(var(--primary-color-rgb), 0.1);
 }
 
 /* 클럽 헤더 컨테이너 (드롭다운 + 아이콘 버튼) */
@@ -11746,7 +11799,7 @@ body.workout-detail-open .bottom-nav {
 .kakao-share-info {
   width: 100%;
   max-width: 320px;
-  background: var(--bg-secondary, rgba(0, 0, 0, 0.04));
+  background: var(--input-bg);
   border-radius: 12px;
   padding: 14px 16px;
   display: flex;
@@ -12197,7 +12250,7 @@ body.workout-detail-open .bottom-nav {
   gap: 6px;
   margin: 0 16px 8px;
   padding: 10px 16px;
-  background: var(--primary-bg);
+  background: var(--gradient-light);
   color: var(--primary-color);
   border: 1.5px dashed var(--primary-color);
   border-radius: 10px;
@@ -12551,7 +12604,7 @@ body.workout-detail-open .bottom-nav {
   border-radius: 6px;
   border: 1px solid var(--border-color);
   background: none;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;

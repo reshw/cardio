@@ -83,7 +83,7 @@ function SortableWorkoutItem({
           style={{
             padding: '6px 12px',
             fontSize: '13px',
-            background: workoutType.is_active ? 'var(--secondary-bg)' : 'var(--primary-color)',
+            background: workoutType.is_active ? 'var(--input-bg)' : 'var(--primary-color)',
             color: workoutType.is_active ? 'var(--text-primary)' : 'white',
             border: 'none',
             borderRadius: '4px',
@@ -691,7 +691,7 @@ export const AdminWorkoutTypes = () => {
                       fontSize: '15px',
                       border: '2px solid var(--border-color)',
                       borderRadius: '8px',
-                      background: 'var(--secondary-bg)',
+                      background: 'var(--input-bg)',
                       color: 'var(--text-secondary)',
                       display: 'flex',
                       alignItems: 'center',
@@ -712,7 +712,7 @@ export const AdminWorkoutTypes = () => {
                         border: '2px solid var(--border-color)',
                         borderRadius: '8px',
                         transition: 'border-color 0.2s',
-                        background: 'var(--secondary-bg)',
+                        background: 'var(--input-bg)',
                         cursor: 'pointer',
                       }}
                       onFocus={(e) => {
@@ -737,7 +737,7 @@ export const AdminWorkoutTypes = () => {
                   style={{
                     marginBottom: '24px',
                     padding: '16px',
-                    background: 'var(--secondary-bg)',
+                    background: 'var(--input-bg)',
                     borderRadius: '8px',
                     border: '2px solid var(--border-color)',
                   }}
@@ -780,7 +780,7 @@ export const AdminWorkoutTypes = () => {
                       }}
                       style={{
                         padding: '16px',
-                        background: formData.sub_type_mode === 'single' ? 'var(--primary-color)' : 'var(--secondary-bg)',
+                        background: formData.sub_type_mode === 'single' ? 'var(--primary-color)' : 'var(--input-bg)',
                         color: formData.sub_type_mode === 'single' ? 'white' : 'var(--text-primary)',
                         border: `2px solid ${formData.sub_type_mode === 'single' ? 'var(--primary-color)' : 'var(--border-color)'}`,
                         borderRadius: '8px',
@@ -810,7 +810,7 @@ export const AdminWorkoutTypes = () => {
                       }}
                       style={{
                         padding: '16px',
-                        background: formData.sub_type_mode === 'mixed' ? 'var(--primary-color)' : 'var(--secondary-bg)',
+                        background: formData.sub_type_mode === 'mixed' ? 'var(--primary-color)' : 'var(--input-bg)',
                         color: formData.sub_type_mode === 'mixed' ? 'white' : 'var(--text-primary)',
                         border: `2px solid ${formData.sub_type_mode === 'mixed' ? 'var(--primary-color)' : 'var(--border-color)'}`,
                         borderRadius: '8px',
@@ -887,7 +887,7 @@ export const AdminWorkoutTypes = () => {
                         fontSize: '15px',
                         border: '2px solid var(--border-color)',
                         borderRadius: '8px',
-                        background: 'var(--secondary-bg)',
+                        background: 'var(--input-bg)',
                         cursor: 'pointer',
                         minWidth: '100px',
                       }}
@@ -967,7 +967,7 @@ export const AdminWorkoutTypes = () => {
                       padding: '14px',
                       fontSize: '15px',
                       fontWeight: '600',
-                      background: 'var(--secondary-bg)',
+                      background: 'var(--input-bg)',
                       color: 'var(--text-primary)',
                       border: '2px solid var(--border-color)',
                       borderRadius: '8px',
@@ -978,7 +978,7 @@ export const AdminWorkoutTypes = () => {
                       e.currentTarget.style.background = 'var(--border-color)';
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.background = 'var(--secondary-bg)';
+                      e.currentTarget.style.background = 'var(--input-bg)';
                     }}
                   >
                     취소

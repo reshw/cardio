@@ -293,7 +293,7 @@ export const AdminImageSettings = () => {
         }
 
         .size-info, .storage-estimate {
-          background: var(--background);
+          background: var(--bg-color);
           padding: 12px;
           border-radius: 8px;
           margin-top: 12px;

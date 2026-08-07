@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { WorkoutFeedCard } from './WorkoutFeedCard';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,7 +33,6 @@ export const WorkoutFeed = ({
   onMemberClick,
 }: Props) => {
   const { user } = useAuth();
-  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -67,19 +65,30 @@ export const WorkoutFeed = ({
           <ChevronLeft size={20} />
         </button>
 
-        <div
-          className="feed-date-display"
-          onClick={() => dateInputRef.current?.showPicker?.()}
-          style={{ cursor: 'pointer', position: 'relative' }}
-        >
+        {/* 날짜를 누르면 네이티브 날짜 피커가 열린다.
+            showPicker() API 는 iOS Safari·Android WebView 에서 숨겨진 input 에 대해 막히는 경우가 있어
+            (NotAllowedError), 투명한 input 을 라벨 위에 덮어서 탭이 input 에 직접 닿게 한다. */}
+        <div className="feed-date-display" style={{ position: 'relative', cursor: 'pointer' }}>
           {formatDate(selectedDate)}
           <input
-            ref={dateInputRef}
             type="date"
+            aria-label="날짜 선택"
             value={toInputValue(selectedDate)}
             max={toInputValue(today)}
             onChange={handleDateInputChange}
-            style={{ position: 'absolute', opacity: 0, width: '1px', height: '1px', top: 0, left: 0, pointerEvents: 'none' }}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              opacity: 0,
+              cursor: 'pointer',
+              // iOS 는 date input 을 기본 크기로 강제해서 부모를 못 채우므로 해제
+              WebkitAppearance: 'none',
+              appearance: 'none',
+              border: 'none',
+              background: 'transparent',
+            }}
           />
         </div>
 
