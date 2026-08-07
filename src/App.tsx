@@ -47,6 +47,7 @@ import KakaoCallback from './components/KakaoCallback';
 import PhotoUpload from './pages/PhotoUpload';
 import { AppAuthBridge } from './pages/AppAuthBridge';
 import { useIsNativeApp } from './hooks/useIsNativeApp';
+import { useTheme } from './hooks/useTheme';
 import { DiagOverlay } from './components/DiagOverlay';
 import './App.css';
 
@@ -185,6 +186,10 @@ function ProtectedRoutes() {
 }
 
 function App() {
+  // 어느 경로로 진입하든 테마 스토어가 마운트되도록 최상위에서 1회 호출한다.
+  // (네이티브에 부팅 테마를 알리고, CardioWeb.setTheme 인바운드를 살려두는 역할)
+  useTheme();
+
   return (
     <ErrorBoundary>
     <AuthProvider>
