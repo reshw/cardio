@@ -549,6 +549,30 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
           </div>
         </div>
 
+        {/* ── 기록 내용(사진 → 메모)을 먼저, 소셜(좋아요·댓글)은 그 아래로 ──
+            메모가 댓글 섹션 뒤에 있으면 댓글이 길 때 한참 밀려서
+            "메모가 안 불러와진다"고 느끼게 된다. */}
+
+        {/* 증빙 이미지 */}
+        {workout.proof_image && (
+          <div className="detail-section">
+            <div className="detail-label">증빙 이미지</div>
+            <div
+              className="detail-proof-image"
+              onClick={() => setSelectedImage(workout.proof_image!)}
+            >
+              <img src={workout.proof_image} alt="증빙" />
+            </div>
+          </div>
+        )}
+
+        {workout.memo && (
+          <div className="detail-section">
+            <div className="detail-label">메모</div>
+            <div className="detail-value" style={{ whiteSpace: 'pre-wrap' }}>{workout.memo}</div>
+          </div>
+        )}
+
         {/* 좋아요 섹션 — 클럽 컨텍스트면 이 클럽 기준 토글, 아니면 전체 클럽 합산 보기 전용 */}
         <div className="detail-section">
           <div className="detail-label">좋아요</div>
@@ -587,26 +611,6 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
             onCommentCountChange={setTotalComments}
           />
         </div>
-
-        {workout.memo && (
-          <div className="detail-section">
-            <div className="detail-label">메모</div>
-            <div className="detail-value" style={{ whiteSpace: 'pre-wrap' }}>{workout.memo}</div>
-          </div>
-        )}
-
-        {/* 증빙 이미지 */}
-        {workout.proof_image && (
-          <div className="detail-section">
-            <div className="detail-label">증빙 이미지</div>
-            <div
-              className="detail-proof-image"
-              onClick={() => setSelectedImage(workout.proof_image!)}
-            >
-              <img src={workout.proof_image} alt="증빙" />
-            </div>
-          </div>
-        )}
 
         {/* 신고/차단 — 클럽 컨텍스트에서 남의 글일 때만 */}
         {!isMyPost && effectiveClubId && (
