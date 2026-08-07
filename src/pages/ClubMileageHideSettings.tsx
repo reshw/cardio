@@ -155,7 +155,7 @@ export const ClubMileageHideSettings = () => {
                 <button
                   type="button"
                   onClick={handleAddPeriod}
-                  style={{ padding: '7px 14px', borderRadius: '8px', background: 'var(--primary-color)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
+                  style={{ padding: '7px 14px', borderRadius: '8px', background: 'var(--primary-color)', color: 'var(--on-accent)', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
                 >
                   추가
                 </button>

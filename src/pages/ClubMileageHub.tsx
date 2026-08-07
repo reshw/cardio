@@ -106,7 +106,7 @@ export const ClubMileageHub = () => {
                 <div className="settings-menu-desc">현재 계수로 이번 달 전체 재계산</div>
               </div>
             </div>
-            {recalculating && <span style={{ fontSize: 12, color: '#888' }}>처리 중...</span>}
+            {recalculating && <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>처리 중...</span>}
           </button>
           <button className="settings-menu-item" onClick={() => navigate(`/club/settings/${clubId}/mileage-retroactive`)}>
             <div className="menu-item-left">

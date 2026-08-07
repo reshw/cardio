@@ -1004,7 +1004,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                 return <img src={member.profile_image} alt={member.display_name} className="ranking-profile" />;
               }
               return (
-                <div className="ranking-profile-placeholder" style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}>
+                <div className="ranking-profile-placeholder" style={{ background: 'var(--gradient-primary)' }}>
                   {member.display_name[0]}
                 </div>
               );
@@ -1140,13 +1140,13 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                           className={`ranking-item clickable ${member.is_hall_of_fame ? 'hof-highlight' : ''} ${isMyRank ? 'my-rank' : ''}`}
                           style={{
                             background: member.user_id === highlightedUserId
-                              ? 'linear-gradient(135deg, #FFE4EE 0%, #FFB6C1 100%)'
+                              ? 'var(--row-found-bg)'
                               : member.is_hall_of_fame
-                              ? 'linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%)'
+                              ? 'var(--row-hof-bg)'
                               : isMyRank
-                              ? 'linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)'
+                              ? 'var(--row-me-bg)'
                               : undefined,
-                            borderColor: member.user_id === highlightedUserId ? '#FF6B9D' : member.is_hall_of_fame ? '#FFD700' : isMyRank ? '#2196F3' : undefined,
+                            borderColor: member.user_id === highlightedUserId ? 'var(--row-found-border)' : member.is_hall_of_fame ? 'var(--row-hof-border)' : isMyRank ? 'var(--row-me-border)' : undefined,
                             borderWidth: member.user_id === highlightedUserId || member.is_hall_of_fame || isMyRank ? '2px' : undefined,
                           }}
                           onClick={() => openMemberDetail(member.user_id, member.display_name)}
@@ -1216,7 +1216,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               } else if (member.profile_image) {
                 return <img src={member.profile_image} alt={member.display_name} className="hof-card-avatar hof-card-avatar--img" />;
               }
-              return <div className="hof-card-avatar" style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}>{member.display_name[0]}</div>;
+              return <div className="hof-card-avatar" style={{ background: 'var(--gradient-primary)' }}>{member.display_name[0]}</div>;
             };
 
             return (
@@ -1340,7 +1340,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             return (
               <div style={{
                 width: 40, height: 40, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)',
+                background: 'var(--gradient-primary)',
                 color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '16px', fontWeight: 600, flexShrink: 0,
               }}>

@@ -186,7 +186,7 @@ export const ClubSocialSettings: React.FC = () => {
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button
                       onClick={() => handleApproveGathering(g.id)}
-                      style={{ background: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}
+                      style={{ background: 'var(--primary-color)', color: 'var(--on-accent)', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}
                     >
                       <Check size={14} /> 승인
                     </button>

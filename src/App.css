@@ -36,6 +36,88 @@
   --shadow-sm: 0 2px 8px rgba(79, 195, 247, 0.1);
   --shadow-md: 0 4px 16px rgba(79, 195, 247, 0.15);
   --shadow-lg: 0 8px 24px rgba(79, 195, 247, 0.2);
+
+  /* ── 구조색 토큰 (다크 테마 대응) ──────────────────────────────
+     하드코딩된 흰 배경/반투명 오버레이 자리를 이 토큰들로 치환한다.
+     상태색(에러 빨강, 성공 초록, 카카오 노랑, 명예의전당 금색)은
+     두 테마에서 값이 같아야 하므로 토큰화 대상이 아니다. */
+  --body-bg: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 50%, #FFF5F8 100%);
+  /* 헤더·바텀네비처럼 blur 뒤에 깔리는 반투명 표면 */
+  --surface-translucent: rgba(255, 255, 255, 0.98);
+  /* 컬러 배경 위에 얹히는 불투명 카드 */
+  --surface-elevated: #FFFFFF;
+  /* 컬러/이미지 위 밝은 반투명 칩 (진행바 트랙 등) */
+  --surface-on-color: rgba(255, 255, 255, 0.25);
+  /* 모달 backdrop */
+  --scrim: rgba(0, 0, 0, 0.5);
+  /* primary/secondary 배경 위에 얹는 글자색 */
+  --on-accent: #FFFFFF;
+  /* 비활성 요소를 배경색 쪽으로 바래게 덮는 막 — 다크에선 어둡게 덮어야 함 */
+  --wash: rgba(255, 255, 255, 0.3);
+  /* hover 시 살짝 덮는 막 — 라이트는 검정, 다크는 흰색이라야 보인다 */
+  --hover-overlay: rgba(0, 0, 0, 0.06);
+  /* 상태 틴트 배경 (위험/주의 강조). 다크에선 밝은 파스텔이 눈부시게 튀어 반투명으로 대체 */
+  --danger-tint: #FFF5F5;
+  --warning-tint: #FFF9E6;
+
+  /* 명예의전당 금색 — 불투명 파스텔은 다크에서 눈부셔서, 기존 .hall-of-fame 처럼
+     "반투명 금색 + 금색 테두리" 패턴으로 통일한다 */
+  --gold-tint: linear-gradient(135deg, #FFFBEA 0%, #FFFDE7 100%);
+  --gold-border: #FFD700;
+
+  /* 랭킹 행 강조 (명전 / 나 / 검색결과) — Club.tsx 인라인 스타일에서도 이 토큰을 쓴다 */
+  --row-hof-bg: linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%);
+  --row-hof-border: #FFD700;
+  --row-me-bg: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+  --row-me-border: #2196F3;
+  --row-found-bg: linear-gradient(135deg, #FFE4EE 0%, #FFB6C1 100%);
+  --row-found-border: #FF6B9D;
+}
+
+/* ── 다크 테마 ────────────────────────────────────────────────
+   브랜드색(하늘/핑크)을 유지하되 어두운 배경에서 읽히도록 명도만 올림.
+   라이트↔다크 전환 시 앱 정체성이 유지되는 게 목적. */
+[data-theme='dark'] {
+  --primary-color: #5DD6FF;
+  --primary-hover: #8AE2FF;
+  --secondary-color: #FF7FB0;
+  --secondary-hover: #FF9CC4;
+  --success-color: #4ADE80;
+  --bg-color: #0F1115;
+  --card-bg: #171A21;
+  --card-hover-bg: #1E222B;
+  --text-primary: #E8EDF4;
+  --text-secondary: #98A4B3;
+  --border-color: #2A2F3A;
+  --input-bg: #1B1F27;
+  --gradient-primary: linear-gradient(135deg, #5DD6FF 0%, #FF7FB0 100%);
+  --gradient-light: linear-gradient(135deg, rgba(93, 214, 255, 0.14) 0%, rgba(255, 127, 176, 0.14) 100%);
+  /* 어두운 배경에선 컬러 그림자가 탁해 보여 검정 기반으로 교체 */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+
+  --body-bg: linear-gradient(180deg, #0F1115 0%, #12161D 50%, #171A21 100%);
+  --surface-translucent: rgba(23, 26, 33, 0.96);
+  --surface-elevated: #171A21;
+  --surface-on-color: rgba(255, 255, 255, 0.16);
+  --scrim: rgba(0, 0, 0, 0.68);
+  /* 밝은 하늘/핑크 위에는 흰 글자가 안 읽혀서 어두운 글자를 얹는다 */
+  --on-accent: #0F1115;
+  --wash: rgba(15, 17, 21, 0.4);
+  --hover-overlay: rgba(255, 255, 255, 0.08);
+  --danger-tint: rgba(239, 68, 68, 0.16);
+  --warning-tint: rgba(245, 158, 11, 0.16);
+
+  --gold-tint: linear-gradient(135deg, rgba(255, 215, 0, 0.16) 0%, rgba(255, 215, 0, 0.06) 100%);
+  --gold-border: rgba(255, 215, 0, 0.55);
+
+  --row-hof-bg: linear-gradient(135deg, rgba(255, 215, 0, 0.16) 0%, rgba(255, 215, 0, 0.06) 100%);
+  --row-hof-border: rgba(255, 215, 0, 0.6);
+  --row-me-bg: linear-gradient(135deg, rgba(93, 214, 255, 0.18) 0%, rgba(93, 214, 255, 0.06) 100%);
+  --row-me-border: rgba(93, 214, 255, 0.65);
+  --row-found-bg: linear-gradient(135deg, rgba(255, 127, 176, 0.2) 0%, rgba(255, 127, 176, 0.07) 100%);
+  --row-found-border: rgba(255, 127, 176, 0.7);
 }
 
 * {
@@ -48,7 +130,7 @@ body {
   font-family: 'LineSeed', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 50%, #FFF5F8 100%);
+  background: var(--body-bg);
   background-attachment: fixed;
   color: var(--text-primary);
 }
@@ -75,7 +157,7 @@ body {
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--surface-translucent);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border-color);
   padding: 12px 20px;
@@ -183,7 +265,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--on-accent);
   font-weight: 600;
   font-size: 16px;
   border: 2px solid var(--border-color);
@@ -209,7 +291,7 @@ body {
 /* Buttons */
 .primary-button {
   background: var(--gradient-primary);
-  color: #FFFFFF;
+  color: var(--on-accent);
   border: none;
   padding: 16px 28px;
   border-radius: 16px;
@@ -325,7 +407,7 @@ body {
   left: 0;
   right: 0;
   height: 70px;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--surface-translucent);
   backdrop-filter: blur(10px);
   border-top: 1px solid var(--border-color);
   display: flex;
@@ -475,7 +557,7 @@ body {
 
 .workout-tab.active {
   background: var(--gradient-primary);
-  color: #FFFFFF;
+  color: var(--on-accent);
   border-color: transparent;
   font-weight: 600;
 }
@@ -517,7 +599,7 @@ body {
 .distance-input:focus {
   outline: none;
   border-color: var(--primary-color);
-  background: #FFFFFF;
+  background: var(--card-bg);
   box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
 }
 
@@ -608,7 +690,7 @@ body {
 /* Add Button */
 .add-button {
   background: var(--gradient-primary);
-  color: #FFFFFF;
+  color: var(--on-accent);
   border: none;
   padding: 7px 12px;
   border-radius: 10px;
@@ -640,8 +722,8 @@ body {
   transition: all 0.2s;
 }
 .sync-button:hover {
-  background: #f5f5f5;
-  color: #333;
+  background: var(--card-hover-bg);
+  color: var(--text-primary);
 }
 .sync-button:disabled {
   opacity: 0.5;
@@ -656,7 +738,7 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -803,7 +885,7 @@ body.search-modal-open .bottom-nav {
 
 .button-primary {
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
 }
 
 .button-primary:hover {
@@ -873,7 +955,7 @@ body.search-modal-open .bottom-nav {
 }
 
 .more-menu-item.danger:hover {
-  background: #fff5f5;
+  background: var(--danger-tint);
 }
 
 .more-menu-item.danger .more-menu-title {
@@ -885,7 +967,7 @@ body.search-modal-open .bottom-nav {
 .cmenu-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--scrim);
   z-index: 1100;
   display: flex;
   align-items: flex-end;
@@ -1173,7 +1255,7 @@ body.search-modal-open .bottom-nav {
 .value-input:focus {
   outline: none;
   border-color: var(--primary-color);
-  background: #FFFFFF;
+  background: var(--card-bg);
   box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
 }
 
@@ -1567,7 +1649,7 @@ body.search-modal-open .bottom-nav {
 
 .react-calendar__tile--active {
   background: var(--gradient-primary) !important;
-  color: white !important;
+  color: var(--on-accent) !important;
   border-color: transparent !important;
 }
 
@@ -1752,7 +1834,7 @@ body.search-modal-open .bottom-nav {
 
 .picker-month-btn.selected {
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
   border-color: transparent;
 }
 
@@ -1785,7 +1867,7 @@ body.search-modal-open .bottom-nav {
 
 .picker-year-btn.selected {
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
   border-color: transparent;
 }
 
@@ -1986,7 +2068,7 @@ body.search-modal-open .bottom-nav {
 .view-button,
 .join-button {
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
   border: none;
   padding: 8px 16px;
   border-radius: 8px;
@@ -2115,7 +2197,7 @@ body.search-modal-open .bottom-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--on-accent);
   font-weight: 700;
   font-size: 18px;
   border: 2px solid var(--border-color);
@@ -2218,7 +2300,7 @@ body.search-modal-open .bottom-nav {
 .textarea-input:focus {
   outline: none;
   border-color: var(--primary-color);
-  background: #FFFFFF;
+  background: var(--card-bg);
   box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
 }
 
@@ -2273,7 +2355,7 @@ body.search-modal-open .bottom-nav {
 .invite-code-input:focus {
   outline: none;
   border-color: var(--primary-color);
-  background: #FFFFFF;
+  background: var(--card-bg);
   box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.15);
 }
 
@@ -2624,7 +2706,7 @@ body.search-modal-open .bottom-nav {
   position: fixed;
   inset: 0;
   z-index: 1100;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--scrim);
   display: flex;
   align-items: flex-end;
   -webkit-transform: translateZ(0);
@@ -2766,7 +2848,7 @@ body.search-modal-open .bottom-nav {
 .feedback-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--scrim);
   z-index: 1100;
   display: flex;
   align-items: flex-end;
@@ -2916,7 +2998,7 @@ body.search-modal-open .bottom-nav {
   width: 100%;
   padding: 16px;
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 14px;
   font-size: 16px;
@@ -3083,7 +3165,7 @@ body.search-modal-open .bottom-nav {
 .mileage-input:focus {
   outline: none;
   border-color: var(--primary-color);
-  background: #FFFFFF;
+  background: var(--card-bg);
 }
 
 .form-hint {
@@ -3230,7 +3312,7 @@ body.search-modal-open .bottom-nav {
   gap: 6px;
   padding: 10px 16px;
   background: var(--primary-color);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -3262,7 +3344,7 @@ body.search-modal-open .bottom-nav {
 
 .stats-table thead {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--on-accent);
 }
 
 .stats-table th {
@@ -3305,11 +3387,11 @@ body.search-modal-open .bottom-nav {
 }
 
 .stats-table tbody tr:nth-child(even) {
-  background: #fafafa;
+  background: var(--input-bg);
 }
 
 .stats-table tbody tr:hover {
-  background: #f0f4ff;
+  background: var(--card-hover-bg);
 }
 
 .stats-table tbody tr:last-child td {
@@ -3382,7 +3464,7 @@ body.search-modal-open .bottom-nav {
   gap: 6px;
   padding: 10px 14px;
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 10px;
   font-size: 13px;
@@ -3493,7 +3575,7 @@ body.search-modal-open .bottom-nav {
   gap: 4px;
   padding: 10px 8px;
   background: var(--primary-color);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 12px;
   font-size: 11px;
@@ -3557,7 +3639,7 @@ body.search-modal-open .bottom-nav {
   bottom: 80px;
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--surface-translucent);
   backdrop-filter: blur(10px);
   padding: 12px 16px;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
@@ -3812,7 +3894,7 @@ body.search-modal-open .bottom-nav {
 }
 
 .step3-digit-box.selected {
-  background: white;
+  background: var(--card-bg);
   border-color: var(--primary-color);
   color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.15), 0 4px 14px rgba(79, 195, 247, 0.2);
@@ -3874,7 +3956,7 @@ body.search-modal-open .bottom-nav {
 
 .step3-stepper-plus {
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
   box-shadow: 0 4px 14px rgba(79, 195, 247, 0.3);
 }
 
@@ -4387,7 +4469,7 @@ body.search-modal-open .bottom-nav {
 .step3-memo-textarea:focus {
   outline: none;
   border-color: var(--primary-color);
-  background: white;
+  background: var(--card-bg);
   box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.08);
 }
 
@@ -4460,7 +4542,7 @@ body.search-modal-open .bottom-nav {
 }
 
 .chart-metric-btn.active {
-  background: white;
+  background: var(--card-bg);
   color: var(--text-primary);
   font-weight: 600;
   box-shadow: 0 1px 4px rgba(0,0,0,0.1);
@@ -5108,7 +5190,7 @@ body.search-modal-open .bottom-nav {
 
 .pc-preset-btn.active {
   background: var(--secondary-color);
-  color: white;
+  color: var(--on-accent);
 }
 
 .pc-desc {
@@ -5175,7 +5257,7 @@ body.search-modal-open .bottom-nav {
 
 .challenge-add-btn {
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 20px;
   padding: 6px 14px;
@@ -5553,7 +5635,7 @@ body.search-modal-open .bottom-nav {
   width: calc(100% - 28px);
   padding: 8px;
   background: var(--primary-color);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 8px;
   font-size: 13px;
@@ -5709,7 +5791,7 @@ body.search-modal-open .bottom-nav {
 
 .workout-type-chip.selected {
   background: var(--primary-color);
-  color: white;
+  color: var(--on-accent);
   border-color: var(--primary-color);
 }
 
@@ -5789,7 +5871,7 @@ body.search-modal-open .bottom-nav {
   bottom: 70px;
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--surface-translucent);
   backdrop-filter: blur(10px);
   padding: 12px 16px;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
@@ -5806,7 +5888,7 @@ body.search-modal-open .bottom-nav {
   gap: 8px;
   padding: 14px;
   background: var(--primary-color);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 12px;
   font-size: 15px;
@@ -5881,7 +5963,7 @@ body.search-modal-open .bottom-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--on-accent);
   font-weight: 700;
   font-size: 16px;
 }
@@ -5906,7 +5988,7 @@ body.search-modal-open .bottom-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--on-accent);
   font-weight: 700;
   font-size: 13px;
 }
@@ -6051,7 +6133,7 @@ body.search-modal-open .bottom-nav {
 }
 
 .settings-menu-item.danger:hover {
-  background: #fff5f5;
+  background: var(--danger-tint);
 }
 
 .menu-item-left {
@@ -6101,7 +6183,7 @@ body.search-modal-open .bottom-nav {
 .copy-button {
   padding: 8px;
   background: var(--primary-color);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -6162,7 +6244,7 @@ body.search-modal-open .bottom-nav {
   width: 100%;
   padding: 14px 20px;
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 12px;
   font-size: 16px;
@@ -6234,7 +6316,7 @@ body.search-modal-open .bottom-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--on-accent);
   font-weight: 700;
   font-size: 18px;
   border: 2px solid var(--border-color);
@@ -6659,7 +6741,7 @@ body.search-modal-open .bottom-nav {
   width: 100%;
   padding: 16px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 12px;
   font-size: 16px;
@@ -6680,7 +6762,7 @@ body.search-modal-open .bottom-nav {
 }
 
 .admin-club-card {
-  background: white;
+  background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 20px;
@@ -6773,7 +6855,7 @@ body.search-modal-open .bottom-nav {
 }
 
 .admin-reject-button {
-  background: white;
+  background: var(--card-bg);
   color: #e53935;
   border: 2px solid #e53935;
 }
@@ -6824,7 +6906,7 @@ body.search-modal-open .bottom-nav {
   gap: 16px;
   width: 100%;
   padding: 20px;
-  background: white;
+  background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   margin-bottom: 12px;
@@ -6845,7 +6927,7 @@ body.search-modal-open .bottom-nav {
   height: 48px;
   border-radius: 12px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6987,7 +7069,7 @@ body.search-modal-open .bottom-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--on-accent);
   font-weight: 700;
   font-size: 18px;
   border: 2px solid var(--border-color);
@@ -7014,7 +7096,7 @@ body.search-modal-open .bottom-nav {
   display: inline-block;
   padding: 2px 8px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 600;
   border-radius: 4px;
@@ -7024,7 +7106,7 @@ body.search-modal-open .bottom-nav {
   display: inline-block;
   padding: 2px 8px;
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 600;
   border-radius: 4px;
@@ -7075,7 +7157,7 @@ body.search-modal-open .bottom-nav {
 }
 
 .member-action-button.danger:hover {
-  background: #fff5f5;
+  background: var(--danger-tint);
   border-color: #FF6B6B;
 }
 
@@ -7108,7 +7190,7 @@ body.search-modal-open .bottom-nav {
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 24px;
-  color: white;
+  color: var(--on-accent);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
@@ -7219,7 +7301,7 @@ body.search-modal-open .bottom-nav {
 
 .date-nav-today-btn:hover {
   background: var(--primary-color);
-  color: white;
+  color: var(--on-accent);
 }
 
 .date-nav-button {
@@ -7291,7 +7373,7 @@ body.search-modal-open .bottom-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--on-accent);
   font-weight: 600;
   font-size: 16px;
   border: 2px solid var(--border-color);
@@ -7436,7 +7518,7 @@ body.search-modal-open .bottom-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--on-accent);
   font-weight: 600;
   font-size: 13px;
   text-align: center;
@@ -7560,7 +7642,7 @@ body.search-modal-open .bottom-nav {
 
 .comment-submit {
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 18px;
   padding: 8px 16px;
@@ -7734,7 +7816,7 @@ body.search-modal-open .bottom-nav {
 }
 
 .feed-more-btn:hover {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--hover-overlay);
 }
 
 .feed-more-menu {
@@ -7766,7 +7848,7 @@ body.search-modal-open .bottom-nav {
 }
 
 .feed-more-menu button:hover {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--hover-overlay);
 }
 
 /* 신고 사유 버튼 */
@@ -7789,7 +7871,7 @@ body.search-modal-open .bottom-nav {
 }
 
 .report-reason-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--hover-overlay);
 }
 
 .report-reason-btn.selected {
@@ -7821,7 +7903,7 @@ body.search-modal-open .bottom-nav {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  background: rgba(0,0,0,0.06);
+  background: var(--hover-overlay);
   border-radius: 14px;
   overflow: hidden;
   margin: 16px 0;
@@ -7968,7 +8050,7 @@ body.search-modal-open .bottom-nav {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--wash);
   pointer-events: none;
   border-radius: 12px;
 }
@@ -7990,7 +8072,7 @@ body.search-modal-open .bottom-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--on-accent);
   font-weight: 600;
   font-size: 14px;
   flex-shrink: 0;
@@ -8003,7 +8085,7 @@ body.search-modal-open .bottom-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--on-accent);
   font-weight: 600;
   font-size: 14px;
   border: 1.5px solid var(--border-color);
@@ -8130,14 +8212,14 @@ body.search-modal-open .bottom-nav {
 
 /* 비활성화된 카드의 좋아요/댓글 버튼 - 상대적으로 선명하게 */
 .feed-card-disabled .feed-action-btn-v2 {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--card-bg);
   border: 1px solid var(--border-color);
   position: relative;
   z-index: 1;
 }
 
 .feed-card-disabled .feed-action-btn-v2:hover {
-  background: white;
+  background: var(--card-bg);
   border-color: var(--primary-color);
   transform: translateY(-1px);
 }
@@ -8259,7 +8341,7 @@ body.workout-detail-open .bottom-nav {
 .workout-sheet-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--scrim);
   z-index: 1100;
   display: flex;
   align-items: flex-end;
@@ -8427,7 +8509,7 @@ body.workout-detail-open .bottom-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--on-accent);
   font-weight: 600;
   font-size: 20px;
   text-align: center;
@@ -8467,7 +8549,7 @@ body.workout-detail-open .bottom-nav {
 }
 
 .detail-action-report:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--hover-overlay);
 }
 
 .detail-action-block {
@@ -8560,14 +8642,14 @@ body.workout-detail-open .bottom-nav {
 }
 
 .difficulty-level-btn:hover {
-  background: #f0f0f0;
+  background: var(--card-hover-bg);
   transform: translateY(-2px);
 }
 
 .difficulty-level-btn.active {
   background: var(--gradient-primary);
   border-color: var(--primary-color);
-  color: white;
+  color: var(--on-accent);
 }
 
 .difficulty-number {
@@ -8592,7 +8674,7 @@ body.workout-detail-open .bottom-nav {
 .fine-tune-adjust-btn {
   flex: 1;
   padding: 12px 16px;
-  background: white;
+  background: var(--card-bg);
   border: 2px solid var(--border-color);
   border-radius: 8px;
   cursor: pointer;
@@ -8604,7 +8686,7 @@ body.workout-detail-open .bottom-nav {
 }
 
 .fine-tune-adjust-btn:hover:not(:disabled) {
-  background: #f8f8f8;
+  background: var(--card-hover-bg);
   border-color: var(--primary-color);
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -8632,7 +8714,7 @@ body.workout-detail-open .bottom-nav {
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  background: white;
+  background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   cursor: pointer;
@@ -8641,7 +8723,7 @@ body.workout-detail-open .bottom-nav {
 }
 
 .menu-item-btn:hover {
-  background: #f8f8f8;
+  background: var(--card-hover-bg);
   border-color: var(--primary-color);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -8706,7 +8788,7 @@ body.workout-detail-open .bottom-nav {
   display: flex;
   gap: 12px;
   padding: 16px;
-  background: white;
+  background: var(--card-bg);
   border: 2px solid var(--border-color);
   border-radius: 12px;
   transition: all 0.2s;
@@ -8725,7 +8807,7 @@ body.workout-detail-open .bottom-nav {
   align-items: center;
   justify-content: center;
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
   border-radius: 50%;
   font-weight: 700;
   font-size: 16px;
@@ -8781,7 +8863,7 @@ body.workout-detail-open .bottom-nav {
   text-align: center;
   margin: 0;
   padding: 12px;
-  background: #FFF9E6;
+  background: var(--warning-tint);
   border-radius: 8px;
   border: 1px solid #FFE89C;
 }
@@ -8827,7 +8909,7 @@ body.workout-detail-open .bottom-nav {
   top: 4px;
   right: 4px;
   background: var(--secondary-color);
-  color: white;
+  color: var(--on-accent);
   font-size: 10px;
   font-weight: 700;
   padding: 2px 5px;
@@ -8866,7 +8948,7 @@ body.workout-detail-open .bottom-nav {
   width: 100%;
   max-width: 400px;
   max-height: 600px;
-  background: white;
+  background: var(--card-bg);
   border-radius: 0 0 0 16px;
   box-shadow: var(--shadow-lg);
   z-index: 1001;
@@ -9019,7 +9101,7 @@ body.workout-detail-open .bottom-nav {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  color: white;
+  color: var(--on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9150,7 +9232,7 @@ body.workout-detail-open .bottom-nav {
 
 /* 하이라이트 댓글 */
 .comment-item.highlighted {
-  background-color: #fff3cd;
+  background-color: var(--warning-tint);
   animation: highlight-fade 2s ease-out;
 }
 
@@ -9225,7 +9307,7 @@ body.workout-detail-open .bottom-nav {
   height: 32px;
   border-radius: 50%;
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9305,7 +9387,7 @@ body.workout-detail-open .bottom-nav {
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
-  color: white;
+  color: var(--on-accent);
   font-weight: 500;
 }
 
@@ -9592,7 +9674,7 @@ body.workout-detail-open .bottom-nav {
   gap: 8px;
   padding: 12px 24px;
   background: var(--primary-color);
-  color: white;
+  color: var(--on-accent);
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
@@ -9744,13 +9826,13 @@ body.workout-detail-open .bottom-nav {
 
 /* 명예의 전당 하이라이트 (랭킹 아이템) */
 .ranking-item.hof-highlight {
-  background: linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%) !important;
-  border: 2px solid #FFD700 !important;
+  background: var(--row-hof-bg) !important;
+  border: 2px solid var(--row-hof-border) !important;
   box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
 }
 
 .ranking-item.hof-highlight:hover {
-  background: linear-gradient(135deg, #FFF4CC 0%, #FFF0D9 100%) !important;
+  background: var(--row-hof-bg) !important;
   box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
   transform: translateY(-4px);
 }
@@ -9798,7 +9880,7 @@ body.workout-detail-open .bottom-nav {
 }
 
 .member-action-button.hof-remove:hover {
-  background: #FFF9E6;
+  background: var(--warning-tint);
   border-color: #B8860B;
 }
 
@@ -10207,13 +10289,13 @@ body.workout-detail-open .bottom-nav {
 
 .badge-admin {
   background: linear-gradient(135deg, #FF6B9D 0%, #FF4081 100%);
-  color: white;
+  color: var(--on-accent);
   box-shadow: 0 2px 4px rgba(255, 107, 157, 0.3);
 }
 
 .badge-sub-admin {
   background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
-  color: white;
+  color: var(--on-accent);
   box-shadow: 0 2px 4px rgba(79, 195, 247, 0.3);
 }
 
@@ -10270,7 +10352,7 @@ body.workout-detail-open .bottom-nav {
 }
 
 .btn-icon.btn-danger:hover {
-  background: #fef2f2;
+  background: var(--danger-tint);
   border-color: #ef4444;
 }
 
@@ -10738,7 +10820,7 @@ body.workout-detail-open .bottom-nav {
 
 .records-add-btn {
   background: var(--primary-color);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 20px;
   padding: 6px 16px;
@@ -10773,8 +10855,8 @@ body.workout-detail-open .bottom-nav {
 }
 
 .race-card.pb {
-  border-color: #FFD700;
-  background: linear-gradient(135deg, #FFFEF0 0%, var(--card-bg) 100%);
+  border-color: var(--gold-border);
+  background: var(--gold-tint);
 }
 
 .race-pb-badge {
@@ -10892,7 +10974,7 @@ body.workout-detail-open .bottom-nav {
 .race-detail-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--scrim);
   z-index: 1000;
   display: flex;
   align-items: flex-end;
@@ -10979,7 +11061,7 @@ body.workout-detail-open .bottom-nav {
 
 .race-detail-edit-btn {
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
 }
 
 .race-detail-delete-btn {
@@ -11198,7 +11280,7 @@ body.workout-detail-open .bottom-nav {
   width: 100%;
   padding: 14px;
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 12px;
   font-size: 15px;
@@ -11361,7 +11443,7 @@ body.workout-detail-open .bottom-nav {
 .race-save-btn {
   width: 100%;
   background: var(--gradient-primary);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 14px;
   padding: 15px;
@@ -11445,7 +11527,7 @@ body.workout-detail-open .bottom-nav {
 .growth-dash-sort-btn.active {
   background: var(--primary-color);
   border-color: var(--primary-color);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .growth-dash-search {
@@ -11514,7 +11596,7 @@ body.workout-detail-open .bottom-nav {
   flex-shrink: 0;
   font-size: 15px;
   font-weight: 700;
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .growth-card-avatar img {
@@ -11554,7 +11636,7 @@ body.workout-detail-open .bottom-nav {
 .growth-card-days {
   font-size: 12px;
   color: var(--text-secondary);
-  background: rgba(0,0,0,0.05);
+  background: var(--hover-overlay);
   padding: 1px 6px;
   border-radius: 8px;
   white-space: nowrap;
@@ -11993,8 +12075,8 @@ body.workout-detail-open .bottom-nav {
 }
 
 .hof-card {
-  background: linear-gradient(135deg, #FFFBEA 0%, #FFFDE7 100%);
-  border: 2px solid #FFD700;
+  background: var(--gold-tint);
+  border: 2px solid var(--gold-border);
   border-radius: 16px;
   padding: 16px 12px;
   display: flex;
@@ -12027,7 +12109,7 @@ body.workout-detail-open .bottom-nav {
   justify-content: center;
   font-size: 22px;
   font-weight: 700;
-  color: white;
+  color: var(--on-accent);
   border: 3px solid #FFD700;
   flex-shrink: 0;
 }
@@ -12715,7 +12797,7 @@ body.workout-detail-open .bottom-nav {
 
 .gallery-range-toggle.active {
   background: var(--gradient-primary);
-  color: #fff;
+  color: var(--on-accent);
   border-color: transparent;
 }
 
@@ -12799,7 +12881,7 @@ body.workout-detail-open .bottom-nav {
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--surface-translucent);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-color);
 }

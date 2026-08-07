@@ -5,12 +5,14 @@ import { Shield, BookOpen, Smartphone, UserX, Image, MessageSquarePlus, Unlink }
 import { InstallGuideModal } from '../components/InstallGuideModal';
 import { FeedbackModal } from '../components/FeedbackModal';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../hooks/useTheme';
 
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
 const STRAVA_CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID;
 
 export const More = () => {
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showInstallGuide, setShowInstallGuide] = useState(false);
@@ -152,7 +154,7 @@ export const More = () => {
               )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span>Strava</span>
-                <span style={{ fontSize: 11, color: '#888' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
                   {stravaConnected === null
                     ? '확인 중...'
                     : stravaConnected
@@ -170,9 +172,9 @@ export const More = () => {
                   gap: 4,
                   padding: '6px 12px',
                   borderRadius: 6,
-                  border: '1px solid #ddd',
-                  background: '#fff',
-                  color: '#666',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--card-bg)',
+                  color: 'var(--text-secondary)',
                   fontSize: 13,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -206,6 +208,16 @@ export const More = () => {
       <div className="section">
         <h3>앱 설정</h3>
         <div className="menu-list">
+          <div className="menu-item-btn" style={{ cursor: 'default' }}>
+            <div className="menu-item-left">
+              <span style={{ fontSize: 20 }}>{isDark ? '🌙' : '☀️'}</span>
+              <span>다크 모드</span>
+            </div>
+            <label className="toggle-switch">
+              <input type="checkbox" checked={isDark} onChange={toggleTheme} />
+              <span className="toggle-slider" />
+            </label>
+          </div>
           <div className="menu-item-btn" style={{ cursor: 'default' }}>
             <div className="menu-item-left">
               <span style={{ fontSize: 20 }}>💬</span>

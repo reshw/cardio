@@ -129,7 +129,7 @@ export const SocialTab: React.FC<Props> = ({ clubId, userId, isAdmin, selectedMo
                 return (
                   <div key={entry.user_id} className={`ranking-item${isMe ? ' my-rank-context-row--me' : ''}`}>
                     <div className="ranking-rank">{entry.rank}</div>
-                    <div className="ranking-profile-placeholder" style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)', minWidth: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 14, fontWeight: 700 }}>
+                    <div className="ranking-profile-placeholder" style={{ background: 'var(--gradient-primary)', minWidth: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 14, fontWeight: 700 }}>
                       {entry.nickname[0]}
                     </div>
                     <div className="ranking-info">

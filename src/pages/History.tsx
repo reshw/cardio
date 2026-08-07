@@ -183,6 +183,10 @@ export const History = () => {
     const categoryCount: Record<string, number> = {};
     const distanceByGroup: Record<string, number> = {};
     const countByGroup: Record<string, number> = {};
+    // 종목 그룹별 기록값 합계. 한 그룹에 단위가 섞일 수 있어(예: 계단 = 시간(분) + 층수(층))
+    // 단위별로 따로 합산한 뒤, 기록 수가 가장 많은 단위를 그 그룹의 대표로 삼는다.
+    // (분 + 층 처럼 서로 다른 단위를 더해버리는 것을 막기 위함)
+    const valueByGroupUnit: Record<string, Record<string, { sum: number; count: number }>> = {};
     monthWorkouts.forEach((w) => {
       const label = getWorkoutLabel(w);
       categoryCount[label] = (categoryCount[label] || 0) + 1;
@@ -192,8 +196,25 @@ export const History = () => {
         const distKm = w.unit === 'm' ? w.value / 1000 : w.value;
         distanceByGroup[group] = (distanceByGroup[group] || 0) + distKm;
       }
+      // m 는 km 로 환산해 같은 단위로 묶는다
+      const unit = w.unit === 'm' ? 'km' : w.unit;
+      const value = w.unit === 'm' ? w.value / 1000 : w.value;
+      if (!valueByGroupUnit[group]) valueByGroupUnit[group] = {};
+      const bucket = valueByGroupUnit[group][unit] ?? { sum: 0, count: 0 };
+      bucket.sum += value;
+      bucket.count += 1;
+      valueByGroupUnit[group][unit] = bucket;
     });
-    return { totalWorkouts: monthWorkouts.length, totalDistance, workoutDays: uniqueDays, categoryCount, distanceByGroup, countByGroup };
+
+    const valueByGroup: Record<string, number> = {};
+    const unitByGroup: Record<string, string> = {};
+    Object.entries(valueByGroupUnit).forEach(([group, units]) => {
+      const [domUnit, domBucket] = Object.entries(units).sort((a, b) => b[1].count - a[1].count)[0];
+      valueByGroup[group] = domBucket.sum;
+      unitByGroup[group] = domUnit;
+    });
+
+    return { totalWorkouts: monthWorkouts.length, totalDistance, workoutDays: uniqueDays, categoryCount, distanceByGroup, countByGroup, valueByGroup, unitByGroup };
   };
 
   // 최근 6개월 차트 데이터
@@ -232,7 +253,9 @@ export const History = () => {
 
   const METRIC_CONFIG = {
     workoutDays:   { label: '운동일수', unit: '일' },
-    totalDistance: { label: '종목별',   unit: '회' },
+    // 종목별은 그룹마다 단위가 달라(km/분/층) 단위를 여기서 고정하지 않고
+    // 렌더 시점에 unitByGroup 에서 가져온다
+    totalDistance: { label: '종목별',   unit: '' },
   };
 
   const renderPaceBadge = (pct: number | null) => {
@@ -447,15 +470,20 @@ export const History = () => {
                 <YAxis hide />
                 <Tooltip
                   formatter={(val: any) => {
-                    const tooltipLabel = chartMetric === 'totalDistance' ? selectedChartCat : METRIC_CONFIG[chartMetric].label;
-                    return [`${Math.round(+val)}${METRIC_CONFIG[chartMetric].unit}`, tooltipLabel];
+                    if (chartMetric === 'totalDistance') {
+                      // 그룹마다 단위가 달라(km/분/층) 고정 단위를 쓸 수 없다
+                      const unit = chartData.find((d) => d.unitByGroup?.[selectedChartCat])?.unitByGroup?.[selectedChartCat] ?? '';
+                      const n = +val;
+                      return [`${n % 1 === 0 ? n : n.toFixed(1)}${unit}`, selectedChartCat];
+                    }
+                    return [`${Math.round(+val)}${METRIC_CONFIG[chartMetric].unit}`, METRIC_CONFIG[chartMetric].label];
                   }}
                   contentStyle={{ borderRadius: 10, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: 13 }}
                   cursor={{ fill: 'rgba(79,195,247,0.08)' }}
                 />
                 <Bar
                   dataKey={chartMetric === 'totalDistance'
-                    ? (d: any) => d.countByGroup?.[selectedChartCat] ?? 0
+                    ? (d: any) => d.valueByGroup?.[selectedChartCat] ?? 0
                     : (chartMetric as string)}
                   radius={[6, 6, 0, 0]}
                   cursor="pointer"

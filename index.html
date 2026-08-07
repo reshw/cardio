@@ -7,6 +7,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cardio App</title>
 
+    <!-- 테마 선적용: React 부팅 전에 실행돼야 새로고침 시 흰 화면 번쩍임(FOUC)이 없다.
+         키 이름은 src/hooks/useTheme.ts 의 THEME_KEY 와 반드시 같아야 함. -->
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem('cardio-theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+          }
+        } catch (e) {
+          /* localStorage 차단 환경(사파리 프라이빗 등)에선 라이트로 진행 */
+        }
+      })();
+    </script>
+
     <!-- Kakao SDK -->
     <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js"
       integrity="sha384-l+xbElFSnPZ2rOaPrU//2FF5B4LB8FiX5q4fXYTlfcG4PGpMkE1vcL7kNXI6Cci0"
