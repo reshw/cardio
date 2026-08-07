@@ -191,6 +191,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.signOut();
     setUser(null);
     sessionStorage.clear();
+    // 네이티브 앱(WebView)이면 자체 토큰/헬스 연동 세션도 정리하도록 알림
+    window.CardioNative?.logout?.();
   };
 
   // "데모 체험하기" 버튼 = tmp_number=0 등록된 기본 데모 유저

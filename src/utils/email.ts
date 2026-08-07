@@ -18,6 +18,18 @@ export const sendMileageAlertEmail = async (data: {
   }
 };
 
+export const sendTesterApplicationEmail = async (email: string): Promise<void> => {
+  const response = await fetch('/api/send-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'tester-application', email, timestamp: new Date().toISOString() }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error || `요청 실패 (${response.status})`);
+  }
+};
+
 export const sendClubRequestEmail = async (data: {
   adminEmail: string;
   clubName: string;

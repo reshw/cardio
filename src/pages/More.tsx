@@ -228,6 +228,17 @@ export const More = () => {
               <span className="toggle-slider" />
             </label>
           </div>
+          {typeof window !== 'undefined' && window.CardioNative?.openHealthSync && (
+            <button
+              className="menu-item-btn"
+              onClick={() => window.CardioNative?.openHealthSync?.()}
+            >
+              <div className="menu-item-left">
+                <span style={{ fontSize: 20 }}>❤️‍🩹</span>
+                <span>건강 데이터 동기화 관리</span>
+              </div>
+            </button>
+          )}
         </div>
       </div>
 

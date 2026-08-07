@@ -69,6 +69,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ success: true });
     }
 
+    if (type === 'tester-application') {
+      const { email, timestamp } = body;
+      if (!email) return res.status(400).json({ error: 'Missing required fields' });
+      const { error } = await resend.emails.send({
+        from: 'Cardio Club <ai@scnd.kr>',
+        to: ['reshw@naver.com'],
+        subject: `📱 Play 비공개 테스트 신청: ${email}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #3DDC84;">Play 비공개 테스트 신청</h2>
+            <div style="background: #F8FAFB; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 10px 0;"><strong>Google Play 계정 이메일:</strong> ${email}</p>
+              <p style="margin: 10px 0;"><strong>신청 시각:</strong> ${timestamp ? new Date(timestamp).toLocaleString('ko-KR') : '알 수 없음'}</p>
+            </div>
+            <p>비공개 테스트 이메일 목록에 수동으로 추가한 뒤 신청자에게 개별 연락해주세요.</p>
+          </div>
+        `,
+      });
+      if (error) return res.status(500).json({ error: 'Email sending failed', details: error });
+      return res.status(200).json({ success: true });
+    }
+
     return res.status(400).json({ error: 'Invalid type' });
   } catch (error) {
     console.error('send-email error:', error);

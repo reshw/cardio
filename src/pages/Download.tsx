@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { sendTesterApplicationEmail } from '../utils/email';
 
 interface AppRelease {
   id: number;
@@ -14,6 +15,12 @@ export const Download = () => {
   const [ios, setIos] = useState<AppRelease | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 비공개 테스트(Alpha) — 신청 즉시 등록이 아니라 이메일을 받아 관리자가 수동으로 추가
+  const [testerEmail, setTesterEmail] = useState('');
+  const [testerSubmitting, setTesterSubmitting] = useState(false);
+  const [testerSubmitted, setTesterSubmitted] = useState(false);
+  const [testerError, setTesterError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase
@@ -36,11 +43,25 @@ export const Download = () => {
     return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
   };
 
-  // Android 는 Play 내부테스트 opt-in 방식으로 전환됨 (app_releases.url = 테스터 신청 링크).
-  // 아직 구 APK URL 이 남아있는 동안 "테스터 신청" 버튼이 APK 를 내려받는 사고를 막기 위해
-  // Play 링크일 때만 버튼을 노출한다.
-  const playOptInUrl =
-    android && /^https:\/\/play\.google\.com\//.test(android.url) ? android.url : null;
+  const handleTesterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = testerEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setTesterError('올바른 이메일 주소를 입력해주세요.');
+      return;
+    }
+    setTesterSubmitting(true);
+    setTesterError(null);
+    try {
+      await sendTesterApplicationEmail(trimmed);
+      setTesterSubmitted(true);
+    } catch (err: any) {
+      console.error('[다운로드] 테스터 신청 접수 실패 상세:', JSON.stringify(err), err);
+      setTesterError(`접수 실패: ${err?.message || JSON.stringify(err)}`);
+    } finally {
+      setTesterSubmitting(false);
+    }
+  };
 
   return (
     <div className="container" style={{ minHeight: '100vh', background: '#f8f9fa' }}>
@@ -119,38 +140,68 @@ export const Download = () => {
                 marginBottom: 16,
                 lineHeight: 1.7,
               }}>
-                <div style={{ fontWeight: 700, marginBottom: 6 }}>Play 스토어 테스터로 설치합니다</div>
-                <div>1. 아래 버튼에서 <b>테스터 되기</b>를 눌러 신청</div>
-                <div>2. Play 스토어에서 <b>Cardio 설치</b></div>
-                <div>3. 이후 업데이트는 Play 스토어가 자동 처리</div>
-                <div style={{ marginTop: 6, color: '#6b76a8' }}>
-                  신청 직후에는 스토어 반영에 몇 분 걸릴 수 있습니다.
-                </div>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>지금은 비공개 테스트 중입니다</div>
+                <div>1. 아래에 Google Play 계정 이메일을 남겨주세요</div>
+                <div>2. 검토 후 비공개 테스트 명단에 개별로 추가해드립니다</div>
+                <div>3. 추가되면 별도로 Play 스토어 참여 링크를 안내해드려요</div>
               </div>
 
-              {playOptInUrl ? (
-                <a
-                  href={playOptInUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'block',
-                    textAlign: 'center',
-                    background: 'linear-gradient(135deg, #3DDC84, #00b894)',
-                    color: '#fff',
-                    padding: '13px 0',
-                    borderRadius: 10,
-                    fontWeight: 600,
-                    fontSize: 15,
-                    textDecoration: 'none',
-                  }}
-                >
-                  Play 테스터 신청하기
-                </a>
-              ) : (
-                <div style={{ textAlign: 'center', color: '#aaa', fontSize: 14, padding: '12px 0' }}>
-                  테스터 신청 링크 준비 중입니다
+              {testerSubmitted ? (
+                <div style={{
+                  textAlign: 'center',
+                  background: '#f0fdf6',
+                  border: '1px solid #b7ebc9',
+                  color: '#1a7a45',
+                  borderRadius: 10,
+                  padding: '13px 0',
+                  fontWeight: 600,
+                  fontSize: 14,
+                }}>
+                  신청이 접수되었습니다. 검토 후 개별로 연락드릴게요 🙌
                 </div>
+              ) : (
+                <form onSubmit={handleTesterSubmit}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="email"
+                      value={testerEmail}
+                      onChange={(e) => { setTesterEmail(e.target.value); setTesterError(null); }}
+                      placeholder="Google Play 계정 이메일"
+                      disabled={testerSubmitting}
+                      style={{
+                        flex: 1,
+                        padding: '12px 14px',
+                        borderRadius: 10,
+                        border: '1px solid #d6e0ff',
+                        fontSize: 14,
+                        minWidth: 0,
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={testerSubmitting}
+                      style={{
+                        flexShrink: 0,
+                        background: 'linear-gradient(135deg, #3DDC84, #00b894)',
+                        color: '#fff',
+                        padding: '0 18px',
+                        borderRadius: 10,
+                        fontWeight: 600,
+                        fontSize: 14,
+                        border: 'none',
+                        cursor: testerSubmitting ? 'default' : 'pointer',
+                        opacity: testerSubmitting ? 0.7 : 1,
+                      }}
+                    >
+                      {testerSubmitting ? '접수 중...' : '신청하기'}
+                    </button>
+                  </div>
+                  {testerError && (
+                    <div style={{ marginTop: 8, fontSize: 12.5, color: '#c0392b', wordBreak: 'break-all' }}>
+                      {testerError}
+                    </div>
+                  )}
+                </form>
               )}
             </div>
 
