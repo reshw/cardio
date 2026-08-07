@@ -155,6 +155,29 @@ flex container 안에서 `flex: 1; overflow-y: auto`를 쓰는 자식은
 
 ---
 
+## 색상은 하드코딩 금지 — 테마 토큰 사용
+
+라이트/다크 테마가 `[data-theme]` + CSS 변수로 동작한다. 표면·글자·테두리 같은 **구조색을
+하드코딩하면 다크모드가 깨진다.** 특히 **강조색 배경 위 글자는 `var(--on-accent)`** 를 써야 한다
+(다크에서 primary 가 밝은 시안이라 흰 글자는 대비 1.68:1 로 판독 불가).
+
+```css
+/* 금지 */
+.btn { background: var(--primary-color); color: #fff; }
+.card:hover { background: #f8f8f8; }
+
+/* 올바름 */
+.btn { background: var(--primary-color); color: var(--on-accent); }
+.card:hover { background: var(--card-hover-bg); }
+```
+
+tsx 인라인 스타일에서도 동일하게 토큰을 쓸 것 (인라인이 CSS 를 이기므로 CSS 만 고치면 안 바뀜).
+단, 상태색(에러/성공)·외부 브랜드색(카카오/Strava)은 두 테마 공통이라 그대로 둔다.
+
+토큰 카탈로그 · 함정 5가지 · 조사/검증 스크립트: **@docs/design-guide_color-system.md**
+
+---
+
 ## 에러 처리 규칙 (필수)
 
 **"오류가 발생했습니다", "생성에 실패했습니다" 같은 원인 없는 메시지 절대 금지.**
