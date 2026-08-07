@@ -1,7 +1,25 @@
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+
 export const PrivacyPolicyIOS = () => {
+  const navigate = useNavigate();
+
+  // 앱 셸(Header/BottomNav) 밖 공개 라우트라 되돌아갈 수단이 없다.
+  // App Store 제출 URL 로 직접 열린 경우엔 돌아갈 히스토리가 없으므로 /more 로 보낸다.
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate('/more');
+  };
+
   return (
     <div className="container">
       <div className="policy-container">
+        <div className="policy-topbar">
+          <button className="policy-back-btn" onClick={goBack}>
+            <ArrowLeft size={18} />
+            <span>돌아가기</span>
+          </button>
+        </div>
         <h1>개인정보처리방침</h1>
         <p className="policy-date">적용 대상: CardioXclub (iOS 앱 · Android 앱 · 웹 서비스)</p>
         <p className="policy-date">시행일자: 2026년 1월 15일</p>

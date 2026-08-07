@@ -13063,3 +13063,100 @@ body.workout-detail-open .bottom-nav {
   vertical-align: middle;
   box-sizing: border-box;
 }
+
+/* ===== 개인정보처리방침 (/privacy, /privacy-ios) =====
+   앱 셸 밖 공개 라우트라 Header/BottomNav 가 없다. 문서 가독성만 확보한다. */
+.policy-container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px 18px 60px;
+  color: var(--text-primary);
+  line-height: 1.7;
+  word-break: keep-all;
+}
+
+/* 돌아가기 상단 고정 바.
+   .policy-container 의 좌우·상단 패딩을 음수 마진으로 상쇄해 폭 전체를 덮는다.
+   (.container 가 overflow-x: clip 이라 sticky 가 유지된다 — hidden 이면 깨진다) */
+.policy-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin: -20px -18px 20px;
+  padding: 12px 18px;
+  background: var(--surface-translucent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.policy-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.policy-back-btn:hover {
+  background: var(--card-hover-bg);
+}
+
+.policy-container h1 {
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+
+.policy-date {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 2px 0;
+}
+
+.policy-section {
+  display: block;
+  margin-top: 28px;
+}
+
+.policy-section h2 {
+  font-size: 17px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.policy-section h3 {
+  font-size: 15px;
+  margin: 16px 0 6px;
+  color: var(--text-secondary);
+}
+
+.policy-section p,
+.policy-section li {
+  font-size: 14px;
+}
+
+.policy-section ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.policy-section li {
+  margin-bottom: 6px;
+}
+
+.contact-info {
+  margin-top: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--card-bg);
+}
+
+.contact-info p {
+  margin: 3px 0;
+}

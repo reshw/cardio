@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Shield, BookOpen, Smartphone, UserX, Image, MessageSquarePlus, Unlink } from 'lucide-react';
+import { Shield, ShieldCheck, BookOpen, Smartphone, UserX, Image, MessageSquarePlus, Unlink } from 'lucide-react';
 import { InstallGuideModal } from '../components/InstallGuideModal';
 import { FeedbackModal } from '../components/FeedbackModal';
 import { supabase } from '../lib/supabase';
@@ -285,6 +285,15 @@ export const More = () => {
             <div className="menu-item-left">
               <MessageSquarePlus size={20} />
               <span>수정 요청 / 버그 제보</span>
+            </div>
+          </button>
+          <button
+            className="menu-item-btn"
+            onClick={() => navigate('/privacy-ios')}
+          >
+            <div className="menu-item-left">
+              <ShieldCheck size={20} />
+              <span>개인정보 처리방침</span>
             </div>
           </button>
         </div>
