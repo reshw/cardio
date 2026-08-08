@@ -92,6 +92,47 @@ class UserService {
     console.log('✅ users 테이블에서 삭제 완료');
   }
 
+  // 본인 탈퇴 (App Store Guideline 5.1.1(v)).
+  // 하드 삭제하면 clubs.created_by CASCADE 때문에 클럽장이 탈퇴할 때 클럽과
+  // 멤버 전원의 데이터가 함께 날아간다 → DB 함수에서 소프트 삭제로 처리한다.
+  // 식별자(auth_id/kakao_id)를 끊으므로 재로그인하면 새 계정으로 가입되고,
+  // 원본은 deleted_snapshot 에 남아 운영자가 복구할 수 있다.
+  // 탈퇴를 막는 클럽 직책 목록. 비어 있으면 탈퇴 가능.
+  // (클럽장이 그냥 나가면 클럽이 주인 없이 남으므로 양도가 먼저다)
+  async getClubRolesBlockingDeletion(
+    userId: string
+  ): Promise<{ clubId: string; clubName: string; role: string }[]> {
+    const { data, error } = await supabase
+      .from('club_members')
+      .select('role, club_id, clubs(name)')
+      .eq('user_id', userId)
+      .in('role', ['manager', 'vice-manager']);
+
+    if (error) {
+      console.error('❌ 클럽 직책 조회 실패 상세:', JSON.stringify(error), error);
+      const msg = error.message || error.details || error.hint || JSON.stringify(error);
+      throw new Error(`클럽 직책 확인 실패: ${msg}`);
+    }
+
+    return (data ?? []).map((row: any) => ({
+      clubId: row.club_id,
+      clubName: row.clubs?.name ?? '이름 없는 클럽',
+      role: row.role,
+    }));
+  }
+
+  async deleteAccount(): Promise<void> {
+    const { error } = await supabase.rpc('delete_own_account');
+
+    if (error) {
+      console.error('❌ 계정 탈퇴 실패 상세:', JSON.stringify(error), error);
+      const msg = error.message || error.details || error.hint || JSON.stringify(error);
+      throw new Error(`계정 탈퇴 실패: ${msg}`);
+    }
+
+    console.log('✅ 계정 탈퇴 완료');
+  }
+
   // 어드민 지정/해제
   async setAdmin(userId: string, isAdmin: boolean): Promise<void> {
     const { error } = await supabase

@@ -105,28 +105,36 @@ export const Support = () => {
         </section>
 
         <section className="policy-section">
-          <h2>계정 삭제 요청</h2>
+          <h2>계정 삭제 (회원 탈퇴)</h2>
           <p>
-            계정 및 계정에 저장된 모든 데이터의 삭제를 요청하실 수 있습니다.
-            아래 이메일로 <strong>가입에 사용한 이메일 주소</strong>와 함께
-            "계정 삭제 요청" 이라고 보내주시면 본인 확인 후 처리해 드립니다.
+            <strong>앱 안에서 직접 계정을 삭제할 수 있습니다.</strong>{' '}
+            별도의 승인 절차나 이메일 문의 없이 즉시 처리됩니다.
           </p>
-          <div className="contact-info">
-            <p><strong>계정 삭제 요청</strong></p>
-            <p>
-              <a href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('계정 삭제 요청')}`}>
-                {SUPPORT_EMAIL}
-              </a>
-            </p>
-          </div>
           <ul>
-            <li>요청 접수 후 영업일 기준 7일 이내에 계정과 운동 기록을 삭제합니다</li>
-            <li>삭제된 데이터는 복구할 수 없습니다</li>
+            <li>더보기 → 화면 맨 아래 <strong>"정보 삭제 후 탈퇴"</strong> 를 누릅니다</li>
+            <li>확인 창에 <strong>탈퇴</strong> 를 입력하고 "탈퇴하기" 를 누르면 즉시 처리됩니다</li>
+          </ul>
+          <p>탈퇴하면 다음과 같이 처리됩니다.</p>
+          <ul>
+            <li>이름·이메일·프로필 사진 등 개인정보가 삭제됩니다</li>
+            <li>클럽 멤버십이 해제되고 랭킹에서 제외됩니다</li>
+            <li>다시 로그인하더라도 기존 계정은 복구되지 않고 새 계정으로 시작됩니다</li>
             <li>
               부정 이용 방지를 위해 관련 법령이 정한 범위에서 일부 정보가 일정 기간
               보관될 수 있습니다 — 자세한 내용은 개인정보처리방침을 참고해 주세요
             </li>
           </ul>
+          <p>
+            앱에 로그인할 수 없어 직접 탈퇴가 어려운 경우에만 아래로 문의해 주세요.
+          </p>
+          <div className="contact-info">
+            <p><strong>탈퇴 관련 문의</strong></p>
+            <p>
+              <a href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('계정 삭제 문의')}`}>
+                {SUPPORT_EMAIL}
+              </a>
+            </p>
+          </div>
         </section>
 
         <section className="policy-section">

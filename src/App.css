@@ -13160,3 +13160,50 @@ body.workout-detail-open .bottom-nav {
 .contact-info p {
   margin: 3px 0;
 }
+
+/* ===== 정보 삭제 후 탈퇴 (더보기) ===== */
+.delete-account-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.delete-account-btn:hover {
+  background: var(--hover-overlay);
+  color: #ef4444;
+}
+
+.delete-account-warning {
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--danger-tint);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.delete-account-warning ul {
+  margin: 8px 0 0 18px;
+  padding: 0;
+}
+
+.delete-account-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 15px;
+  box-sizing: border-box;
+}
