@@ -39,6 +39,7 @@ import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { PrivacyPolicyIOS } from './pages/PrivacyPolicyIOS';
 import { TermsOfService } from './pages/TermsOfService';
 import { Download } from './pages/Download';
+import { Support } from './pages/Support';
 import { JoinClub } from './pages/JoinClub';
 import { AppGuide } from './pages/AppGuide';
 import { Header } from './components/Header';
@@ -200,6 +201,8 @@ function App() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/privacy-ios" element={<PrivacyPolicyIOS />} />
           <Route path="/terms" element={<TermsOfService />} />
+          {/* App Store Connect 지원 URL — 심사자는 비로그인이라 반드시 public 이어야 한다 */}
+          <Route path="/support" element={<Support />} />
           <Route path="/download" element={<Download />} />
           <Route path="/photo-upload" element={<PhotoUpload />} />
 
