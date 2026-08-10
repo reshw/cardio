@@ -11,6 +11,7 @@ import { IntegratedCommentSection } from '../components/IntegratedCommentSection
 import { LikeStatsModal } from '../components/LikeStatsModal';
 import { useAuth } from '../contexts/AuthContext';
 import { WorkoutSourceIcon, getSourceLabel, getSourceColor } from '../components/WorkoutSourceIcon';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 const REPORT_REASONS = ['스팸', '욕설/혐오발언', '부적절한 내용', '기타'];
 
@@ -70,6 +71,11 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
     if (onClose) { onClose(changed); return; }
     window.history.length > 1 ? navigate(-1) : navigate('/');
   };
+
+  // 모달 모드일 때만 히스토리에 반영 — 페이지 모드(라우트)에서는 isModal=false라 아무것도 push 안 함
+  useModalHistory(isModal, () => goBack(false));
+  useModalHistory(showReportModal, () => setShowReportModal(false));
+  useModalHistory(showBlockConfirm, () => setShowBlockConfirm(false));
 
   // 바텀시트로 열려있는 동안 하단 네비게이션 숨김
   useEffect(() => {

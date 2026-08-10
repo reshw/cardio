@@ -6,6 +6,7 @@ import clubService from '../services/clubService';
 import workoutTypeService from '../services/workoutTypeService';
 import type { MileageConfig } from '../services/clubService';
 import type { WorkoutType } from '../services/workoutTypeService';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 // 운동 종목을 마일리지 설정 카테고리로 변환
 interface WorkoutCategory {
@@ -84,6 +85,7 @@ export const ClubMileageSettings = () => {
   const [updating, setUpdating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  useModalHistory(showConfirmModal, () => setShowConfirmModal(false));
 
   // 동적 운동 종목
   const [workoutCategories, setWorkoutCategories] = useState<WorkoutCategory[]>([]);

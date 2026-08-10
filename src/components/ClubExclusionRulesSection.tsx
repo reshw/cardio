@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import clubService from '../services/clubService';
 import type { ExclusionRule, ExclusionRuleInput, RecalcScope } from '../services/clubService';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface CategoryOption {
   key: string;   // "달리기-러닝" 또는 "수영"
@@ -64,6 +65,9 @@ export const ClubExclusionRulesSection = ({ clubId, categories }: Props) => {
   // 소급 재계산 모달: 저장/삭제/토글 성공 후 어느 범위로 재계산할지
   const [showRetro, setShowRetro] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
+
+  useModalHistory(!!editing, () => setEditing(null));
+  useModalHistory(showRetro, () => setShowRetro(false));
 
   useEffect(() => {
     loadRules();

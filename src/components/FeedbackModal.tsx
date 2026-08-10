@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   onClose: () => void;
@@ -13,6 +14,7 @@ const CATEGORIES = [
 ];
 
 export const FeedbackModal = ({ onClose }: Props) => {
+  useModalHistory(true, onClose);
   const { user } = useAuth();
   const [category, setCategory] = useState('bug');
   const [title, setTitle] = useState('');

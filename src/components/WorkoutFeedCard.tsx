@@ -5,6 +5,7 @@ import feedService from '../services/feedService';
 import { CommentSection } from './CommentSection';
 import { WorkoutDetail } from '../pages/WorkoutDetail';
 import type { WorkoutFeedItem } from '../services/feedService';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 const REPORT_REASONS = ['스팸', '욕설/혐오발언', '부적절한 내용', '기타'];
 
@@ -45,6 +46,9 @@ export const WorkoutFeedCard = ({
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [selectedReason, setSelectedReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useModalHistory(showReportModal, () => setShowReportModal(false));
+  useModalHistory(showBlockConfirm, () => setShowBlockConfirm(false));
 
   // 메뉴 외부 클릭 감지
   const menuRef = useRef<HTMLDivElement>(null);

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import feedService from '../services/feedService';
 import type { LikesByClub } from '../services/feedService';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export const LikeStatsModal = ({ isOpen, onClose, workoutId }: Props) => {
+  useModalHistory(isOpen, onClose);
   const [likesByClub, setLikesByClub] = useState<LikesByClub[]>([]);
   const [loading, setLoading] = useState(false);
 

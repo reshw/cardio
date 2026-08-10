@@ -6,6 +6,7 @@ import clubService from '../services/clubService';
 import type { ClubDetailedStats } from '../services/clubService';
 import challengeService from '../services/challengeService';
 import type { Challenge, GoalValidationRow } from '../services/challengeService';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   challenge: Challenge;
@@ -26,6 +27,7 @@ const VERDICT_COLOR: Record<string, string> = {
 };
 
 export const ChallengeStatsModal = ({ challenge, clubId, clubName, isManager, onClose }: Props) => {
+  useModalHistory(true, onClose);
   const [tab, setTab] = useState<Tab>('stats');
 
   // 마일리지 통계 탭

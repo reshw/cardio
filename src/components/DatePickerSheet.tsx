@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   value: string;        // YYYY-MM-DDTHH:mm (local)
@@ -21,6 +22,7 @@ const relativeDayLabel = (date: Date, idx: number) => {
 };
 
 export default function DatePickerSheet({ value, onChange, onClose, maxDays = 3, anchorDate }: Props) {
+  useModalHistory(true, onClose);
   const now = new Date();
   const realToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const anchor = anchorDate

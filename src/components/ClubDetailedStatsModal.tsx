@@ -4,6 +4,7 @@ import ExcelJS from 'exceljs';
 import clubService from '../services/clubService';
 import type { ClubDetailedStats } from '../services/clubService';
 import { captureElementToPng, saveBlob, describeError } from '../utils/download';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   clubId: string;
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Props) => {
+  useModalHistory(true, onClose);
   const [stats, setStats] = useState<ClubDetailedStats[]>([]);
   const [loading, setLoading] = useState(false);
   const [workoutKeys, setWorkoutKeys] = useState<string[]>([]);

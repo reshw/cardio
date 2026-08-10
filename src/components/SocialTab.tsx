@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, ChevronRight, ExternalLink } from 'lucide-react';
 import socialPointService, { getActionIcon, getActionLabel, type SocialLeaderboardEntry, type SocialMyStats } from '../services/socialPointService';
 import socialGatheringService, { type GatheringMember } from '../services/socialGatheringService';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   clubId: string;
@@ -176,6 +177,7 @@ const GatheringModal: React.FC<{
   onClose: () => void;
   onSuccess: () => void;
 }> = ({ clubId, userId, onClose, onSuccess }) => {
+  useModalHistory(true, onClose);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<GatheringMember[]>([]);
   const [selectedMembers, setSelectedMembers] = useState<GatheringMember[]>([]);

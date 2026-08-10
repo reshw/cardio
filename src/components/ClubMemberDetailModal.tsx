@@ -10,6 +10,7 @@ import { CommentSection } from './CommentSection';
 import { WorkoutDetail } from '../pages/WorkoutDetail';
 import { useAuth } from '../contexts/AuthContext';
 import { getWorkoutStatusLabel } from '../utils/workoutStatusLabel';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   clubId: string;
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const ClubMemberDetailModal = ({ clubId, userId, userName, initialYear, initialMonth, onClose }: Props) => {
+  useModalHistory(true, onClose);
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
 
@@ -32,6 +34,7 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, initialYear, i
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [monthPickerYear, setMonthPickerYear] = useState(initialYear ?? now.getFullYear());
   const [monthPickerMonth, setMonthPickerMonth] = useState(initialMonth ?? (now.getMonth() + 1));
+  useModalHistory(showMonthPicker, () => setShowMonthPicker(false));
 
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(false);

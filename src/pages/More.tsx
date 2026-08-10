@@ -8,6 +8,7 @@ import { FeedbackModal } from '../components/FeedbackModal';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../hooks/useTheme';
 import userService from '../services/userService';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
 const STRAVA_CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID;
@@ -131,6 +132,8 @@ export const More = () => {
     setDeleteConfirmText('');
     setBlockingRoles(null);
   };
+
+  useModalHistory(showDeleteAccount, closeDeleteAccount);
 
   return (
     <div className="container">

@@ -15,6 +15,7 @@ import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { TeamAssignModal } from '../components/TeamAssignModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
+import { useModalHistory } from '../hooks/useModalHistory';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, Lock, Image, Filter } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
 
@@ -71,6 +72,8 @@ export const Club = () => {
   const [showCategoryFilterMenu, setShowCategoryFilterMenu] = useState(false);
   const [showClubMenu, setShowClubMenu] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  useModalHistory(showClubMenu, () => setShowClubMenu(false));
+  useModalHistory(showInviteModal, () => setShowInviteModal(false));
   const [challengeMenuOpen, setChallengeMenuOpen] = useState(false);
   const [showChallengeCreate, setShowChallengeCreate] = useState(false);
   const [showChallengeArchive, setShowChallengeArchive] = useState(false);
@@ -122,6 +125,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const categoryStatsRequestId = useRef(0);
   const categoryStatsKeyRef = useRef<string | null>(null); // 마지막으로 fetch 성공한 club-year-month
   const [showMemberSearch, setShowMemberSearch] = useState(false);
+  useModalHistory(showMemberSearch, () => setShowMemberSearch(false));
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [highlightedUserId, setHighlightedUserId] = useState<string | null>(null);
   const [showFullList, setShowFullList] = useState(false);
@@ -129,6 +133,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   // 랭킹 월 선택 state
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  useModalHistory(showMonthPicker, () => setShowMonthPicker(false));
   const [monthPickerYear, setMonthPickerYear] = useState(selectedMonth.getFullYear());
   const [monthPickerMonth, setMonthPickerMonth] = useState(selectedMonth.getMonth() + 1);
 

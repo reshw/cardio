@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   value: string;
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function ValuePickerSheet({ value, unit, onChange, onClose }: Props) {
+  useModalHistory(true, onClose);
   // 단위별 자릿수 범위 (디지털 다이얼)
   // km: -1 ~ 2 (소수점 첫째 자리 ~ 백의 자리)
   // m:   0 ~ 3 (일 ~ 천)

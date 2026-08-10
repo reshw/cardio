@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import challengeService from '../services/challengeService';
 import type { Challenge } from '../services/challengeService';
 import { ChallengeStatsModal } from './ChallengeStatsModal';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   clubId: string;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export const ChallengeArchiveModal = ({ clubId, clubName, isManager, onClose }: Props) => {
+  useModalHistory(true, onClose);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);

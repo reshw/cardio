@@ -6,6 +6,7 @@ import teamMatchService, { TEAM_PRESETS, DEFAULT_TEAM_MATCH_META } from '../serv
 import type { MyClubWithOrder } from '../services/clubService';
 import workoutTypeService from '../services/workoutTypeService';
 import type { WorkoutType } from '../services/workoutTypeService';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   club: MyClubWithOrder;
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const ChallengeCreateModal = ({ club, userId, onClose, onCreated, onTeamMatchCreated }: Props) => {
+  useModalHistory(true, onClose);
   const today = new Date().toISOString().split('T')[0];
   const [challengeType, setChallengeType] = useState<ChallengeType>('personal_goal');
   const [title, setTitle] = useState('');

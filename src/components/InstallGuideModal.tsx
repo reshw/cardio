@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Smartphone, Share2, MoreVertical, Plus } from 'lucide-react';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   onClose: () => void;
 }
 
 export const InstallGuideModal = ({ onClose }: Props) => {
+  useModalHistory(true, onClose);
   const [platform, setPlatform] = useState<'ios' | 'android' | 'other'>('other');
 
   useEffect(() => {

@@ -4,6 +4,7 @@ import teamMatchService from '../services/teamMatchService';
 import type { ChallengeTeam } from '../services/teamMatchService';
 import clubService from '../services/clubService';
 import type { MyClubWithOrder } from '../services/clubService';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   challengeId: string;
@@ -28,6 +29,7 @@ const dotStyle = (color: string, needsBorder: boolean) => ({
 const isLight = (hex: string) => hex.toLowerCase() === '#e2e8f0';
 
 export const TeamAssignModal = ({ challengeId, club, startDate, baselineMonths = 3, onClose, onSaved }: Props) => {
+  useModalHistory(true, onClose);
   const [teams, setTeams] = useState<ChallengeTeam[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [assignment, setAssignment] = useState<Record<string, string | null>>({});

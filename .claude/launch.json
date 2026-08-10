@@ -7,6 +7,13 @@
       "runtimeArgs": ["run", "dev"],
       "port": 3001,
       "url": "http://localhost:3001"
+    },
+    {
+      "name": "cardio-web-3005",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "3005", "--strictPort"],
+      "port": 3005,
+      "url": "http://localhost:3005"
     }
   ]
 }
