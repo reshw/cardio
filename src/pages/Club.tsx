@@ -716,33 +716,18 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               onClick={() => setShowLockTooltip(false)}
             />
           )}
+          {/* 탭 3개는 반드시 .tabs 의 직계 button.tab 형제로 둘 것 — 예전엔 잠금 툴팁
+              앵커용으로 마일리지만 div 로 한 번 더 감쌌는데, 그러면 .tab 의 padding 이
+              wrapper 로 빠지면서 활성 밑줄(border-bottom)이 나머지 탭보다 위에 그려진다.
+              툴팁은 .tabs(position: relative) 기준으로 띄운다. */}
           <div className="tabs">
-            <div style={{ position: 'relative', flex: 1, padding: '10px 12px', boxSizing: 'border-box' }}>
-              <button
-                className={`tab ${activeTab === 'ranking' ? 'active' : ''}${isLockPeriod ? ' tab--locked' : ''}`}
-                onClick={() => isMileageBlocked ? setShowLockTooltip(v => !v) : setActiveTab('ranking')}
-                style={isMileageBlocked ? { cursor: 'pointer', opacity: 0.5, width: '100%', padding: 0 } : { width: '100%', padding: 0 }}
-              >
-                마일리지{isLockPeriod && <Lock size={12} style={{ marginLeft: 4, verticalAlign: 'middle' }} />}
-              </button>
-              {isMileageBlocked && showLockTooltip && (
-                <div style={{
-                  position: 'absolute', top: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
-                  background: 'var(--card-bg)', border: '1px solid var(--border-color)',
-                  borderRadius: '10px', padding: '8px 12px', whiteSpace: 'nowrap',
-                  fontSize: '13px', color: 'var(--text-primary)', zIndex: 100,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                }}>
-                  <div style={{ position: 'absolute', top: -6, left: '50%', transform: 'translateX(-50%)', width: 10, height: 10, background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderBottom: 'none', borderRight: 'none', rotate: '45deg' }} />
-                  🔒 잠금기간
-                  {activePeriods.map((p, i) => (
-                    <span key={i} style={{ display: 'block', marginTop: 2, color: 'var(--text-secondary)' }}>
-                      매월 {p.from}일 ~ {p.to}일
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
+            <button
+              className={`tab ${activeTab === 'ranking' ? 'active' : ''}${isLockPeriod ? ' tab--locked' : ''}`}
+              onClick={() => isMileageBlocked ? setShowLockTooltip(v => !v) : setActiveTab('ranking')}
+              style={isMileageBlocked ? { cursor: 'pointer', opacity: 0.5 } : undefined}
+            >
+              마일리지{isLockPeriod && <Lock size={12} style={{ marginLeft: 4, verticalAlign: 'middle' }} />}
+            </button>
             <button
               className={`tab ${activeTab === 'feed' ? 'active' : ''}`}
               onClick={() => setActiveTab('feed')}
@@ -755,6 +740,24 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             >
               클럽달력
             </button>
+            {isMileageBlocked && showLockTooltip && (
+              <div style={{
+                // 탭 3개가 flex:1 균등분할이므로 첫 탭의 중앙 = 전체 폭의 1/6
+                position: 'absolute', top: 'calc(100% + 8px)', left: '16.667%', transform: 'translateX(-50%)',
+                background: 'var(--card-bg)', border: '1px solid var(--border-color)',
+                borderRadius: '10px', padding: '8px 12px', whiteSpace: 'nowrap',
+                fontSize: '13px', color: 'var(--text-primary)', zIndex: 100,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              }}>
+                <div style={{ position: 'absolute', top: -6, left: '50%', transform: 'translateX(-50%)', width: 10, height: 10, background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderBottom: 'none', borderRight: 'none', rotate: '45deg' }} />
+                🔒 잠금기간
+                {activePeriods.map((p, i) => (
+                  <span key={i} style={{ display: 'block', marginTop: 2, color: 'var(--text-secondary)' }}>
+                    매월 {p.from}일 ~ {p.to}일
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           </>
         );

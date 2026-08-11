@@ -171,6 +171,22 @@ AddRaceModal, TeamAssignModal, ChallengeCreateModal, ChallengeJoinModal.
 현재 이렇게 덮어쓰고 있는 시트: `event-detail`(14px) · `challenge-create`(20px) · `team-assign`(12px) ·
 `challenge-join`(0) · `date-picker`(0, `--sheet-pad-top` 도 0).
 
+### 4-3-1. 함정 ②: `overscroll-behavior` 는 `contain` 이 아니라 `none`
+
+시트 맨 위에서 아래로 당기면 헤더 위쪽에 **큰 공백이 벌어지는** 문제가 있었다 (모바일에서만 눈에 띔).
+
+`contain` 은 **부모로의 스크롤 체이닝만** 막고 **자기 자신의 고무줄(rubber-band) 바운스는 그대로 허용**한다.
+모달이 열릴 때 배경 body 스크롤도 잠그기 때문에(`useModalHistory`), 갈 곳 없는 스크롤이 전부 시트 자체
+바운스로 나타났다. `none` 은 체이닝과 바운스를 **둘 다** 막는다.
+
+```css
+/* 올바름 */
+.feedback-sheet { overscroll-behavior: none; }
+
+/* 금지 — 시트가 자기 혼자 고무줄처럼 늘어나 헤더 위에 공백이 생김 */
+.feedback-sheet { overscroll-behavior: contain; }
+```
+
 ### 4-4. 검증 방법 (다음에 또 만졌을 때)
 
 눈으로 보지 말고 **콘솔에서 실측**한다. 시트를 열고 스크롤을 여러 단계로 옮기며 아래를 확인:

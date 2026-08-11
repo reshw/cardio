@@ -1497,6 +1497,9 @@ body.search-modal-open .bottom-nav {
   margin-bottom: 16px;
   border-bottom: 2px solid var(--border-color);
   padding-bottom: 0;
+  /* 탭 아래에 뜨는 툴팁(마일리지 잠금 안내 등)의 기준 — 탭을 wrapper 로 감싸면
+     .tab 의 padding 이 빠져나가 활성 밑줄이 어긋나므로, 앵커는 여기서 잡는다 */
+  position: relative;
 }
 
 .tab {
@@ -2955,7 +2958,11 @@ body.search-modal-open .bottom-nav {
 
 .feedback-sheet {
   width: 100%;
-  overscroll-behavior: contain;
+  /* contain 이 아니라 none 이어야 한다. contain 은 "부모로의 스크롤 체이닝"만 막고
+     자기 자신의 고무줄(rubber-band) 바운스는 그대로 허용해서, 시트 맨 위에서 아래로
+     당기면 헤더 위쪽에 큰 공백이 벌어진다 (모바일에서만 눈에 띔, 2026-08-12 제보).
+     none 은 체이닝과 바운스를 둘 다 막는다. */
+  overscroll-behavior: none;
   background: var(--card-bg);
   border-radius: 24px 24px 0 0;
   /* sticky 헤더가 이 padding 값을 알아야 자기 배경으로 덮을 수 있어서 변수로 노출한다

@@ -13,6 +13,11 @@ import { useModalHistory } from '../hooks/useModalHistory';
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
 const STRAVA_CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID;
 
+// "외부 연동"(Strava) 섹션 노출 여부. 연동 로직·OAuth 콜백 처리는 그대로 두고 UI 만
+// 숨긴다 — 건강정보 연동은 네이티브 앱 쪽에 별도 메뉴가 생겨서 여기 것과 중복이다
+// (2026-08-12). 되살릴 땐 이 값만 true 로 바꾸면 된다.
+const SHOW_EXTERNAL_INTEGRATIONS = false;
+
 export const More = () => {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
@@ -172,9 +177,8 @@ export const More = () => {
 
   return (
     <div className="container">
-      <div className="header">
-        <h1>더보기</h1>
-      </div>
+      {/* 페이지 제목("더보기")은 전역 Header 가 경로로 판단해 이미 렌더한다 (Header.tsx) —
+          여기서 h1 을 또 두면 화면에 "더보기"가 두 번 나온다 */}
 
       {stravaToast && (
         <div
@@ -221,6 +225,7 @@ export const More = () => {
         </div>
       )}
 
+      {SHOW_EXTERNAL_INTEGRATIONS && (
       <div className="section">
         <h3>외부 연동</h3>
         <div className="menu-list">
@@ -290,6 +295,7 @@ export const More = () => {
           </div>
         </div>
       </div>
+      )}
 
       <div className="section">
         <h3>앱 설정</h3>
