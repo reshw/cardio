@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { WorkoutFeedCard } from './WorkoutFeedCard';
 import { useAuth } from '../contexts/AuthContext';
+import DatePickerSheet from './DatePickerSheet';
 import type { WorkoutFeedItem } from '../services/feedService';
 
 interface Props {
@@ -33,6 +35,7 @@ export const WorkoutFeed = ({
   onMemberClick,
 }: Props) => {
   const { user } = useAuth();
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -50,11 +53,9 @@ export const WorkoutFeed = ({
     return `${y}-${m}-${d}`;
   };
 
-  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.value) return;
-    const [y, m, d] = e.target.value.split('-').map(Number);
-    const picked = new Date(y, m - 1, d);
-    onDateSelect(picked);
+  const handleDatePicked = (v: string) => {
+    const [y, m, d] = v.split('T')[0].split('-').map(Number);
+    onDateSelect(new Date(y, m - 1, d));
   };
 
   return (
@@ -65,32 +66,17 @@ export const WorkoutFeed = ({
           <ChevronLeft size={20} />
         </button>
 
-        {/* 날짜를 누르면 네이티브 날짜 피커가 열린다.
-            showPicker() API 는 iOS Safari·Android WebView 에서 숨겨진 input 에 대해 막히는 경우가 있어
-            (NotAllowedError), 투명한 input 을 라벨 위에 덮어서 탭이 input 에 직접 닿게 한다. */}
-        <div className="feed-date-display" style={{ position: 'relative', cursor: 'pointer' }}>
+        {/* 네이티브 <input type="date"> 를 투명 오버레이로 덮어 탭하게 하는 방식은
+            이 앱의 Android/iOS WebView 에서 실제로 안 열려(known WebView 이슈) 커스텀
+            바텀시트(DatePickerSheet)로 교체 — AddWorkout 과 동일 패턴, 여기선
+            "오늘/어제" 상대 날짜 칩이라 오히려 이 화면(최근 며칠 이동)에 더 맞는다. */}
+        <button
+          type="button"
+          className="feed-date-display"
+          onClick={() => setShowDatePicker(true)}
+        >
           {formatDate(selectedDate)}
-          <input
-            type="date"
-            aria-label="날짜 선택"
-            value={toInputValue(selectedDate)}
-            max={toInputValue(today)}
-            onChange={handleDateInputChange}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              opacity: 0,
-              cursor: 'pointer',
-              // iOS 는 date input 을 기본 크기로 강제해서 부모를 못 채우므로 해제
-              WebkitAppearance: 'none',
-              appearance: 'none',
-              border: 'none',
-              background: 'transparent',
-            }}
-          />
-        </div>
+        </button>
 
         <button className="date-nav-button" onClick={() => onDateChange(1)} disabled={isToday}>
           <ChevronRight size={20} />
@@ -102,6 +88,16 @@ export const WorkoutFeed = ({
           </button>
         )}
       </div>
+
+      {showDatePicker && (
+        <DatePickerSheet
+          value={`${toInputValue(selectedDate)}T00:00`}
+          onChange={handleDatePicked}
+          onClose={() => setShowDatePicker(false)}
+          maxDays={null}
+          dateOnly
+        />
+      )}
 
       {/* 피드 리스트 */}
       {loading ? (

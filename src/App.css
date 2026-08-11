@@ -7341,6 +7341,17 @@ body.search-modal-open .bottom-nav {
   color: var(--text-primary);
   min-width: 80px;
   text-align: center;
+  font-family: inherit;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.feed-date-display:hover {
+  background: var(--hover-overlay);
 }
 
 /* 피드 아이템 리스트 */

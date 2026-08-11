@@ -8,6 +8,7 @@ interface Props {
   maxDays?: number | null; // 기준일 포함 선택 가능 일수, null = 무제한 (칩은 최근 90일까지)
   anchorDate?: Date;     // 0번 탭(맨 앞)에 해당하는 기준일. 기본값 = 오늘.
                          // 수정 모드에서는 "최초 저장된 날"을 넘겨 그 날짜부터 과거로만 보정 가능하게 한다.
+  dateOnly?: boolean;    // true면 시/분 스피너 숨김 — 날짜만 고르는 용도(피드 날짜 이동 등)
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -21,7 +22,7 @@ const relativeDayLabel = (date: Date, idx: number) => {
   return `${date.getMonth() + 1}/${date.getDate()} (${WDAYS[date.getDay()]})`;
 };
 
-export default function DatePickerSheet({ value, onChange, onClose, maxDays = 3, anchorDate }: Props) {
+export default function DatePickerSheet({ value, onChange, onClose, maxDays = 3, anchorDate, dateOnly = false }: Props) {
   useModalHistory(true, onClose);
   const now = new Date();
   const realToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -90,7 +91,7 @@ export default function DatePickerSheet({ value, onChange, onClose, maxDays = 3,
         <div className="feedback-handle" />
         <div className="race-modal-header">
           <div style={{ width: 28 }} />
-          <span className="date-picker-title">날짜·시간 선택</span>
+          <span className="date-picker-title">{dateOnly ? '날짜 선택' : '날짜·시간 선택'}</span>
           <button className="race-modal-close" type="button" onClick={onClose}>✕</button>
         </div>
 
@@ -105,13 +106,15 @@ export default function DatePickerSheet({ value, onChange, onClose, maxDays = 3,
           ))}
         </div>
 
-        <div className="date-picker-time-section">
-          <div className="date-picker-time-row">
-            <SpinPicker value={pickerHour} min={minH} max={maxH} onChange={setPickerHour} label="시" />
-            <span className="date-picker-colon">:</span>
-            <SpinPicker value={pickerMinute} min={minM} max={maxM} onChange={setPickerMinute} label="분" />
+        {!dateOnly && (
+          <div className="date-picker-time-section">
+            <div className="date-picker-time-row">
+              <SpinPicker value={pickerHour} min={minH} max={maxH} onChange={setPickerHour} label="시" />
+              <span className="date-picker-colon">:</span>
+              <SpinPicker value={pickerMinute} min={minM} max={maxM} onChange={setPickerMinute} label="분" />
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="date-picker-footer">
           <button type="button" className="challenge-create-submit" onClick={handleConfirm}>
