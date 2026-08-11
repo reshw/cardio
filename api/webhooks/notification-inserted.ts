@@ -106,13 +106,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const actorName = clubMember?.club_nickname || actor?.display_name || '누군가';
     const namePrefix = club?.name ? `[${club.name}] ${actorName}` : actorName;
 
+    const { data: workout } = record.workout_id
+      ? await supabase
+          .from('workouts')
+          .select('category, value, unit, workout_time, user_id')
+          .eq('id', record.workout_id)
+          .maybeSingle()
+      : { data: null };
+
     let body = '';
-    if (record.type === 'like' && record.workout_id) {
-      const { data: workout } = await supabase
-        .from('workouts')
-        .select('category, value, unit, workout_time')
-        .eq('id', record.workout_id)
-        .maybeSingle();
+    if (record.type === 'like') {
       if (workout) {
         const dateStr = workout.workout_time ? formatDateYMD(workout.workout_time) : '';
         body = `${workout.category} ${workout.value}${workout.unit}${dateStr ? ' ' + dateStr : ''}`;
@@ -121,8 +124,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body = (record.comment_text || '').slice(0, MAX_BODY_LEN);
     }
 
-    const title =
-      record.type === 'like' ? `${namePrefix}님이 좋아요를 눌렀어요` : `${namePrefix}님이 댓글을 남겼어요`;
+    // 받는 사람이 운동 작성자가 아니면 = 자기 댓글에 달린 답글 알림
+    const isReply = record.type === 'comment' && !!workout?.user_id && workout.user_id !== record.user_id;
+    const actionLabel =
+      record.type === 'like' ? '좋아요를 눌렀어요' : isReply ? '답글을 남겼어요' : '댓글을 남겼어요';
+    const title = `${namePrefix}님이 ${actionLabel}`;
 
     const path = record.workout_id ? `/workout/${record.workout_id}` : '/';
 

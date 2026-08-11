@@ -121,7 +121,10 @@ export const NotificationDropdown = ({ isOpen, onClose, onNotificationCountChang
       const commentPreview = notification.comment_text
         ? `: "${notification.comment_text.substring(0, 30)}${notification.comment_text.length > 30 ? '...' : ''}"`
         : '';
-      return `${actorName}님이 ${workoutDate} ${workoutLabel}에 댓글을 남겼습니다${commentPreview}`;
+      // 받는 사람이 운동 작성자가 아니면 = 자기 댓글에 달린 답글 알림
+      const isReply = notification.workout?.user_id && notification.workout.user_id !== notification.user_id;
+      const actionLabel = isReply ? '답글을 남겼습니다' : '댓글을 남겼습니다';
+      return `${actorName}님이 ${workoutDate} ${workoutLabel}에 ${actionLabel}${commentPreview}`;
     }
   };
 

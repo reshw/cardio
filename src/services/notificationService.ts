@@ -23,6 +23,7 @@ export interface Notification {
     value: number;
     unit: string;
     created_at: string;
+    user_id: string;
   };
 }
 
@@ -35,7 +36,7 @@ class NotificationService {
       .select(`
         *,
         actor:users!actor_id(display_name, profile_image),
-        workout:workouts!workout_id(category, sub_type, value, unit, created_at),
+        workout:workouts!workout_id(category, sub_type, value, unit, created_at, user_id),
         club:clubs!club_id(name)
       `)
       .eq('user_id', userId)
@@ -155,7 +156,7 @@ class NotificationService {
             .select(`
               *,
               actor:users!actor_id(display_name, profile_image),
-              workout:workouts!workout_id(category, sub_type, value, unit)
+              workout:workouts!workout_id(category, sub_type, value, unit, user_id)
             `)
             .eq('id', payload.new.id)
             .single();
