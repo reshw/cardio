@@ -1,9 +1,45 @@
 // Cloudflare R2 이미지 업로드 유틸리티
+import { supabase } from '../lib/supabase';
 
 interface UploadResponse {
   success: boolean;
   originalUrl: string;
   thumbnailUrl: string;
+}
+
+/**
+ * 업로드 목적별 이미지 설정 프로필. 슈퍼관리자 화면(AdminImageSettings)에서
+ * system_settings 테이블에 프로필별로 따로 저장/조정한다 (더보기 > 이미지 업로드 설정).
+ * - proof: 운동 기록 인증사진 (기존)
+ * - event: 행사 기록사진 — 인증용이 아니라 더 고화질을 허용해도 되는 용도
+ */
+export type ImageUploadProfile = 'proof' | 'event';
+
+interface ImageUploadSettings {
+  max_width: number;
+  quality: number;
+  thumbnail_size: number;
+}
+
+export const IMAGE_SETTINGS_KEY: Record<ImageUploadProfile, string> = {
+  proof: 'image_upload',
+  event: 'image_upload_event',
+};
+
+const DEFAULT_IMAGE_SETTINGS: ImageUploadSettings = { max_width: 1280, quality: 75, thumbnail_size: 300 };
+
+async function getImageSettings(profile: ImageUploadProfile): Promise<ImageUploadSettings> {
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', IMAGE_SETTINGS_KEY[profile])
+      .single();
+    if (error || !data?.value) return DEFAULT_IMAGE_SETTINGS;
+    return data.value as ImageUploadSettings;
+  } catch {
+    return DEFAULT_IMAGE_SETTINGS;
+  }
 }
 
 // JPEG EXIF orientation 읽기 (canvas.drawImage는 EXIF를 무시하므로 직접 파싱)
@@ -43,8 +79,10 @@ function getExifOrientation(file: File): Promise<number> {
   });
 }
 
-// Vercel Functions payload 제한 대비 — 모바일 원본(5~15MB)을 1MB 이하로 줄여서 전송
-const compressImageForUpload = async (file: File): Promise<File> => {
+// Vercel Functions payload 제한 대비 — 모바일 원본(5~15MB)을 전송 전에 줄인다.
+// maxWidth/quality는 프로필별 system_settings 값을 그대로 따른다 — 여기서 하드코딩해
+// 서버(sharp) 설정을 올려도 클라이언트가 먼저 눌러버리면 무의미해진다.
+const compressImageForUpload = async (file: File, maxWidth: number, quality: number): Promise<File> => {
   const orientation = await getExifOrientation(file);
 
   return new Promise((resolve) => {
@@ -52,7 +90,7 @@ const compressImageForUpload = async (file: File): Promise<File> => {
     const url = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(url);
-      const MAX = 1280;
+      const MAX = maxWidth;
       let { width, height } = img;
       if (width > MAX || height > MAX) {
         if (width >= height) {
@@ -93,7 +131,7 @@ const compressImageForUpload = async (file: File): Promise<File> => {
           }
         },
         'image/webp',
-        0.75,
+        quality / 100,
       );
     };
     img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
@@ -104,14 +142,17 @@ const compressImageForUpload = async (file: File): Promise<File> => {
 /**
  * R2에 이미지 업로드 (원본 + 썸네일)
  * @param file 업로드할 파일
+ * @param profile 어떤 system_settings 프로필(크기/화질)을 적용할지 — 기본은 기존 인증사진 설정
  * @returns 원본 URL과 썸네일 URL
  */
-export const uploadToR2 = async (file: File): Promise<string> => {
-  file = await compressImageForUpload(file);
-  console.log('📤 R2 업로드 시작:', file.name);
+export const uploadToR2 = async (file: File, profile: ImageUploadProfile = 'proof'): Promise<string> => {
+  const settings = await getImageSettings(profile);
+  file = await compressImageForUpload(file, settings.max_width, settings.quality);
+  console.log('📤 R2 업로드 시작:', file.name, `(profile=${profile})`);
 
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('settingsKey', IMAGE_SETTINGS_KEY[profile]);
 
   try {
     const response = await fetch('/api/upload-to-r2', {

@@ -116,6 +116,13 @@ return createPortal(
 );
 ```
 
+새 바텀시트/모달을 만들 때는 헤더를 새로 디자인하지 말 것 — 기존 패턴(가운데정렬 타이틀 / 왼쪽정렬 h3
+타이틀 / 타이틀+서브타이틀 3가지), 상단 고정(핸들·헤더), 닫기 버튼 크기가 전부 정리돼 있다:
+**@docs/design-guide_bottom-sheet.md**
+
+특히 **시트의 `gap`/`padding` 을 직접 바꾸면 sticky 헤더 고정이 깨진다** — `--sheet-gap` /
+`--sheet-pad-top` 변수를 덮어쓸 것. 이유와 검증법은 위 문서 4절에 있다.
+
 ---
 
 ### flex child overflow 스크롤 시 min-height: 0 필수

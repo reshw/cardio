@@ -86,7 +86,7 @@ export default function ValuePickerSheet({ value, unit, onChange, onClose }: Pro
       <div className="feedback-sheet value-picker-sheet" onClick={e => e.stopPropagation()}>
         <div className="feedback-handle" />
         <div className="race-modal-header">
-          <div style={{ width: 28 }} />
+          <div style={{ width: 32 }} />
           <span className="date-picker-title">값 입력</span>
           <button className="race-modal-close" type="button" onClick={onClose}>✕</button>
         </div>

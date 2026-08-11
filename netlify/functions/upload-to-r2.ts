@@ -16,36 +16,38 @@ const DEFAULT_SETTINGS = {
   thumbnail_size: 300,
 };
 
-// 이미지 설정 가져오기 (캐싱)
-let cachedSettings: typeof DEFAULT_SETTINGS | null = null;
-let lastFetch = 0;
+// 업로드 목적별 프로필 키 — src/utils/r2Storage.ts IMAGE_SETTINGS_KEY 와 동일하게 유지할 것
+const ALLOWED_SETTINGS_KEYS = ['image_upload', 'image_upload_event'];
+
+// 이미지 설정 가져오기 (프로필별 캐싱)
+const settingsCache = new Map<string, { value: typeof DEFAULT_SETTINGS; fetchedAt: number }>();
 const CACHE_TTL = 60000; // 1분 캐시
 
-async function getImageSettings() {
+async function getImageSettings(key: string) {
   const now = Date.now();
-
-  // 캐시 유효하면 바로 반환
-  if (cachedSettings && now - lastFetch < CACHE_TTL) {
-    return cachedSettings;
+  const cached = settingsCache.get(key);
+  if (cached && now - cached.fetchedAt < CACHE_TTL) {
+    return cached.value;
   }
 
   try {
     const { data, error } = await supabase
       .from('system_settings')
       .select('value')
-      .eq('key', 'image_upload')
+      .eq('key', key)
       .single();
 
+    let value: typeof DEFAULT_SETTINGS;
     if (error || !data?.value) {
-      console.log('⚙️ 기본 설정 사용');
-      cachedSettings = DEFAULT_SETTINGS;
+      console.log('⚙️ 기본 설정 사용:', key);
+      value = DEFAULT_SETTINGS;
     } else {
-      cachedSettings = data.value as typeof DEFAULT_SETTINGS;
-      console.log('⚙️ DB 설정 로드:', cachedSettings);
+      value = data.value as typeof DEFAULT_SETTINGS;
+      console.log('⚙️ DB 설정 로드:', key, value);
     }
 
-    lastFetch = now;
-    return cachedSettings;
+    settingsCache.set(key, { value, fetchedAt: now });
+    return value;
   } catch (error) {
     console.error('설정 로드 실패, 기본값 사용:', error);
     return DEFAULT_SETTINGS;
@@ -98,10 +100,6 @@ export const handler: Handler = async (event) => {
       }),
     };
   }
-
-  // 이미지 설정 로드
-  const imageSettings = await getImageSettings();
-  console.log('🎨 적용된 설정:', imageSettings);
 
   // R2 클라이언트 생성
   const s3Client = new S3Client({
@@ -168,6 +166,7 @@ export const handler: Handler = async (event) => {
     const parts = body.toString('binary').split(`--${boundary}`);
     let fileBuffer: Buffer | null = null;
     let filename = '';
+    let settingsKey = 'image_upload';
 
     for (const part of parts) {
       if (part.includes('Content-Disposition: form-data')) {
@@ -185,6 +184,13 @@ export const handler: Handler = async (event) => {
             const cleanData = fileData.substring(0, fileData.lastIndexOf('\r\n'));
             fileBuffer = Buffer.from(cleanData, 'binary');
           }
+        } else if (nameMatch && nameMatch[1] === 'settingsKey' && !filenameMatch) {
+          const headerEndIndex = part.indexOf('\r\n\r\n');
+          if (headerEndIndex !== -1) {
+            const raw = part.substring(headerEndIndex + 4);
+            const value = raw.substring(0, raw.lastIndexOf('\r\n')).trim();
+            if (ALLOWED_SETTINGS_KEYS.includes(value)) settingsKey = value;
+          }
         }
       }
     }
@@ -197,7 +203,9 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    console.log('📤 파일 업로드 시작:', filename);
+    console.log('📤 파일 업로드 시작:', filename, `(settingsKey=${settingsKey})`);
+    const imageSettings = await getImageSettings(settingsKey);
+    console.log('🎨 적용된 설정:', imageSettings);
 
     // 고유한 파일명 생성
     const timestamp = Date.now();

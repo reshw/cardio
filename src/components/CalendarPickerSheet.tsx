@@ -19,11 +19,11 @@ export default function CalendarPickerSheet({ value, onChange, onClose, maxDate 
   useModalHistory(true, onClose);
 
   return createPortal(
-    <div className="feedback-overlay" onClick={onClose}>
+    <div className="feedback-overlay" onClick={(e) => { e.stopPropagation(); onClose(); }}>
       <div className="feedback-sheet calendar-picker-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="feedback-handle" />
         <div className="race-modal-header">
-          <div style={{ width: 28 }} />
+          <div style={{ width: 32 }} />
           <span className="date-picker-title">날짜 선택</span>
           <button className="race-modal-close" type="button" onClick={onClose}>✕</button>
         </div>

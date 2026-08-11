@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trash2, Reply } from 'lucide-react';
+import { Trash2, Reply, ChevronUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import feedService from '../services/feedService';
 import type { WorkoutComment } from '../services/feedService';
@@ -10,9 +10,10 @@ interface Props {
   clubId: string;
   onCommentAdded?: () => void;
   onCommentDeleted?: () => void;
+  onClose?: () => void;
 }
 
-export const CommentSection = ({ workoutId, clubId, onCommentAdded, onCommentDeleted }: Props) => {
+export const CommentSection = ({ workoutId, clubId, onCommentAdded, onCommentDeleted, onClose }: Props) => {
   const { user } = useAuth();
   const [comments, setComments] = useState<WorkoutComment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -157,6 +158,14 @@ export const CommentSection = ({ workoutId, clubId, onCommentAdded, onCommentDel
 
   return (
     <div className="comment-section">
+      {onClose && (
+        <div className="comment-section-header">
+          <span className="comment-section-title">댓글</span>
+          <button type="button" className="comment-collapse-btn" onClick={onClose} title="댓글 접기">
+            <ChevronUp size={18} />
+          </button>
+        </div>
+      )}
       {loading ? (
         <div className="comment-loading">댓글 불러오는 중...</div>
       ) : comments.length === 0 ? (

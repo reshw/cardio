@@ -384,6 +384,7 @@ export const WorkoutFeedCard = ({
           clubId={clubId}
           onCommentAdded={() => onOptimisticCommentAdd(workout.id)}
           onCommentDeleted={() => onOptimisticCommentDelete(workout.id)}
+          onClose={() => setShowComments(false)}
         />
       )}
 

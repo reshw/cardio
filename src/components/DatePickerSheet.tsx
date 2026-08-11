@@ -85,11 +85,11 @@ export default function DatePickerSheet({ value, onChange, onClose, maxDays = 3,
   const { min: minM, max: maxM } = getMinuteBounds(pickerDay, pickerHour);
 
   return (
-    <div className="feedback-overlay" onClick={onClose}>
+    <div className="feedback-overlay" onClick={(e) => { e.stopPropagation(); onClose(); }}>
       <div className="feedback-sheet date-picker-sheet" onClick={e => e.stopPropagation()}>
         <div className="feedback-handle" />
         <div className="race-modal-header">
-          <div style={{ width: 28 }} />
+          <div style={{ width: 32 }} />
           <span className="date-picker-title">날짜·시간 선택</span>
           <button className="race-modal-close" type="button" onClick={onClose}>✕</button>
         </div>

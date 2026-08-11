@@ -1749,21 +1749,6 @@ body.search-modal-open .bottom-nav {
   border-radius: 10px;
 }
 
-.calendar-picker-sheet .race-modal-close {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  border-radius: 50%;
-  transition: background 0.15s;
-}
-
-.calendar-picker-sheet .race-modal-close:hover {
-  background: var(--hover-overlay);
-}
-
 /* react-calendar 기본 스타일시트가 :disabled 타일에 밝은 회색을 강제로
    지정해와서(specificity가 우리 .react-calendar__tile 규칙보다 높음)
    다크모드에서 미래 날짜가 흰 덩어리로 튄다 — 테마 토큰으로 override */
@@ -2964,18 +2949,30 @@ body.search-modal-open .bottom-nav {
   align-items: flex-end;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
+  /* 시트를 끝까지 스크롤한 뒤 계속 당길 때 그 제스처가 배경 페이지로 체이닝되지 않게 함 */
+  overscroll-behavior: none;
 }
 
 .feedback-sheet {
   width: 100%;
+  overscroll-behavior: contain;
   background: var(--card-bg);
   border-radius: 24px 24px 0 0;
-  padding: 12px 20px calc(24px + env(safe-area-inset-bottom));
+  /* sticky 헤더가 이 padding 값을 알아야 자기 배경으로 덮을 수 있어서 변수로 노출한다
+     (.race-modal-header / .feedback-sheet-header 참고). 시트별로 padding 을 덮어쓸 때는
+     이 변수도 같이 덮어써야 헤더 보정이 어긋나지 않는다. */
+  --sheet-pad-top: 12px;
+  --sheet-pad-x: 20px;
+  --sheet-gap: 16px;
+  padding: var(--sheet-pad-top) var(--sheet-pad-x) calc(24px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  /* 시트별로 간격을 바꿀 땐 gap 대신 --sheet-gap 을 덮어쓴다. sticky 헤더가 자기 원래
+     위치에 정확히 고정되려면 이 값을 알아야 하기 때문 (.race-modal-header 참고). */
+  gap: var(--sheet-gap);
   max-height: 92%;
   overflow-y: auto;
+  overflow-x: hidden;
   animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -2991,12 +2988,29 @@ body.search-modal-open .bottom-nav {
   border-radius: 2px;
   margin: 0 auto 4px;
   flex-shrink: 0;
+  /* 스크롤해도 시트 맨 위에 그대로 남는다. 자기 원래 위치가 곧 stick 지점(콘텐츠 박스
+     최상단)이라 처음부터 끝까지 제자리에 고정된다. 헤더가 stick 하면 헤더 배경이 이
+     자리까지 올라오므로, 바가 그 위에 보이도록 헤더(z-index 2)보다 높게 둔다.
+     헤더는 이 바와 겹치지 않도록 padding-top 에 핸들 몫(4px + 4px)을 더해둔다. */
+  position: sticky;
+  top: 0;
+  z-index: 3;
 }
 
 .feedback-sheet-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  position: sticky;
+  z-index: 2;
+  background: var(--card-bg);
+  /* .race-modal-header 와 완전히 같은 방식 (설명은 그쪽 주석 참고) */
+  top: calc(8px + var(--sheet-gap, 0px));
+  margin: 0 calc(-1 * var(--sheet-pad-x, 0px)) 0;
+  padding: 0 var(--sheet-pad-x, 0px) 0;
+  box-shadow: 0 calc(-1 * (var(--sheet-pad-top, 0px) + 8px + var(--sheet-gap, 0px))) 0 0 var(--card-bg);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .feedback-sheet-title {
@@ -3018,7 +3032,7 @@ body.search-modal-open .bottom-nav {
   border-radius: 50%;
   width: 32px;
   height: 32px;
-  font-size: 14px;
+  font-size: 18px;
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
@@ -7586,6 +7600,37 @@ body.search-modal-open .bottom-nav {
   border-top: 1px solid var(--border-color);
 }
 
+.comment-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.comment-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.comment-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.comment-collapse-btn:hover {
+  background: var(--hover-overlay);
+  color: var(--primary-color);
+}
+
 .comment-loading,
 .comment-empty {
   text-align: center;
@@ -7749,7 +7794,8 @@ body.search-modal-open .bottom-nav {
   border: 1px solid var(--border-color);
   border-radius: 18px;
   padding: 8px 14px;
-  font-size: 13px;
+  /* 16px 미만이면 iOS/Android WebView가 focus 시 자동 줌인 → 레이아웃 깨짐 */
+  font-size: 16px;
   background: var(--input-bg);
   color: var(--text-primary);
   outline: none;
@@ -11264,7 +11310,21 @@ body.workout-detail-open .bottom-nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 4px 16px;
+  position: sticky;
+  z-index: 2;
+  background: var(--card-bg);
+  /* 헤더를 "원래 있던 자리 그대로" 고정한다. sticky 의 top 기준선은 스크롤 컨테이너의
+     content box 라서, 헤더의 원래 위치(= 핸들 4px + 핸들 아래 여백 4px + 시트 gap)를
+     그대로 top 으로 주면 스크롤해도 헤더가 위로 딸려 올라가지 않는다.
+     헤더 위쪽(시트 padding-top + 핸들 영역)은 box-shadow 로 같은 색을 깔아 덮는다 —
+     이게 없으면 스크롤되는 본문이 그 틈으로 헤더 위에 비쳐 보인다 (2026-08-12 실측 확인).
+     box-shadow 라 레이아웃에는 영향이 없다. */
+  top: calc(8px + var(--sheet-gap, 0px));
+  margin: 0 calc(-1 * var(--sheet-pad-x, 0px)) 0;
+  padding: 0 calc(var(--sheet-pad-x, 0px) + 4px) 16px;
+  box-shadow: 0 calc(-1 * (var(--sheet-pad-top, 0px) + 8px + var(--sheet-gap, 0px))) 0 0 var(--card-bg);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .race-modal-header h3 {
@@ -11274,11 +11334,24 @@ body.workout-detail-open .bottom-nav {
 }
 
 .race-modal-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   background: none;
   border: none;
+  border-radius: 50%;
   color: var(--text-secondary);
+  font-size: 20px;
   cursor: pointer;
   padding: 2px;
+  transition: background 0.15s;
+}
+
+.race-modal-close:hover {
+  background: var(--hover-overlay);
 }
 
 .race-modal-sheet {
@@ -11344,7 +11417,7 @@ body.workout-detail-open .bottom-nav {
    챌린지 생성 모달
    ============================================ */
 .challenge-create-sheet {
-  gap: 20px;
+  --sheet-gap: 20px;
 }
 
 .challenge-allowed-row {
@@ -11482,7 +11555,7 @@ body.workout-detail-open .bottom-nav {
    챌린지 참여 모달
    ============================================ */
 .challenge-join-sheet {
-  gap: 0;
+  --sheet-gap: 0px;
 }
 
 .challenge-join-body {
@@ -12431,10 +12504,11 @@ body.workout-detail-open .bottom-nav {
 
 /* ── 커스텀 날짜 피커 시트 ── */
 .date-picker-sheet {
+  --sheet-pad-top: 0px;
   padding: 0 20px calc(24px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  gap: 0;
+  --sheet-gap: 0px;
 }
 
 .date-picker-title {
@@ -12611,7 +12685,7 @@ body.workout-detail-open .bottom-nav {
 }
 
 /* 배정 모달 */
-.team-assign-sheet { gap: 12px; }
+.team-assign-sheet { --sheet-gap: 12px; }
 .team-assign-loading {
   text-align: center;
   color: var(--text-secondary);
@@ -13337,4 +13411,824 @@ body.workout-detail-open .bottom-nav {
   color: var(--text-primary);
   font-size: 15px;
   box-sizing: border-box;
+}
+
+/* ============================================
+   클럽달력 (행사 + 셀프체크인)
+   docs/plans/클럽달력.md
+   ============================================ */
+
+.club-calendar-tab {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.club-calendar-add-btn {
+  align-self: flex-end;
+  background: var(--gradient-primary);
+  color: var(--on-accent);
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.club-calendar-error-detail {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  word-break: break-all;
+}
+
+.upcoming-events-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.club-calendar-tab .section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.upcoming-event-card {
+  width: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.upcoming-event-card:active {
+  background: var(--card-hover-bg);
+}
+
+.upcoming-event-chevron {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.upcoming-event-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--input-bg);
+  border-radius: 12px;
+}
+
+.upcoming-event-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.upcoming-event-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.upcoming-event-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.upcoming-event-participants {
+  font-size: 12px;
+  color: var(--primary-color);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.checkin-toggle-btn {
+  background: var(--gradient-light);
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.checkin-toggle-btn.checked {
+  background: var(--gradient-primary);
+  color: var(--on-accent);
+  border-color: transparent;
+}
+
+.checkin-toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.checkin-toggle-btn--full {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+}
+
+.club-calendar-grid-container {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.club-calendar-grid-container .calendar-month-nav {
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+/* 전달/다음달 날짜 숨김 + 그리드 6줄 고정 (showFixedNumberOfWeeks) — 달마다
+   높이가 달라지는 문제 방지. CalendarPickerSheet 와 동일한 이유/패턴
+   (Club.tsx 오늘의 운동 탭 날짜피커에서 먼저 적용한 것과 동일 원칙). */
+.club-calendar-grid .react-calendar__month-view__days__day--neighboringMonth {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.club-calendar-grid .react-calendar__tile.has-event {
+  position: relative;
+}
+
+.club-calendar-grid .react-calendar__tile.has-event::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary-color);
+}
+
+.club-calendar-grid .react-calendar__tile--active.has-event::after {
+  background: var(--on-accent);
+}
+
+.date-events-panel {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.date-events-panel h3 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: var(--text-primary);
+}
+
+.date-event-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border-color);
+  padding: 10px 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+}
+
+.date-event-item:first-of-type {
+  border-top: none;
+}
+
+/* ---------- 행사 상세 시트 ---------- */
+
+.event-detail-sheet {
+  --sheet-gap: 14px;
+}
+
+.event-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.event-detail-icon {
+  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--input-bg);
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+
+.event-detail-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.event-detail-type {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.event-detail-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.event-detail-meta-row a {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.event-detail-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  margin: 0;
+}
+
+.event-detail-participants h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+/* ---------- 행사 갤러리 ---------- */
+
+.event-photo-upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.event-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 8px;
+}
+
+.event-photo-card {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--input-bg);
+  aspect-ratio: 1;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  display: block;
+  width: 100%;
+}
+
+.event-photo-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.event-photo-nick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 3px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+}
+
+.event-photo-delete-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ---------- 사진 라이트박스 ---------- */
+
+.photo-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-lightbox-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  touch-action: pan-y;
+}
+
+.photo-lightbox-close {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.photo-lightbox-counter {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+.photo-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.photo-lightbox-nav--prev {
+  left: 12px;
+}
+
+.photo-lightbox-nav--next {
+  right: 12px;
+}
+
+.photo-lightbox-caption {
+  position: absolute;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 13px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 6px 14px;
+  border-radius: 999px;
+  max-width: 80%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.participant-avatar-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.participant-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--input-bg);
+  border-radius: 20px;
+  padding: 4px 10px 4px 4px;
+}
+
+.participant-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.participant-avatar--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-primary);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.participant-name {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.participant-approved-badge {
+  color: var(--success-color);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.event-detail-manager-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-color);
+}
+
+.event-detail-action-btn {
+  flex: 1;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.event-detail-action-btn--danger {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* ---------- 행사 등록/수정 시트 ---------- */
+
+.create-event-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.create-event-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.event-type-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.event-type-pill {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.event-type-pill.active {
+  background: var(--gradient-primary);
+  color: var(--on-accent);
+  border-color: transparent;
+}
+
+.event-type-pill--icon {
+  padding: 6px 10px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.create-event-date-btn {
+  flex: 1;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.create-event-error {
+  font-size: 13px;
+  color: #ef4444;
+  margin: 0;
+}
+
+/* ---------- 체크인 승인 시트 ---------- */
+
+.checkin-approval-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.checkin-approval-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.checkin-approval-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+}
+
+.checkin-approval-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--primary-color);
+}
+
+.checkin-approval-name {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.checkin-approval-status {
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--card-hover-bg);
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+
+/* ============================================
+   클럽 권한 관리 (등급 이름 + 커스텀 등급)
+   ============================================ */
+
+.permission-role-tier {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.permission-role-tier-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.permission-role-name-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding: 4px 2px;
+  border-bottom: 1px solid transparent;
+  font-family: inherit;
+}
+
+.permission-role-name-input:focus {
+  outline: none;
+  border-bottom-color: var(--primary-color);
+}
+
+.permission-role-member-names {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.permission-custom-role-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+/* 점선 테두리로 "고정 등급이 아니라 편집 가능한 커스텀 등급"임을 표시
+   (들여쓰기로 위계를 표현하려니 애매해서 평평한 리스트로 변경) */
+.permission-custom-role-card {
+  background: var(--card-bg);
+  border: 1px dashed var(--border-color);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.permission-role-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+  display: flex;
+}
+
+.permission-checkbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.permission-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.permission-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary-color);
+}
+
+.permission-member-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.permission-member-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--input-bg);
+  border-radius: 16px;
+  padding: 4px 6px 4px 10px;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.permission-member-chip button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+}
+
+.permission-add-role-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.permission-add-role-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.permission-add-role-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.permission-add-role-actions .event-detail-action-btn {
+  flex: 1;
+}
+
+/* ---------- 멤버 선택 시트 (부클럽장/커스텀 등급 공용) ---------- */
+
+.member-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 400px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.member-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 4px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.member-picker-item-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.member-picker-nickname {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.member-picker-realname {
+  font-size: 12px;
+  color: var(--text-secondary);
 }

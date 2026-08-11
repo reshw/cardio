@@ -8,6 +8,7 @@ import { CreateClubModal } from '../components/CreateClubModal';
 import { MileageConfigModal } from '../components/MileageConfigModal';
 import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
 import { WorkoutFeed } from '../components/WorkoutFeed';
+import { ClubCalendarTab } from '../components/ClubCalendarTab';
 import { ClubMemberDetailModal } from '../components/ClubMemberDetailModal';
 import type { MyClubWithOrder, ClubRanking, ClubDetailedStats } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
@@ -93,7 +94,7 @@ export const Club = () => {
   } | null>(null);
 
   // 피드 관련 state
-  type TabType = 'ranking' | 'feed' | 'social';
+  type TabType = 'ranking' | 'feed' | 'events';
   const [activeTab, setActiveTab] = useState<TabType>((location.state as { tab?: TabType } | null)?.tab ?? 'feed');
 
   // 마일리지 표현 state
@@ -716,11 +717,11 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             />
           )}
           <div className="tabs">
-            <div style={{ position: 'relative', flex: 1 }}>
+            <div style={{ position: 'relative', flex: 1, padding: '10px 12px', boxSizing: 'border-box' }}>
               <button
                 className={`tab ${activeTab === 'ranking' ? 'active' : ''}${isLockPeriod ? ' tab--locked' : ''}`}
                 onClick={() => isMileageBlocked ? setShowLockTooltip(v => !v) : setActiveTab('ranking')}
-                style={isMileageBlocked ? { cursor: 'pointer', opacity: 0.5, width: '100%' } : { width: '100%' }}
+                style={isMileageBlocked ? { cursor: 'pointer', opacity: 0.5, width: '100%', padding: 0 } : { width: '100%', padding: 0 }}
               >
                 마일리지{isLockPeriod && <Lock size={12} style={{ marginLeft: 4, verticalAlign: 'middle' }} />}
               </button>
@@ -746,7 +747,13 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               className={`tab ${activeTab === 'feed' ? 'active' : ''}`}
               onClick={() => setActiveTab('feed')}
             >
-              오늘의 운동
+              오늘운동
+            </button>
+            <button
+              className={`tab ${activeTab === 'events' ? 'active' : ''}`}
+              onClick={() => setActiveTab('events')}
+            >
+              클럽달력
             </button>
           </div>
           </>
@@ -1296,6 +1303,15 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           onOptimisticCommentDelete={handleOptimisticCommentDelete}
           onBlock={handleBlock}
           onMemberClick={(userId, userName) => openMemberDetail(userId, userName)}
+        />
+      )}
+
+      {/* 클럽달력 */}
+      {activeTab === 'events' && selectedClub && user && (
+        <ClubCalendarTab
+          clubId={selectedClub.id}
+          userId={user.id}
+          isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
         />
       )}
 

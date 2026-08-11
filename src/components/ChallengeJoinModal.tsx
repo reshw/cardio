@@ -123,7 +123,7 @@ export const ChallengeJoinModal = ({ challenge, userId, onClose, onJoined }: Pro
               <ChevronLeft size={18} />
             </button>
           ) : (
-            <div style={{ width: 28 }} />
+            <div style={{ width: 32 }} />
           )}
           <h3>
             {step === 'list' ? '참여 선언' : '종목 추가'}

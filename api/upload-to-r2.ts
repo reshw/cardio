@@ -14,24 +14,27 @@ const supabase = createClient(
 
 const DEFAULT_SETTINGS = { max_width: 1280, quality: 75, thumbnail_size: 300 };
 
-let cachedSettings: typeof DEFAULT_SETTINGS | null = null;
-let lastFetch = 0;
+// 업로드 목적별 프로필 키 — src/utils/r2Storage.ts IMAGE_SETTINGS_KEY 와 동일하게 유지할 것
+const ALLOWED_SETTINGS_KEYS = ['image_upload', 'image_upload_event'];
+
+const settingsCache = new Map<string, { value: typeof DEFAULT_SETTINGS; fetchedAt: number }>();
 const CACHE_TTL = 60000;
 
-async function getImageSettings() {
+async function getImageSettings(key: string) {
   const now = Date.now();
-  if (cachedSettings && now - lastFetch < CACHE_TTL) return cachedSettings;
+  const cached = settingsCache.get(key);
+  if (cached && now - cached.fetchedAt < CACHE_TTL) return cached.value;
 
   try {
     const { data, error } = await supabase
       .from('system_settings')
       .select('value')
-      .eq('key', 'image_upload')
+      .eq('key', key)
       .single();
 
-    cachedSettings = (!error && data?.value) ? data.value as typeof DEFAULT_SETTINGS : DEFAULT_SETTINGS;
-    lastFetch = now;
-    return cachedSettings;
+    const value = (!error && data?.value) ? data.value as typeof DEFAULT_SETTINGS : DEFAULT_SETTINGS;
+    settingsCache.set(key, { value, fetchedAt: now });
+    return value;
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -69,8 +72,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Server configuration error' });
   }
 
-  const imageSettings = await getImageSettings();
-
   const s3Client = new S3Client({
     region: 'auto',
     endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -93,6 +94,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const parts = body.toString('binary').split(`--${boundary}`);
     let fileBuffer: Buffer | null = null;
     let filename = '';
+    let settingsKey = 'image_upload';
 
     for (const part of parts) {
       if (part.includes('Content-Disposition: form-data')) {
@@ -107,6 +109,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const cleanData = fileData.substring(0, fileData.lastIndexOf('\r\n'));
             fileBuffer = Buffer.from(cleanData, 'binary');
           }
+        } else if (nameMatch && nameMatch[1] === 'settingsKey' && !filenameMatch) {
+          const headerEndIndex = part.indexOf('\r\n\r\n');
+          if (headerEndIndex !== -1) {
+            const raw = part.substring(headerEndIndex + 4);
+            const value = raw.substring(0, raw.lastIndexOf('\r\n')).trim();
+            if (ALLOWED_SETTINGS_KEYS.includes(value)) settingsKey = value;
+          }
         }
       }
     }
@@ -115,7 +124,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    console.log('📤 파일 업로드 시작:', filename);
+    console.log('📤 파일 업로드 시작:', filename, `(settingsKey=${settingsKey})`);
+    const imageSettings = await getImageSettings(settingsKey);
 
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(7);

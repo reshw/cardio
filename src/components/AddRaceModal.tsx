@@ -90,7 +90,7 @@ export const AddRaceModal = ({ userId, record, onClose, onSaved }: Props) => {
   return (
     <div className="feedback-overlay" onClick={onClose}>
       <div className="feedback-sheet race-modal-sheet" onClick={e => e.stopPropagation()}>
-        <div className="feedback-sheet-handle" />
+        <div className="feedback-handle" />
 
         <div className="race-modal-header">
           <h3>{record ? '기록 수정' : '대회 기록 추가'}</h3>
