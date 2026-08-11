@@ -32,6 +32,7 @@ export default function CalendarPickerSheet({ value, onChange, onClose, maxDate 
           calendarType="gregory"
           value={value}
           maxDate={maxDate}
+          showFixedNumberOfWeeks
           onChange={(date) => {
             onChange(date as Date);
             onClose();

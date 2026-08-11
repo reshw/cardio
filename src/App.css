@@ -1792,6 +1792,14 @@ body.search-modal-open .bottom-nav {
   color: #1E88E5;
 }
 
+/* CalendarPickerSheet 전용 — 전달/다음달 날짜(neighboringMonth)는 표시하지 않음.
+   showFixedNumberOfWeeks로 그리드는 항상 6줄 고정, 남는 칸은 그냥 빈칸으로 둔다
+   (달마다 줄 수가 달라져 바텀시트 높이가 오락가락하는 문제 방지). */
+.calendar-picker-sheet .react-calendar__month-view__days__day--neighboringMonth {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .react-calendar__tile--active.is-sunday,
 .react-calendar__tile--active.is-saturday {
   color: white !important;
