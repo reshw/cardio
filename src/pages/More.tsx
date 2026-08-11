@@ -30,9 +30,44 @@ export const More = () => {
   const [kakaoShareOn, setKakaoShareOn] = useState(
     () => localStorage.getItem(KAKAO_SHARE_KEY) !== 'false'
   );
+  const [pushOn, setPushOn] = useState(true);
+  const [pushToggling, setPushToggling] = useState(false);
   const [stravaConnected, setStravaConnected] = useState<boolean | null>(null);
   const [stravaInfo, setStravaInfo] = useState<{ name: string; profile: string | null } | null>(null);
   const [stravaToast, setStravaToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('users')
+      .select('push_muted')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('[더보기] 푸시 설정 조회 실패 상세:', JSON.stringify(error), error);
+          return;
+        }
+        setPushOn(!data?.push_muted);
+      });
+  }, [user]);
+
+  const togglePush = async () => {
+    if (!user || pushToggling) return;
+    const next = !pushOn;
+    setPushToggling(true);
+    setPushOn(next); // 낙관적 업데이트, 실패 시 되돌림
+    const { error } = await supabase
+      .from('users')
+      .update({ push_muted: !next })
+      .eq('id', user.id);
+    if (error) {
+      console.error('[더보기] 푸시 설정 변경 실패 상세:', JSON.stringify(error), error);
+      setPushOn(!next);
+      alert(`푸시 알림 설정 변경 실패: ${error.message || JSON.stringify(error)}`);
+    }
+    setPushToggling(false);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -276,6 +311,16 @@ export const More = () => {
             </div>
             <label className="toggle-switch">
               <input type="checkbox" checked={kakaoShareOn} onChange={toggleKakaoShare} />
+              <span className="toggle-slider" />
+            </label>
+          </div>
+          <div className="menu-item-btn" style={{ cursor: 'default' }}>
+            <div className="menu-item-left">
+              <span style={{ fontSize: 20 }}>🔔</span>
+              <span>좋아요·댓글 푸시 알림</span>
+            </div>
+            <label className="toggle-switch">
+              <input type="checkbox" checked={pushOn} onChange={togglePush} disabled={pushToggling} />
               <span className="toggle-slider" />
             </label>
           </div>

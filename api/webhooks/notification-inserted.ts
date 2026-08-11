@@ -63,6 +63,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const { data: recipient } = await supabase
+      .from('users')
+      .select('push_muted')
+      .eq('id', record.user_id)
+      .maybeSingle();
+
+    if (recipient?.push_muted) {
+      return res.status(200).json({ skipped: 'push muted' });
+    }
+
     const { data: tokenRows } = await supabase
       .from('device_tokens')
       .select('fcm_token')

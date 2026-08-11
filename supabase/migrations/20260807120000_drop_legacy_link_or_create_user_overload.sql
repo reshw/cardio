@@ -1,0 +1,13 @@
+-- link_or_create_user 함수 오버로드 충돌 수정.
+--
+-- 20260528000001에서 phone_number/birthyear/gender 파라미터 3개를 추가하며
+-- CREATE OR REPLACE FUNCTION을 썼지만, 시그니처(파라미터 목록)가 달라지면
+-- Postgres는 "교체"가 아니라 새 오버로드로 취급한다. 그 결과 원래 5-파라미터
+-- 버전이 삭제되지 않고 8-파라미터 버전과 공존하게 됐고, 둘 다 뒤쪽 파라미터가
+-- 전부 DEFAULT라 앱이 name-argument 방식으로 5개만 넘기면 Postgres가 어느 쪽을
+-- 골라야 할지 못 정해 "Could not choose the best candidate function" 에러가 난다.
+--
+-- 8-파라미터 버전(20260528000002가 최종본)만 남기고 구버전을 제거한다.
+-- 남는 버전도 phone_number/birthyear/gender가 전부 DEFAULT NULL이라
+-- 기존처럼 5개 인자만 넘기는 호출도 그대로 동작한다.
+DROP FUNCTION IF EXISTS public.link_or_create_user(uuid, text, text, text, text);
