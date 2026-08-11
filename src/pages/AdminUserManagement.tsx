@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ChevronLeft, Search, Trash2, Shield, ShieldOff } from 'lucide-react';
 import userService from '../services/userService';
 import type { User } from '../services/userService';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 export const AdminUserManagement = () => {
   const navigate = useNavigate();
@@ -15,6 +18,10 @@ export const AdminUserManagement = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [adminToggleTarget, setAdminToggleTarget] = useState<User | null>(null);
+  const [subAdminToggleTarget, setSubAdminToggleTarget] = useState<User | null>(null);
+
+  useModalHistory(showDeleteConfirm, () => setShowDeleteConfirm(false));
 
   useEffect(() => {
     // 슈퍼어드민 권한 확인
@@ -77,19 +84,21 @@ export const AdminUserManagement = () => {
     }
   };
 
-  const handleToggleAdmin = async (user: User) => {
+  const handleToggleAdmin = (user: User) => {
     if (user.is_super_admin) {
       alert('슈퍼어드민은 권한을 변경할 수 없습니다.');
       return;
     }
+    setAdminToggleTarget(user);
+  };
+
+  const confirmToggleAdmin = async () => {
+    const user = adminToggleTarget;
+    setAdminToggleTarget(null);
+    if (!user) return;
 
     const newStatus = !user.is_admin;
     const action = newStatus ? '지정' : '해제';
-
-    if (!confirm(`${user.display_name}님을 어드민으로 ${action}하시겠습니까?\n\n어드민은 클럽 승인과 운동 종목 관리 권한을 갖게 됩니다.`)) {
-      return;
-    }
-
     try {
       await userService.setAdmin(user.id, newStatus);
       alert(`어드민 ${action}이 완료되었습니다.`);
@@ -100,19 +109,21 @@ export const AdminUserManagement = () => {
     }
   };
 
-  const handleToggleSubAdmin = async (user: User) => {
+  const handleToggleSubAdmin = (user: User) => {
     if (user.is_admin || user.is_super_admin) {
       alert('어드민은 부어드민 설정을 변경할 수 없습니다.');
       return;
     }
+    setSubAdminToggleTarget(user);
+  };
+
+  const confirmToggleSubAdmin = async () => {
+    const user = subAdminToggleTarget;
+    setSubAdminToggleTarget(null);
+    if (!user) return;
 
     const newStatus = !user.is_sub_admin;
     const action = newStatus ? '지정' : '해제';
-
-    if (!confirm(`${user.display_name}님을 부어드민으로 ${action}하시겠습니까?`)) {
-      return;
-    }
-
     try {
       await userService.setSubAdmin(user.id, newStatus);
       alert(`부어드민 ${action}이 완료되었습니다.`);
@@ -215,10 +226,9 @@ export const AdminUserManagement = () => {
                     {/* 어드민 지정/해제 */}
                     {!user.is_super_admin && (
                       <button
-                        className={`btn-icon ${user.is_admin ? 'active' : ''}`}
+                        className={`btn-icon btn-text ${user.is_admin ? 'active' : ''}`}
                         onClick={() => handleToggleAdmin(user)}
                         title={user.is_admin ? '어드민 해제' : '어드민 지정'}
-                        style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '6px' }}
                       >
                         {user.is_admin ? '🛡️ 어드민' : '어드민'}
                       </button>
@@ -261,7 +271,7 @@ export const AdminUserManagement = () => {
       </div>
 
       {/* 삭제 확인 모달 */}
-      {showDeleteConfirm && selectedUser && (
+      {showDeleteConfirm && selectedUser && createPortal(
         <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
           <div className="modal-content" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -276,7 +286,7 @@ export const AdminUserManagement = () => {
               </p>
               <div
                 style={{
-                  background: '#fef3c7',
+                  background: 'var(--warning-tint)',
                   padding: 12,
                   borderRadius: 8,
                   marginBottom: 20,
@@ -311,8 +321,35 @@ export const AdminUserManagement = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
+
+      <ConfirmDialog
+        open={adminToggleTarget !== null}
+        title="어드민 권한 변경"
+        message={
+          adminToggleTarget
+            ? `${adminToggleTarget.display_name}님을 어드민으로 ${adminToggleTarget.is_admin ? '해제' : '지정'}하시겠습니까?\n\n어드민은 클럽 승인과 운동 종목 관리 권한을 갖게 됩니다.`
+            : ''
+        }
+        confirmLabel={adminToggleTarget?.is_admin ? '해제' : '지정'}
+        onConfirm={confirmToggleAdmin}
+        onCancel={() => setAdminToggleTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={subAdminToggleTarget !== null}
+        title="부어드민 권한 변경"
+        message={
+          subAdminToggleTarget
+            ? `${subAdminToggleTarget.display_name}님을 부어드민으로 ${subAdminToggleTarget.is_sub_admin ? '해제' : '지정'}하시겠습니까?`
+            : ''
+        }
+        confirmLabel={subAdminToggleTarget?.is_sub_admin ? '해제' : '지정'}
+        onConfirm={confirmToggleSubAdmin}
+        onCancel={() => setSubAdminToggleTarget(null)}
+      />
     </div>
   );
 };

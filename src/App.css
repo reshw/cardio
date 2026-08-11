@@ -829,8 +829,10 @@ body.search-modal-open .bottom-nav {
 }
 
 .modal-actions .cancel-button,
-.modal-actions .primary-button {
+.modal-actions .primary-button,
+.modal-actions .delete-button-danger {
   flex: 1;
+  width: auto;
 }
 
 .modal-description {
@@ -838,6 +840,7 @@ body.search-modal-open .bottom-nav {
   color: var(--text-primary);
   margin-bottom: 12px;
   line-height: 1.5;
+  white-space: pre-line;
 }
 
 .modal-description.secondary {
@@ -8286,10 +8289,26 @@ body.workout-detail-open .bottom-nav {
   min-width: 0;
 }
 
+.detail-header-owner-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+
 .detail-header-owner h1 {
   font-size: 17px;
   font-weight: 700;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detail-header-date {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -8411,6 +8430,9 @@ body.workout-detail-open .bottom-nav {
   flex-direction: column;
   position: relative;
   z-index: 1;
+  /* 둥근 위쪽 모서리를 클리핑 안 하면 내부 sticky 헤더 배경(margin으로 폭 전체까지
+     번짐)이 모서리 바깥으로 삐져나와, 헤더 위쪽 몇 px가 시트 바깥 콘텐츠처럼 보임 */
+  overflow: hidden;
 }
 
 @media (min-width: 768px) {
@@ -10398,6 +10420,17 @@ body.workout-detail-open .bottom-nav {
 .btn-icon.active {
   background: rgba(249, 115, 22, 0.1);
   border-color: #f97316;
+}
+
+/* 아이콘 대신 텍스트 라벨이 들어가는 .btn-icon (예: 어드민 지정 버튼) — 고정 40x40 정사각형 해제 */
+.btn-icon.btn-text {
+  width: auto;
+  height: auto;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  gap: 4px;
+  white-space: nowrap;
 }
 
 .btn-icon.btn-danger {

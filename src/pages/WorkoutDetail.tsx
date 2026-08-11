@@ -12,6 +12,7 @@ import { LikeStatsModal } from '../components/LikeStatsModal';
 import { useAuth } from '../contexts/AuthContext';
 import { WorkoutSourceIcon, getSourceLabel, getSourceColor } from '../components/WorkoutSourceIcon';
 import { useModalHistory } from '../hooks/useModalHistory';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 const REPORT_REASONS = ['스팸', '욕설/혐오발언', '부적절한 내용', '기타'];
 
@@ -46,6 +47,7 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
   const [loading, setLoading] = useState(!workout);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteWorkoutConfirm, setShowDeleteWorkoutConfirm] = useState(false);
 
   // 기록 소유자 표시용 — 클럽 컨텍스트면 클럽 전용 닉네임/프로필을 우선 사용
   const [owner, setOwner] = useState<{ name: string; image: string | null } | null>(null);
@@ -314,6 +316,13 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
       .padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   };
 
+  const formatHeaderDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(
+      date.getDate()
+    ).padStart(2, '0')}`;
+  };
+
   const formatMovingTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
@@ -331,15 +340,15 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
     const cat = workout.category as string;
     if (secs && val > 0) {
       if ((cat === '달리기' || cat === '걷기') && workout.unit === 'km') {
-        const secPerKm = secs / val;
-        const m = Math.floor(secPerKm / 60);
-        const s = Math.round(secPerKm % 60);
+        const totalSec = Math.round(secs / val);
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
         return `페이스 ${m}'${String(s).padStart(2, '0')}"/km`;
       }
       if (workout.category === '수영' && workout.unit === 'm') {
-        const secPer100m = secs / (val / 100);
-        const m = Math.floor(secPer100m / 60);
-        const s = Math.round(secPer100m % 60);
+        const totalSec = Math.round(secs / (val / 100));
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
         return `페이스 ${m}'${String(s).padStart(2, '0')}"/100m`;
       }
       if ((workout.category === '사이클' || workout.category === '로잉') && workout.unit === 'km') {
@@ -433,11 +442,12 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
     );
   };
 
-  const handleDelete = async () => {
-    if (!confirm('정말로 이 운동 기록을 삭제하시겠습니까?')) {
-      return;
-    }
+  const handleDelete = () => {
+    setShowDeleteWorkoutConfirm(true);
+  };
 
+  const confirmDeleteWorkout = async () => {
+    setShowDeleteWorkoutConfirm(false);
     setDeleting(true);
 
     try {
@@ -459,7 +469,10 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
           {owner ? (
             <div className="detail-header-owner">
               {renderOwnerAvatar()}
-              <h1>{owner.name}님의 기록</h1>
+              <div className="detail-header-owner-text">
+                <h1>{owner.name}님의 기록</h1>
+                <span className="detail-header-date">{formatHeaderDate(workout.workout_time)}</span>
+              </div>
             </div>
           ) : (
             <h1>운동 상세</h1>
@@ -748,16 +761,36 @@ export const WorkoutDetail = ({ workoutData: propWorkout, workoutId: propWorkout
     </div>
   );
 
+  const deleteConfirmDialog = (
+    <ConfirmDialog
+      open={showDeleteWorkoutConfirm}
+      title="운동 기록 삭제"
+      message="정말로 이 운동 기록을 삭제하시겠습니까?"
+      confirmLabel="삭제"
+      danger
+      onConfirm={confirmDeleteWorkout}
+      onCancel={() => setShowDeleteWorkoutConfirm(false)}
+    />
+  );
+
   if (isModal) {
     return createPortal(
-      <div className="workout-sheet-overlay" onClick={() => goBack()}>
-        <div className="workout-sheet" onClick={(e) => e.stopPropagation()}>
-          <div className="workout-sheet-handle" />
-          {detailContent}
+      <>
+        <div className="workout-sheet-overlay" onClick={() => goBack()}>
+          <div className="workout-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="workout-sheet-handle" />
+            {detailContent}
+          </div>
         </div>
-      </div>,
+        {deleteConfirmDialog}
+      </>,
       document.body
     );
   }
-  return detailContent;
+  return (
+    <>
+      {detailContent}
+      {deleteConfirmDialog}
+    </>
+  );
 };

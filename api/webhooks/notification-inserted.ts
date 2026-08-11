@@ -104,7 +104,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ]);
     // 클럽 닉네임 우선, 없으면 실명 — 인앱 알림센터(NotificationDropdown.tsx)와 동일 규칙
     const actorName = clubMember?.club_nickname || actor?.display_name || '누군가';
-    const namePrefix = club?.name ? `[${club.name}] ${actorName}` : actorName;
+    const clubPrefix = club?.name ? `[${club.name}] ` : '';
 
     const { data: workout } = record.workout_id
       ? await supabase
@@ -114,21 +114,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .maybeSingle()
       : { data: null };
 
+    // 클럽명은 제목이 아니라 본문 앞에 붙인다 — 제목에 다 넣으면
+    // Android 알림 트레이 한 줄 제한에 걸려 닉네임 중간부터 잘림
     let body = '';
     if (record.type === 'like') {
       if (workout) {
         const dateStr = workout.workout_time ? formatDateYMD(workout.workout_time) : '';
-        body = `${workout.category} ${workout.value}${workout.unit}${dateStr ? ' ' + dateStr : ''}`;
+        body = `${clubPrefix}${workout.category} ${workout.value}${workout.unit}${dateStr ? ' ' + dateStr : ''}`;
       }
     } else if (record.type === 'comment') {
-      body = (record.comment_text || '').slice(0, MAX_BODY_LEN);
+      body = `${clubPrefix}${(record.comment_text || '').slice(0, MAX_BODY_LEN)}`;
     }
 
     // 받는 사람이 운동 작성자가 아니면 = 자기 댓글에 달린 답글 알림
     const isReply = record.type === 'comment' && !!workout?.user_id && workout.user_id !== record.user_id;
     const actionLabel =
       record.type === 'like' ? '좋아요를 눌렀어요' : isReply ? '답글을 남겼어요' : '댓글을 남겼어요';
-    const title = `${namePrefix}님이 ${actionLabel}`;
+    const title = `${actorName}님이 ${actionLabel}`;
 
     const path = record.workout_id ? `/workout/${record.workout_id}` : '/';
 
