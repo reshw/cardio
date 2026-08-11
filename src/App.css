@@ -9963,15 +9963,15 @@ body.workout-detail-open .bottom-nav {
   white-space: nowrap;
 }
 
-/* 본인 순위 하이라이트 */
+/* 본인 순위 하이라이트 — 내 순위 탭(.my-rank-context-row--me)과 동일 토큰 사용 */
 .ranking-item.my-rank {
-  background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%) !important;
-  border: 2px solid #2196F3 !important;
+  background: var(--row-me-bg) !important;
+  border: 2px solid var(--row-me-border) !important;
   box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
 }
 
 .ranking-item.my-rank:hover {
-  background: linear-gradient(135deg, #BBDEFB 0%, #90CAF9 100%) !important;
+  background: var(--row-me-bg) !important;
   box-shadow: 0 6px 16px rgba(33, 150, 243, 0.3);
 }
 
@@ -11948,14 +11948,14 @@ body.workout-detail-open .bottom-nav {
 }
 
 .my-rank-context-row--me {
-  background: rgba(33, 150, 243, 0.10);
-  border: 2px solid #90CAF9;
+  background: var(--row-me-bg);
+  border: 2px solid var(--row-me-border);
   font-weight: 600;
 }
 
 .my-rank-context-row--me:hover {
-  background: rgba(33, 150, 243, 0.16);
-  border-color: #2196F3;
+  background: var(--row-me-bg);
+  border-color: var(--row-me-border);
 }
 
 .my-rank-context-rank {
@@ -11972,7 +11972,7 @@ body.workout-detail-open .bottom-nav {
 }
 
 .my-rank-context-row--me .my-rank-context-rank {
-  color: #1976D2;
+  color: var(--primary-color);
   font-weight: 700;
 }
 
