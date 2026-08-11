@@ -1700,6 +1700,59 @@ body.search-modal-open .bottom-nav {
   color: #E53935;
 }
 
+/* CalendarPickerSheet 전용 — 연도·월 자유 이동 네비게이션을 다시 켠다
+   (위 .react-calendar__navigation { display:none } 은 History.tsx 전용 커스텀
+   월 이동 버튼을 위한 전역 규칙이라 여기서만 override) */
+.calendar-picker-sheet .react-calendar__navigation {
+  display: flex;
+  height: 40px;
+  margin-bottom: 8px;
+}
+
+.calendar-picker-sheet .react-calendar__navigation button {
+  min-width: 36px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.calendar-picker-sheet .react-calendar__navigation button:hover {
+  background: var(--hover-overlay);
+}
+
+.calendar-picker-sheet .react-calendar__navigation button:disabled {
+  color: var(--text-secondary);
+  opacity: 0.4;
+  cursor: default;
+  background: none;
+}
+
+.calendar-picker-sheet .react-calendar__navigation__label {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.calendar-picker-sheet .react-calendar__year-view__months,
+.calendar-picker-sheet .react-calendar__decade-view__years,
+.calendar-picker-sheet .react-calendar__century-view__decades {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.calendar-picker-sheet .react-calendar__year-view__months .react-calendar__tile,
+.calendar-picker-sheet .react-calendar__decade-view__years .react-calendar__tile,
+.calendar-picker-sheet .react-calendar__century-view__decades .react-calendar__tile {
+  aspect-ratio: auto;
+  padding: 14px 4px;
+}
+
 .react-calendar__tile.is-saturday {
   color: #1E88E5;
 }

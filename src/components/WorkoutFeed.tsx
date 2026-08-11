@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { WorkoutFeedCard } from './WorkoutFeedCard';
 import { useAuth } from '../contexts/AuthContext';
-import DatePickerSheet from './DatePickerSheet';
+import CalendarPickerSheet from './CalendarPickerSheet';
 import type { WorkoutFeedItem } from '../services/feedService';
 
 interface Props {
@@ -46,17 +46,6 @@ export const WorkoutFeed = ({
     return `${date.getMonth() + 1}월 ${date.getDate()}일`;
   };
 
-  const toInputValue = (date: Date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  };
-
-  const handleDatePicked = (v: string) => {
-    const [y, m, d] = v.split('T')[0].split('-').map(Number);
-    onDateSelect(new Date(y, m - 1, d));
-  };
 
   return (
     <div className="workout-feed-container">
@@ -67,9 +56,8 @@ export const WorkoutFeed = ({
         </button>
 
         {/* 네이티브 <input type="date"> 를 투명 오버레이로 덮어 탭하게 하는 방식은
-            이 앱의 Android/iOS WebView 에서 실제로 안 열려(known WebView 이슈) 커스텀
-            바텀시트(DatePickerSheet)로 교체 — AddWorkout 과 동일 패턴, 여기선
-            "오늘/어제" 상대 날짜 칩이라 오히려 이 화면(최근 며칠 이동)에 더 맞는다. */}
+            이 앱의 Android/iOS WebView 에서 실제로 안 열려(known WebView 이슈) —
+            연도·월을 자유롭게 넘나드는 실제 캘린더 피커(CalendarPickerSheet)로 교체. */}
         <button
           type="button"
           className="feed-date-display"
@@ -90,12 +78,11 @@ export const WorkoutFeed = ({
       </div>
 
       {showDatePicker && (
-        <DatePickerSheet
-          value={`${toInputValue(selectedDate)}T00:00`}
-          onChange={handleDatePicked}
+        <CalendarPickerSheet
+          value={selectedDate}
+          onChange={onDateSelect}
           onClose={() => setShowDatePicker(false)}
-          maxDays={null}
-          dateOnly
+          maxDate={today}
         />
       )}
 
