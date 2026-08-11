@@ -1,0 +1,22 @@
+name: Health sync trigger
+
+# Vercel Hobby 플랜은 크론이 하루 1회로 제한돼 vercel.json 에 하루 5번짜리 크론을
+# 못 둔다. GitHub Actions 는 그 제약이 없어 여기서 스케줄을 대신 돈다.
+# 대상 엔드포인트: api/sync/trigger.ts (device_tokens 전체에 FCM data-only "sync" 발송)
+
+on:
+  schedule:
+    - cron: '0 22 * * *'
+    - cron: '0 1 * * *'
+    - cron: '0 4 * * *'
+    - cron: '0 8 * * *'
+    - cron: '0 12 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call /api/sync/trigger
+        run: |
+          curl -sf --max-time 30 -X POST https://cardio.scnd.kr/api/sync/trigger

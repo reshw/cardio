@@ -10,20 +10,26 @@ interface ImageSettings {
   thumbnail_size: number;
 }
 
-export const AdminImageSettings = () => {
+const DEFAULTS: ImageSettings = { max_width: 1280, quality: 75, thumbnail_size: 300 };
+
+/** 프로필 하나(설정 키 하나)에 대한 크기/화질/썸네일 슬라이더 묶음. 프로필끼리 완전히 독립적으로 로드/저장된다. */
+const ImageProfileSettings = ({
+  settingsKey,
+  title,
+  description,
+}: {
+  settingsKey: string;
+  title: string;
+  description: string;
+}) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [settings, setSettings] = useState<ImageSettings>({
-    max_width: 1280,
-    quality: 75,
-    thumbnail_size: 300,
-  });
+  const [settings, setSettings] = useState<ImageSettings>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // 설정 불러오기
   useEffect(() => {
     loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadSettings = async () => {
@@ -31,17 +37,14 @@ export const AdminImageSettings = () => {
       const { data, error } = await supabase
         .from('system_settings')
         .select('*')
-        .eq('key', 'image_upload')
+        .eq('key', settingsKey)
         .single();
 
-      if (error) {
-        // 설정이 없으면 기본값 사용
-        console.log('기본 설정 사용');
-      } else if (data?.value) {
+      if (!error && data?.value) {
         setSettings(data.value as ImageSettings);
       }
     } catch (error) {
-      console.error('설정 로드 실패:', error);
+      console.error(`[이미지 설정] 로드 실패 (${settingsKey}):`, error);
     } finally {
       setLoading(false);
     }
@@ -55,63 +58,38 @@ export const AdminImageSettings = () => {
 
     setSaving(true);
     try {
-      // 직접 Supabase에 저장 (RLS 비활성화)
       const { error } = await supabase
         .from('system_settings')
         .upsert({
-          key: 'image_upload',
+          key: settingsKey,
           value: settings,
           updated_at: new Date().toISOString(),
           updated_by: user.id,
         });
 
       if (error) throw error;
-
-      alert('✅ 설정이 저장되었습니다!\n\n새로운 이미지 업로드부터 즉시 적용됩니다.');
-    } catch (error) {
-      console.error('설정 저장 실패:', error);
-      alert('❌ 설정 저장에 실패했습니다.');
+      alert(`✅ "${title}" 설정이 저장되었습니다!\n\n새로운 이미지 업로드부터 즉시 적용됩니다.`);
+    } catch (error: any) {
+      console.error(`[이미지 설정] 저장 실패 (${settingsKey}):`, JSON.stringify(error), error);
+      alert(`❌ 설정 저장에 실패했습니다: ${error?.message || JSON.stringify(error)}`);
     } finally {
       setSaving(false);
     }
   };
 
-  if (!user?.is_super_admin) {
-    return (
-      <div className="container">
-        <div className="error-message">슈퍼관리자만 접근할 수 있습니다.</div>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
-      <div className="container">
-        <div className="loading-screen">
-          <div className="spinner"></div>
-          <p>설정 불러오는 중...</p>
-        </div>
+      <div className="section">
+        <h2>{title}</h2>
+        <div className="loading-screen"><div className="spinner"></div></div>
       </div>
     );
   }
 
   return (
-    <div className="container">
-      <div className="header">
-        <button className="back-button" onClick={() => navigate('/more')}>
-          <ChevronLeft size={24} />
-        </button>
-        <h1>이미지 업로드 설정</h1>
-      </div>
-
-      <div className="section">
-        <div className="info-box">
-          <p>📸 이미지 업로드 최적화 설정</p>
-          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px' }}>
-            모든 이미지는 WebP 포맷으로 자동 변환됩니다.
-          </p>
-        </div>
-      </div>
+    <div className="image-profile-block">
+      <h2>{title}</h2>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '16px' }}>{description}</p>
 
       <div className="section">
         <h3>원본 이미지 최대 크기</h3>
@@ -127,7 +105,7 @@ export const AdminImageSettings = () => {
           <input
             type="range"
             min="800"
-            max="1920"
+            max="2560"
             step="80"
             value={settings.max_width}
             onChange={(e) => setSettings({ ...settings, max_width: parseInt(e.target.value) })}
@@ -136,17 +114,8 @@ export const AdminImageSettings = () => {
           <div className="slider-labels">
             <span>800px</span>
             <span>1280px (권장)</span>
-            <span>1920px</span>
+            <span>2560px</span>
           </div>
-        </div>
-
-        <div className="size-info">
-          <p>📊 예상 파일 크기:</p>
-          <ul>
-            <li>800px: ~100KB</li>
-            <li>1280px: ~200KB (권장)</li>
-            <li>1920px: ~400KB</li>
-          </ul>
         </div>
       </div>
 
@@ -180,10 +149,6 @@ export const AdminImageSettings = () => {
 
       <div className="section">
         <h3>썸네일 크기</h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '16px' }}>
-          목록에서 표시되는 썸네일 이미지의 크기입니다.
-        </p>
-
         <div className="slider-container">
           <div className="slider-header">
             <span>크기</span>
@@ -204,16 +169,11 @@ export const AdminImageSettings = () => {
             <span>500px</span>
           </div>
         </div>
-      </div>
 
-      <div className="section">
-        <h3>예상 스토리지 사용량</h3>
-        <div className="storage-estimate">
-          <p>현재 설정 기준 (WebP {settings.max_width}px, {settings.quality}% 품질):</p>
+        <div className="size-info">
+          <p>📊 예상 파일 크기 (원본 기준):</p>
           <ul>
-            <li>평균 파일 크기: ~{Math.round(settings.max_width * settings.quality / 5)}KB</li>
-            <li>하루 50명 업로드: ~{Math.round(settings.max_width * settings.quality / 100)}MB/일</li>
-            <li>10GB 도달: 약 {Math.round(10000 / (settings.max_width * settings.quality / 100))}일</li>
+            <li>{settings.max_width}px, {settings.quality}%: ~{Math.round(settings.max_width * settings.quality / 500)}KB</li>
           </ul>
         </div>
       </div>
@@ -222,11 +182,58 @@ export const AdminImageSettings = () => {
         className="primary-button"
         onClick={handleSave}
         disabled={saving}
-        style={{ marginTop: '24px' }}
+        style={{ marginTop: '8px' }}
       >
         <Save size={20} />
-        {saving ? '저장 중...' : '설정 저장'}
+        {saving ? '저장 중...' : `"${title}" 설정 저장`}
       </button>
+    </div>
+  );
+};
+
+export const AdminImageSettings = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  if (!user?.is_super_admin) {
+    return (
+      <div className="container">
+        <div className="error-message">슈퍼관리자만 접근할 수 있습니다.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container">
+      <div className="header">
+        <button className="back-button" onClick={() => navigate('/more')}>
+          <ChevronLeft size={24} />
+        </button>
+        <h1>이미지 업로드 설정</h1>
+      </div>
+
+      <div className="section">
+        <div className="info-box">
+          <p>📸 이미지 업로드 최적화 설정</p>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px' }}>
+            모든 이미지는 WebP 포맷으로 자동 변환됩니다. 용도별로 따로 조절할 수 있습니다.
+          </p>
+        </div>
+      </div>
+
+      <ImageProfileSettings
+        settingsKey="image_upload"
+        title="일반 인증사진"
+        description="운동 기록에 첨부하는 인증사진 설정입니다. 인증 목적이라 화질보다 용량 절약이 우선입니다."
+      />
+
+      <div style={{ height: 1, background: 'var(--border-color)', margin: '32px 0' }} />
+
+      <ImageProfileSettings
+        settingsKey="image_upload_event"
+        title="행사 기록사진"
+        description="행사 갤러리에 올리는 사진 설정입니다. 인증용이 아니라서 더 고화질로 남겨도 됩니다."
+      />
 
       <div className="section" style={{ marginTop: '24px' }}>
         <div className="info-box" style={{ background: '#E8F5E9', borderColor: '#4CAF50' }}>
@@ -240,6 +247,11 @@ export const AdminImageSettings = () => {
       </div>
 
       <style>{`
+        .image-profile-block > h2 {
+          font-size: 18px;
+          margin-bottom: 4px;
+        }
+
         .slider-container {
           margin: 16px 0;
         }
@@ -292,25 +304,25 @@ export const AdminImageSettings = () => {
           margin-top: 8px;
         }
 
-        .size-info, .storage-estimate {
-          background: var(--background);
+        .size-info {
+          background: var(--bg-color);
           padding: 12px;
           border-radius: 8px;
           margin-top: 12px;
         }
 
-        .size-info p, .storage-estimate p {
+        .size-info p {
           font-weight: 600;
           margin-bottom: 8px;
         }
 
-        .size-info ul, .storage-estimate ul {
+        .size-info ul {
           list-style: none;
           padding: 0;
           margin: 0;
         }
 
-        .size-info li, .storage-estimate li {
+        .size-info li {
           padding: 4px 0;
           font-size: 14px;
           color: var(--text-secondary);

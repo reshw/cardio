@@ -3,7 +3,8 @@ import { X, Download, FileDown } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import clubService from '../services/clubService';
 import type { ClubDetailedStats } from '../services/clubService';
-import html2canvas from 'html2canvas';
+import { captureElementToPng, saveBlob, describeError } from '../utils/download';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   clubId: string;
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Props) => {
+  useModalHistory(true, onClose);
   const [stats, setStats] = useState<ClubDetailedStats[]>([]);
   const [loading, setLoading] = useState(false);
   const [workoutKeys, setWorkoutKeys] = useState<string[]>([]);
@@ -137,61 +139,18 @@ export const ClubDetailedStatsModal = ({ clubId, clubName, month, onClose }: Pro
     const queryDatetimeFile = queryDatetime.replace(/[: ]/g, '-');
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${clubName}_${month.year}-${month.month}_상세통계_${queryDatetimeFile}.xlsx`;
-    link.click();
+    await saveBlob(blob, `${clubName}_${month.year}-${month.month}_상세통계_${queryDatetimeFile}.xlsx`);
   };
 
   const downloadImage = async () => {
     if (!tableRef.current) return;
 
     try {
-      // 스크롤 컨테이너 찾기
-      const container = tableRef.current;
-      const originalOverflow = container.style.overflow;
-      const originalHeight = container.style.height;
-      const originalMaxHeight = container.style.maxHeight;
-      const originalWidth = container.style.width;
-      const originalMaxWidth = container.style.maxWidth;
-
-      // 스크롤 제거하고 전체 크기로 확장
-      container.style.overflow = 'visible';
-      container.style.height = 'auto';
-      container.style.maxHeight = 'none';
-      container.style.width = 'auto';
-      container.style.maxWidth = 'none';
-
-      // DOM 업데이트 대기
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const canvas = await html2canvas(container, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        scrollY: -window.scrollY,
-        scrollX: -window.scrollX,
-        width: container.scrollWidth,
-        height: container.scrollHeight,
-        windowWidth: container.scrollWidth,
-        windowHeight: container.scrollHeight,
-        useCORS: true,
-        allowTaint: true,
-      });
-
-      // 스타일 복원
-      container.style.overflow = originalOverflow;
-      container.style.height = originalHeight;
-      container.style.maxHeight = originalMaxHeight;
-      container.style.width = originalWidth;
-      container.style.maxWidth = originalMaxWidth;
-
-      const link = document.createElement('a');
-      link.download = `${clubName}_${month.year}-${month.month}_상세통계.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    } catch (error) {
-      console.error('이미지 다운로드 실패:', error);
-      alert('이미지 다운로드에 실패했습니다.');
+      const blob = await captureElementToPng(tableRef.current);
+      await saveBlob(blob, `${clubName}_${month.year}-${month.month}_상세통계.png`, 'image/png');
+    } catch (error: any) {
+      console.error('[상세통계] 이미지 다운로드 실패 상세:', JSON.stringify(error), error);
+      alert(`이미지 다운로드 실패: ${describeError(error)}`);
     }
   };
 

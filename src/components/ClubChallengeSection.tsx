@@ -5,11 +5,14 @@ import type { Challenge, ChallengeParticipant, UserProgress } from '../services/
 import type { MyClubWithOrder } from '../services/clubService';
 import { ChallengeJoinModal } from './ChallengeJoinModal';
 import { ChallengeStatsModal } from './ChallengeStatsModal';
+import { TeamMatchCard } from './TeamMatchCard';
+import { useConfirm } from '../hooks/useConfirm';
 
 interface Props {
   club: MyClubWithOrder;
   userId: string;
   isManager: boolean;
+  onReassignTeams?: (challenge: Challenge) => void;
 }
 
 interface ChallengeState {
@@ -21,13 +24,14 @@ interface ChallengeState {
   participantsLoaded: boolean;
 }
 
-export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
+export const ClubChallengeSection = ({ club, userId, isManager, onReassignTeams }: Props) => {
   const [challengeStates, setChallengeStates] = useState<ChallengeState[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQueries, setSearchQueries] = useState<Record<string, string>>({});
   const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({});
   const [joiningChallenge, setJoiningChallenge] = useState<Challenge | null>(null);
   const [statsChallenge, setStatsChallenge] = useState<Challenge | null>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const loadChallenges = useCallback(async () => {
     setLoading(true);
@@ -35,6 +39,17 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
       const challenges = await challengeService.getActiveChallengesForClub(club.id).catch(() => []);
       const states: ChallengeState[] = await Promise.all(
         challenges.map(async (c) => {
+          // 팀 대항전은 참여자(개인 목표) 로직을 타지 않음 — 카드가 자체 로드
+          if (c.challenge_type === 'team_match') {
+            return {
+              challenge: c,
+              expanded: false,
+              myParticipants: [],
+              myOverallPct: 0,
+              usersProgress: [],
+              participantsLoaded: false,
+            };
+          }
           const myParticipants = await challengeService.getMyParticipants(c.id, userId).catch(() => []);
           let myOverallPct = 0;
           if (myParticipants.length > 0) {
@@ -102,7 +117,7 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
   };
 
   const handleDelete = async (challengeId: string) => {
-    if (!confirm('챌린지를 삭제하시겠습니까? 참여자 데이터도 모두 삭제됩니다.')) return;
+    if (!(await confirm('챌린지를 삭제하시겠습니까? 참여자 데이터도 모두 삭제됩니다.'))) return;
     await challengeService.deleteChallenge(challengeId);
     loadChallenges();
   };
@@ -118,6 +133,21 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
 
       {challengeStates.map((cs) => {
         const { challenge, expanded, myParticipants, myOverallPct } = cs;
+
+        // 팀 대항전은 전용 카드로 렌더
+        if (challenge.challenge_type === 'team_match') {
+          return (
+            <TeamMatchCard
+              key={challenge.id}
+              challenge={challenge}
+              userId={userId}
+              isManager={isManager}
+              onReassign={(c) => onReassignTeams?.(c)}
+              onChanged={loadChallenges}
+            />
+          );
+        }
+
         const ended = challengeService.isEnded(challenge.end_date);
         const upcoming = challengeService.isUpcoming(challenge.start_date);
         const joinLocked = !upcoming && !challenge.allow_late_join;
@@ -375,6 +405,7 @@ export const ClubChallengeSection = ({ club, userId, isManager }: Props) => {
           onClose={() => setStatsChallenge(null)}
         />
       )}
+      {ConfirmDialog}
     </div>
   );
 };

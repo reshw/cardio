@@ -4,12 +4,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { ChevronLeft, CheckCircle, XCircle, Clock } from 'lucide-react';
 import clubService from '../services/clubService';
 import type { Club } from '../services/clubService';
+import { useConfirm } from '../hooks/useConfirm';
+import { usePrompt } from '../hooks/usePrompt';
 
 export const AdminClubApproval = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [pendingClubs, setPendingClubs] = useState<Club[]>([]);
   const [loading, setLoading] = useState(true);
+  const { confirm, ConfirmDialog } = useConfirm();
+  const { prompt, PromptDialog } = usePrompt();
 
   useEffect(() => {
     // 어드민 권한 확인
@@ -36,7 +40,7 @@ export const AdminClubApproval = () => {
   };
 
   const handleApprove = async (clubId: string, clubName: string) => {
-    if (!window.confirm(`"${clubName}" 클럽을 승인하시겠습니까?`)) return;
+    if (!(await confirm(`"${clubName}" 클럽을 승인하시겠습니까?`))) return;
 
     try {
       await clubService.approveClub(clubId, user!.id);
@@ -49,7 +53,9 @@ export const AdminClubApproval = () => {
   };
 
   const handleReject = async (clubId: string, clubName: string) => {
-    const reason = prompt(`"${clubName}" 클럽을 거부하는 사유를 입력하세요:`);
+    const reason = await prompt(`"${clubName}" 클럽을 거부하는 사유를 입력하세요:`, {
+      title: '클럽 거부',
+    });
     if (!reason) return;
 
     try {
@@ -136,6 +142,8 @@ export const AdminClubApproval = () => {
           )}
         </div>
       </div>
+      {ConfirmDialog}
+      {PromptDialog}
     </div>
   );
 };

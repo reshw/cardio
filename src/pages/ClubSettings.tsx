@@ -1,11 +1,13 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Info, TrendingUp, UserCog, User, Users, BarChart2, Star } from 'lucide-react';
+import { useClubName } from '../hooks/useClubName';
+import { ChevronLeft, ChevronRight, Info, TrendingUp, UserCog, Users, BarChart2, ShieldCheck } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 
 export const ClubSettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
+  const clubName = useClubName(clubId);
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -36,22 +38,6 @@ export const ClubSettings = () => {
     }
   };
 
-  const handleLeaveClub = async () => {
-    if (!clubId || !user) return;
-
-    const confirmLeave = window.confirm('정말로 이 클럽에서 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.');
-    if (!confirmLeave) return;
-
-    try {
-      await clubService.leaveClub(clubId, user.id);
-      alert('클럽에서 탈퇴되었습니다.');
-      navigate('/');
-    } catch (error) {
-      console.error('클럽 탈퇴 실패:', error);
-      alert('클럽 탈퇴에 실패했습니다. 다시 시도해주세요.');
-    }
-  };
-
   if (loading) {
     return (
       <div className="container">
@@ -69,39 +55,13 @@ export const ClubSettings = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1>클럽 설정</h1>
+        <div className="settings-header-title-group">
+          {clubName && <span className="settings-header-club-name">{clubName}</span>}
+          <h1>클럽 설정</h1>
+        </div>
       </div>
 
       <div className="settings-menu">
-        {/* 모든 사용자 공통 설정 */}
-        <div className="settings-section">
-          <button
-            className="settings-menu-item"
-            onClick={() => navigate(`/club/my-settings/${clubId}`)}
-          >
-            <div className="menu-item-left">
-              <User size={20} />
-              <span>내 정보 변경</span>
-            </div>
-            <ChevronRight size={20} />
-          </button>
-        </div>
-
-        {/* 클럽 탈퇴 (클럽장 제외) */}
-        {!isAdmin && (
-          <div className="settings-section danger-section">
-            <button
-              className="settings-menu-item danger"
-              onClick={handleLeaveClub}
-            >
-              <div className="menu-item-left">
-                <User size={20} />
-                <span>클럽 탈퇴하기</span>
-              </div>
-            </button>
-          </div>
-        )}
-
         {/* 관리자 전용 설정 (매니저/부매니저) */}
         {isAdmin && (
           <div className="settings-section">
@@ -111,18 +71,18 @@ export const ClubSettings = () => {
             >
               <div className="menu-item-left">
                 <TrendingUp size={20} />
-                <span>마일리지 계수 설정</span>
+                <span>마일리지</span>
               </div>
               <ChevronRight size={20} />
             </button>
 
             <button
               className="settings-menu-item"
-              onClick={() => navigate(`/club/settings/${clubId}/rookie-league`)}
+              onClick={() => navigate(`/club/settings/${clubId}/stats`)}
             >
               <div className="menu-item-left">
-                <Star size={20} />
-                <span>루키리그 설정</span>
+                <BarChart2 size={20} />
+                <span>통계</span>
               </div>
               <ChevronRight size={20} />
             </button>
@@ -140,22 +100,22 @@ export const ClubSettings = () => {
 
             <button
               className="settings-menu-item"
-              onClick={() => navigate(`/club/settings/${clubId}/stats`)}
+              onClick={() => navigate(`/club/settings/${clubId}/general`)}
             >
               <div className="menu-item-left">
-                <BarChart2 size={20} />
-                <span>클럽 통계</span>
+                <Info size={20} />
+                <span>클럽 일반정보 변경</span>
               </div>
               <ChevronRight size={20} />
             </button>
 
             <button
               className="settings-menu-item"
-              onClick={() => navigate(`/club/settings/${clubId}/growth`)}
+              onClick={() => navigate(`/club/settings/${clubId}/permissions`)}
             >
               <div className="menu-item-left">
-                <TrendingUp size={20} />
-                <span>이달의 성장</span>
+                <ShieldCheck size={20} />
+                <span>권한 및 호칭관리</span>
               </div>
               <ChevronRight size={20} />
             </button>
@@ -165,19 +125,6 @@ export const ClubSettings = () => {
         {/* 방장 전용 설정 */}
         {isOwner && (
           <>
-            <div className="settings-section">
-              <button
-                className="settings-menu-item"
-                onClick={() => navigate(`/club/settings/${clubId}/general`)}
-              >
-                <div className="menu-item-left">
-                  <Info size={20} />
-                  <span>클럽 일반정보 변경</span>
-                </div>
-                <ChevronRight size={20} />
-              </button>
-            </div>
-
             <div className="settings-section danger-section">
               <button
                 className="settings-menu-item danger"

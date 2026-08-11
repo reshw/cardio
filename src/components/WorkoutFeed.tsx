@@ -1,7 +1,8 @@
-import { useRef } from 'react';
+import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { WorkoutFeedCard } from './WorkoutFeedCard';
 import { useAuth } from '../contexts/AuthContext';
+import CalendarPickerSheet from './CalendarPickerSheet';
 import type { WorkoutFeedItem } from '../services/feedService';
 
 interface Props {
@@ -34,7 +35,7 @@ export const WorkoutFeed = ({
   onMemberClick,
 }: Props) => {
   const { user } = useAuth();
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -45,19 +46,6 @@ export const WorkoutFeed = ({
     return `${date.getMonth() + 1}월 ${date.getDate()}일`;
   };
 
-  const toInputValue = (date: Date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  };
-
-  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.value) return;
-    const [y, m, d] = e.target.value.split('-').map(Number);
-    const picked = new Date(y, m - 1, d);
-    onDateSelect(picked);
-  };
 
   return (
     <div className="workout-feed-container">
@@ -67,21 +55,16 @@ export const WorkoutFeed = ({
           <ChevronLeft size={20} />
         </button>
 
-        <div
+        {/* 네이티브 <input type="date"> 를 투명 오버레이로 덮어 탭하게 하는 방식은
+            이 앱의 Android/iOS WebView 에서 실제로 안 열려(known WebView 이슈) —
+            연도·월을 자유롭게 넘나드는 실제 캘린더 피커(CalendarPickerSheet)로 교체. */}
+        <button
+          type="button"
           className="feed-date-display"
-          onClick={() => dateInputRef.current?.showPicker?.()}
-          style={{ cursor: 'pointer', position: 'relative' }}
+          onClick={() => setShowDatePicker(true)}
         >
           {formatDate(selectedDate)}
-          <input
-            ref={dateInputRef}
-            type="date"
-            value={toInputValue(selectedDate)}
-            max={toInputValue(today)}
-            onChange={handleDateInputChange}
-            style={{ position: 'absolute', opacity: 0, width: '1px', height: '1px', top: 0, left: 0, pointerEvents: 'none' }}
-          />
-        </div>
+        </button>
 
         <button className="date-nav-button" onClick={() => onDateChange(1)} disabled={isToday}>
           <ChevronRight size={20} />
@@ -93,6 +76,15 @@ export const WorkoutFeed = ({
           </button>
         )}
       </div>
+
+      {showDatePicker && (
+        <CalendarPickerSheet
+          value={selectedDate}
+          onChange={onDateSelect}
+          onClose={() => setShowDatePicker(false)}
+          maxDate={today}
+        />
+      )}
 
       {/* 피드 리스트 */}
       {loading ? (

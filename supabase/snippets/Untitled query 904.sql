@@ -1,0 +1,2 @@
+SELECT elapsed_seconds, moving_seconds, average_speed, average_heartrate, workout_time                      FROM workouts                                                                                               WHERE id = '9dba2081-7bd0-4c32-8d45-6a71f92a99d5';                                                        
+                                                       

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useClubName } from '../hooks/useClubName';
 import { ChevronLeft } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -25,6 +26,7 @@ const CHART_HEIGHT = 200;
 
 export const ClubStatsPage = () => {
   const { clubId } = useParams<{ clubId: string }>();
+  const clubName = useClubName(clubId);
   const navigate = useNavigate();
 
   const [monthRange, setMonthRange] = useState<3 | 6>(6);
@@ -92,7 +94,10 @@ export const ClubStatsPage = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1>클럽 통계</h1>
+        <div className="settings-header-title-group">
+          {clubName && <span className="settings-header-club-name">{clubName}</span>}
+          <h1>클럽 통계</h1>
+        </div>
       </div>
 
       {/* 기간 선택 */}
@@ -142,7 +147,9 @@ export const ClubStatsPage = () => {
                     const value = Array.isArray(v) ? Number(v[0] ?? 0) : Number(v ?? 0);
                     return [`${value.toLocaleString()}점`, '마일리지'];
                   }}
-                  contentStyle={{ fontSize: 13, borderRadius: 8 }}
+                  contentStyle={{ fontSize: 13, borderRadius: 8, background: 'var(--card-bg)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+                  itemStyle={{ color: 'var(--text-primary)' }}
+                  labelStyle={{ color: 'var(--text-secondary)' }}
                 />
                 <Bar dataKey="마일리지" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -164,7 +171,9 @@ export const ClubStatsPage = () => {
                     const value = Array.isArray(v) ? Number(v[0] ?? 0) : Number(v ?? 0);
                     return [`${value}명`, '활성 멤버'];
                   }}
-                  contentStyle={{ fontSize: 13, borderRadius: 8 }}
+                  contentStyle={{ fontSize: 13, borderRadius: 8, background: 'var(--card-bg)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+                  itemStyle={{ color: 'var(--text-primary)' }}
+                  labelStyle={{ color: 'var(--text-secondary)' }}
                 />
                 <Bar dataKey="활성멤버" fill="#22c55e" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -187,7 +196,9 @@ export const ClubStatsPage = () => {
                       const value = Array.isArray(v) ? Number(v[0] ?? 0) : Number(v ?? 0);
                       return [`${value}점`, name];
                     }}
-                    contentStyle={{ fontSize: 13, borderRadius: 8 }}
+                    contentStyle={{ fontSize: 13, borderRadius: 8, background: 'var(--card-bg)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+                  itemStyle={{ color: 'var(--text-primary)' }}
+                  labelStyle={{ color: 'var(--text-secondary)' }}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   {barsForCategory.map(cat => (

@@ -4,6 +4,7 @@ import { X, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import notificationService from '../services/notificationService';
 import type { Notification } from '../services/notificationService';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface Props {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export const NotificationDropdown = ({ isOpen, onClose, onNotificationCountChang
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -84,8 +86,14 @@ export const NotificationDropdown = ({ isOpen, onClose, onNotificationCountChang
     }
   };
 
-  const handleDeleteAll = async () => {
-    if (!user || !confirm('모든 알림을 읽음 처리하시겠습니까?')) return;
+  const handleDeleteAll = () => {
+    if (!user) return;
+    setConfirmDeleteAll(true);
+  };
+
+  const confirmDeleteAllNow = async () => {
+    setConfirmDeleteAll(false);
+    if (!user) return;
 
     try {
       await notificationService.markAllAsRead(user.id);
@@ -121,7 +129,10 @@ export const NotificationDropdown = ({ isOpen, onClose, onNotificationCountChang
       const commentPreview = notification.comment_text
         ? `: "${notification.comment_text.substring(0, 30)}${notification.comment_text.length > 30 ? '...' : ''}"`
         : '';
-      return `${actorName}님이 ${workoutDate} ${workoutLabel}에 댓글을 남겼습니다${commentPreview}`;
+      // 받는 사람이 운동 작성자가 아니면 = 자기 댓글에 달린 답글 알림
+      const isReply = notification.workout?.user_id && notification.workout.user_id !== notification.user_id;
+      const actionLabel = isReply ? '답글을 남겼습니다' : '댓글을 남겼습니다';
+      return `${actorName}님이 ${workoutDate} ${workoutLabel}에 ${actionLabel}${commentPreview}`;
     }
   };
 
@@ -244,6 +255,15 @@ export const NotificationDropdown = ({ isOpen, onClose, onNotificationCountChang
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDeleteAll}
+        title="모두 읽음 처리"
+        message="모든 알림을 읽음 처리하시겠습니까?"
+        confirmLabel="읽음 처리"
+        onConfirm={confirmDeleteAllNow}
+        onCancel={() => setConfirmDeleteAll(false)}
+      />
     </>
   );
 };

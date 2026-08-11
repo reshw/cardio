@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Bell, CirclePlus } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Bell, CirclePlus, RefreshCw, ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { usePageHeaderValue } from '../contexts/PageHeaderContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { NotificationDropdown } from './NotificationDropdown';
 import notificationService from '../services/notificationService';
 import { CreateClubModal } from './CreateClubModal';
+import { supabase } from '../lib/supabase';
 
 export const Header = () => {
   const { user } = useAuth();
@@ -14,22 +17,44 @@ export const Header = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showClubActionModal, setShowClubActionModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [hasDeviceToken, setHasDeviceToken] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  // 서브페이지가 주입한 헤더 내용 (있으면 기본 페이지 타이틀 대신 표시)
+  const pageHeader = usePageHeaderValue();
 
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/' || path.startsWith('/history')) return '기록';
+    if (path === '/' || path.startsWith('/history') || path.startsWith('/add-workout')) return '기록';
     if (path.startsWith('/club')) return '클럽';
     if (path.startsWith('/join')) return '클럽 가입';
     if (path.startsWith('/more')) return '더보기';
     return 'Cardio';
   };
 
-  // 읽지 않은 알림 개수 조회
   useEffect(() => {
-    if (user) {
-      loadUnreadCount();
-    }
+    if (!user) return;
+    loadUnreadCount();
+    supabase
+      .from('device_tokens')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('platform', 'android')
+      .maybeSingle()
+      .then(({ data }) => setHasDeviceToken(!!data));
   }, [user]);
+
+  const handleSync = async () => {
+    if (!user || syncing) return;
+    setSyncing(true);
+    await fetch('/api/sync/trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id }),
+    }).catch(() => {});
+    setTimeout(() => setSyncing(false), 3000);
+  };
+
+  // 읽지 않은 알림 개수 조회
 
   const loadUnreadCount = async () => {
     if (!user) return;
@@ -51,13 +76,53 @@ export const Header = () => {
   return (
     <>
       <header className="app-header">
-        <div className="header-logo">
-          <h1>{getPageTitle()}</h1>
-        </div>
+        {pageHeader ? (
+          <div className="header-page-slot">
+            {pageHeader.showBack && (
+              <button
+                className="header-back-button"
+                onClick={() => navigate(-1)}
+                aria-label="뒤로가기"
+              >
+                <ChevronLeft size={24} />
+              </button>
+            )}
+            <div className="header-slot-titles">
+              {pageHeader.subtitle && (
+                <span className="header-slot-crumb">{pageHeader.subtitle}</span>
+              )}
+              <h1>{pageHeader.title}</h1>
+            </div>
+          </div>
+        ) : (
+          <div className="header-logo">
+            <h1>{getPageTitle()}</h1>
+          </div>
+        )}
 
         {user && (
           <div className="header-notification">
-            {location.pathname.startsWith('/club') && !location.pathname.includes('/settings') && !location.pathname.includes('/members') && !location.pathname.includes('/member/') && !location.pathname.includes('/my-settings') && (
+            {(location.pathname === '/') && (
+              <>
+                {hasDeviceToken && (
+                  <button
+                    className="sync-button"
+                    onClick={handleSync}
+                    disabled={syncing}
+                    title="기기 동기화 요청"
+                  >
+                    <RefreshCw size={16} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
+                  </button>
+                )}
+                <button
+                  className="add-button"
+                  onClick={() => navigate('/add-workout')}
+                >
+                  + 기록 추가
+                </button>
+              </>
+            )}
+            {location.pathname.startsWith('/club') && !location.pathname.includes('/settings') && !location.pathname.includes('/members') && !location.pathname.includes('/member/') && !location.pathname.includes('/my-settings') && !user?.isGuest && (
               <button
                 className="header-action-button"
                 onClick={() => setShowClubActionModal(true)}
@@ -84,7 +149,7 @@ export const Header = () => {
       </header>
 
       {/* 클럽 액션 선택 모달 */}
-      {showClubActionModal && (
+      {showClubActionModal && createPortal(
         <div className="modal-overlay" onClick={() => setShowClubActionModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -123,21 +188,39 @@ export const Header = () => {
                     </div>
                   </button>
                 )}
+                {user?.is_admin && (
+                  <button
+                    className="club-action-modal-button"
+                    onClick={() => {
+                      setShowClubActionModal(false);
+                      localStorage.setItem('diag-enabled', '1');
+                      window.dispatchEvent(new Event('diag-toggle'));
+                    }}
+                  >
+                    <span className="action-icon">🐛</span>
+                    <div className="action-text">
+                      <div className="action-title">디버그 보기 <span style={{ fontSize: '11px', color: '#FF6B6B', fontWeight: '600' }}>🔒 시스템 관리자 전용</span></div>
+                      <div className="action-desc">화면 하단에 진단 오버레이 표시</div>
+                    </div>
+                  </button>
+                )}
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 클럽 생성 모달 */}
-      {showCreateModal && (
+      {showCreateModal && createPortal(
         <CreateClubModal
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);
             window.location.reload();
           }}
-        />
+        />,
+        document.body
       )}
     </>
   );

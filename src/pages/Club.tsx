@@ -2,58 +2,40 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
+import teamMatchService from '../services/teamMatchService';
 import { getExpressions } from '../utils/mileageExpressions';
 import { CreateClubModal } from '../components/CreateClubModal';
 import { MileageConfigModal } from '../components/MileageConfigModal';
 import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
 import { WorkoutFeed } from '../components/WorkoutFeed';
+import { ClubCalendarTab } from '../components/ClubCalendarTab';
 import { ClubMemberDetailModal } from '../components/ClubMemberDetailModal';
-import type { MyClubWithOrder, ClubRanking } from '../services/clubService';
+import type { MyClubWithOrder, ClubRanking, ClubDetailedStats } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
+import { TeamAssignModal } from '../components/TeamAssignModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, TrendingUp, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, BarChart2, Star } from 'lucide-react';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { useModalHistory } from '../hooks/useModalHistory';
+import { useConfirm } from '../hooks/useConfirm';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, Lock, Image, Filter } from 'lucide-react';
+import { arrayMove } from '@dnd-kit/sortable';
 
-// 드래그 가능한 클럽 아이템
-function SortableClubItem({ club, isSelected, onSelect }: {
+// 순서 변경 버튼이 있는 클럽 아이템
+function ClubOrderItem({ club, isSelected, isFirst, isLast, onSelect, onMoveUp, onMoveDown }: {
   club: MyClubWithOrder;
   isSelected: boolean;
+  isFirst: boolean;
+  isLast: boolean;
   onSelect: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: club.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`sortable-club-item ${isSelected ? 'selected' : ''}`}
-      onClick={onSelect}
-    >
-      <div className="drag-handle" {...attributes} {...listeners}>
-        ⋮⋮
+    <div className={`sortable-club-item ${isSelected ? 'selected' : ''}`} onClick={onSelect}>
+      <div className="order-buttons" onClick={e => e.stopPropagation()}>
+        <button className="order-btn" onClick={onMoveUp} disabled={isFirst} aria-label="위로">▲</button>
+        <button className="order-btn" onClick={onMoveDown} disabled={isLast} aria-label="아래로">▼</button>
       </div>
       {club.logo_url ? (
         <div className="club-item-logo">
@@ -89,15 +71,19 @@ export const Club = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMileageConfig, setShowMileageConfig] = useState(false);
   const [showDetailedStats, setShowDetailedStats] = useState(false);
+  const [showCategoryFilterMenu, setShowCategoryFilterMenu] = useState(false);
   const [showClubMenu, setShowClubMenu] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
   const [showInviteModal, setShowInviteModal] = useState(false);
+  useModalHistory(showClubMenu, () => setShowClubMenu(false));
+  useModalHistory(showInviteModal, () => setShowInviteModal(false));
   const [challengeMenuOpen, setChallengeMenuOpen] = useState(false);
-  const [mileageMenuOpen, setMileageMenuOpen] = useState(false);
-  const [statsMenuOpen, setStatsMenuOpen] = useState(false);
-  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [showChallengeCreate, setShowChallengeCreate] = useState(false);
   const [showChallengeArchive, setShowChallengeArchive] = useState(false);
   const [challengeRefreshKey, setChallengeRefreshKey] = useState(0);
+  const [assignInfo, setAssignInfo] = useState<{ id: string; startDate: string; baselineMonths: number } | null>(null);
+  const [teamBadges, setTeamBadges] = useState<Record<string, { color: string; name: string }>>({});
+  const [showLockTooltip, setShowLockTooltip] = useState(false);
 
   // 멤버 상세 모달
   const [selectedMember, setSelectedMember] = useState<{
@@ -108,7 +94,7 @@ export const Club = () => {
   } | null>(null);
 
   // 피드 관련 state
-  type TabType = 'ranking' | 'feed';
+  type TabType = 'ranking' | 'feed' | 'events';
   const [activeTab, setActiveTab] = useState<TabType>((location.state as { tab?: TabType } | null)?.tab ?? 'feed');
 
   // 마일리지 표현 state
@@ -130,7 +116,19 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [hideHof, setHideHof] = useState(false);
   const [rookieOnly, setRookieOnly] = useState(false);
   const rankingRequestId = useRef(0);
+
+  // 종목별 마일리지 필터 (null = 전체 종목 합산). 값은 상위 카테고리명 — 하위분류(러닝/트레드밀 등)는
+  // 칩 하나로 합쳐서 보여주고 필터 시 그 카테고리의 모든 하위분류 마일리지를 합산한다.
+  const [mileageCategoryFilter, setMileageCategoryFilter] = useState<string | null>(null);
+  const [mileageCategoryOptions, setMileageCategoryOptions] = useState<
+    { category: string; keys: string[] }[]
+  >([]);
+  const [categoryStats, setCategoryStats] = useState<ClubDetailedStats[] | null>(null);
+  const [categoryStatsLoading, setCategoryStatsLoading] = useState(false);
+  const categoryStatsRequestId = useRef(0);
+  const categoryStatsKeyRef = useRef<string | null>(null); // 마지막으로 fetch 성공한 club-year-month
   const [showMemberSearch, setShowMemberSearch] = useState(false);
+  useModalHistory(showMemberSearch, () => setShowMemberSearch(false));
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [highlightedUserId, setHighlightedUserId] = useState<string | null>(null);
   const [showFullList, setShowFullList] = useState(false);
@@ -138,15 +136,10 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   // 랭킹 월 선택 state
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  useModalHistory(showMonthPicker, () => setShowMonthPicker(false));
   const [monthPickerYear, setMonthPickerYear] = useState(selectedMonth.getFullYear());
   const [monthPickerMonth, setMonthPickerMonth] = useState(selectedMonth.getMonth() + 1);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
 
   // 내 클럽 불러오기
   const loadMyClubs = async () => {
@@ -194,6 +187,10 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
       setRanking(data);
       const total = data.reduce((s: number, m: any) => s + m.total_mileage, 0);
       if (total >= 10) setMileageExpressions(getExpressions(total, 1));
+      // 진행 중 팀 대항전 뱃지 (없으면 빈 객체)
+      teamMatchService.getActiveTeamBadges(clubId)
+        .then((b) => { if (requestId === rankingRequestId.current) setTeamBadges(b); })
+        .catch(() => {});
     } catch (error) {
       if (requestId !== rankingRequestId.current) return;
       console.error('랭킹 불러오기 실패:', error);
@@ -385,30 +382,6 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     });
   };
 
-  // 마일리지 재계산
-  const handleRecalculateMileage = async () => {
-    if (!selectedClub) return;
-
-    if (!confirm('현재 월의 모든 운동 기록 마일리지를 재계산하시겠습니까?\n\n현재 클럽의 마일리지 계수로 전체 재계산됩니다.')) {
-      return;
-    }
-
-    try {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth() + 1;
-
-      await clubService.recalculateClubMonthMileage(selectedClub.id, year, month);
-      alert('마일리지 재계산이 완료되었습니다.');
-
-      // 랭킹 새로고침
-      loadClubRanking(selectedClub.id);
-    } catch (error) {
-      console.error('마일리지 재계산 실패:', error);
-      alert('마일리지 재계산에 실패했습니다.');
-    }
-  };
-
   useEffect(() => {
     loadMyClubs();
   }, [user]);
@@ -436,18 +409,78 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     };
   }, [selectedClub, selectedMonth]);
 
-  // 클럽 변경 시 활성화 카테고리 로드 (피드 비활성 뱃지용)
+  // 클럽 변경 시 활성화 카테고리 로드 (피드 비활성 뱃지 + 종목별 마일리지 필터 옵션)
   useEffect(() => {
     if (!selectedClub) return;
     clubService.getClubMileageConfigs(selectedClub.id).then((rows) => {
+      const enabledRows = rows.filter((r) => r.enabled);
       const keys = new Set(
-        rows.filter((r) => r.enabled).map((r) =>
-          r.sub_type ? `${r.category}-${r.sub_type}` : r.category
-        )
+        enabledRows.map((r) => (r.sub_type ? `${r.category}-${r.sub_type}` : r.category))
       );
       setEnabledCategorySet(keys);
+
+      // 하위분류(러닝/트레드밀 등)를 상위 카테고리 하나로 합쳐서 칩 개수를 줄인다.
+      const byCategory = new Map<string, string[]>();
+      enabledRows.forEach((r) => {
+        const key = r.sub_type ? `${r.category}-${r.sub_type}` : r.category;
+        if (!byCategory.has(r.category)) byCategory.set(r.category, []);
+        byCategory.get(r.category)!.push(key);
+      });
+      // 클럽 관리자가 필터 칩에 노출할 카테고리를 직접 골라둔 경우 그 목록만 노출 (null = 전체)
+      const whitelist = selectedClub.mileage_filter_categories;
+      setMileageCategoryOptions(
+        [...byCategory.entries()]
+          .filter(([category]) => !whitelist || whitelist.includes(category))
+          .map(([category, catKeys]) => ({ category, keys: catKeys }))
+          .sort((a, b) => a.category.localeCompare(b.category))
+      );
     });
+    // 클럽이 바뀌면 이전 클럽의 종목 필터·캐시는 무효
+    setMileageCategoryFilter(null);
+    setCategoryStats(null);
+    categoryStatsKeyRef.current = null;
   }, [selectedClub?.id]);
+
+  // 종목별 마일리지 필터가 선택되면 클럽 상세 통계(종목별 마일리지)를 조회
+  // (월이 바뀌면 캐시 키가 달라져 자동 재조회됨)
+  useEffect(() => {
+    if (!selectedClub || !mileageCategoryFilter) return;
+    const key = `${selectedClub.id}-${selectedMonth.getFullYear()}-${selectedMonth.getMonth() + 1}`;
+    if (categoryStatsKeyRef.current === key) return;
+
+    const requestId = ++categoryStatsRequestId.current;
+    setCategoryStatsLoading(true);
+    clubService
+      .getClubDetailedStats(selectedClub.id, {
+        year: selectedMonth.getFullYear(),
+        month: selectedMonth.getMonth() + 1,
+      })
+      .then((data) => {
+        if (requestId !== categoryStatsRequestId.current) return;
+        setCategoryStats(data);
+        categoryStatsKeyRef.current = key;
+      })
+      .catch((error) => {
+        if (requestId !== categoryStatsRequestId.current) return;
+        console.error('[클럽 마일리지] 종목별 통계 조회 실패 상세:', JSON.stringify(error), error);
+      })
+      .finally(() => {
+        if (requestId === categoryStatsRequestId.current) setCategoryStatsLoading(false);
+      });
+  }, [selectedClub?.id, selectedMonth, mileageCategoryFilter]);
+
+  // 마일리지 탭 잠금 기간에 ranking 탭이 활성이면 feed로 초기 전환
+  useEffect(() => {
+    if (!selectedClub) return;
+    const isAdmin = selectedClub.role === 'manager' || selectedClub.role === 'vice-manager';
+    if (isAdmin) return; // 운영진은 잠금 기간에도 자유롭게 이동
+    const today = new Date().getDate();
+    const periods = selectedClub.mileage_hide_periods || [];
+    if (periods.some(p => today >= p.from && today <= p.to)) {
+      setActiveTab('feed');
+    }
+  }, [selectedClub?.id]);
+
 
   // 피드 탭 활성화 시 피드 로드
   useEffect(() => {
@@ -466,28 +499,19 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     localStorage.setItem('lastSelectedClubId', club.id);
   };
 
-  // 드래그 앤 드롭으로 순서 변경
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
+  // ▲▼ 버튼으로 순서 변경
+  const handleMoveClub = async (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= myClubs.length) return;
 
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = myClubs.findIndex((c) => c.id === active.id);
-    const newIndex = myClubs.findIndex((c) => c.id === over.id);
-
-    const newOrder = arrayMove(myClubs, oldIndex, newIndex);
+    const newOrder = arrayMove(myClubs, index, targetIndex);
     setMyClubs(newOrder);
 
-    // 서버에 순서 저장
     try {
-      const clubOrders = newOrder.map((club, index) => ({
-        club_id: club.id,
-        order: index,
-      }));
+      const clubOrders = newOrder.map((club, i) => ({ club_id: club.id, order: i }));
       await clubService.updateClubOrder(user!.id, clubOrders);
     } catch (error) {
       console.error('순서 변경 실패:', error);
-      // 실패 시 되돌리기
       loadMyClubs();
     }
   };
@@ -617,30 +641,23 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                 </button>
               </div>
 
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={myClubs.map((c) => c.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="sortable-club-list">
-                    {myClubs.map((club) => (
-                      <SortableClubItem
-                        key={club.id}
-                        club={club}
-                        isSelected={selectedClub?.id === club.id}
-                        onSelect={() => handleSelectClub(club)}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
+              <div className="sortable-club-list">
+                {myClubs.map((club, index) => (
+                  <ClubOrderItem
+                    key={club.id}
+                    club={club}
+                    isSelected={selectedClub?.id === club.id}
+                    isFirst={index === 0}
+                    isLast={index === myClubs.length - 1}
+                    onSelect={() => handleSelectClub(club)}
+                    onMoveUp={() => handleMoveClub(index, 'up')}
+                    onMoveDown={() => handleMoveClub(index, 'down')}
+                  />
+                ))}
+              </div>
 
               <div className="dropdown-footer">
-                드래그하여 순서 변경
+                ▲▼ 버튼으로 순서 변경
               </div>
             </div>
           )}
@@ -675,26 +692,76 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           club={selectedClub}
           userId={user.id}
           isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
+          onReassignTeams={(c) => setAssignInfo({
+            id: c.id,
+            startDate: c.start_date,
+            baselineMonths: c.meta_data?.team_match?.baseline_months ?? 3,
+          })}
         />
       )}
 
       {/* 탭 */}
-      {selectedClub && (
-        <div className="tabs">
-          <button
-            className={`tab ${activeTab === 'ranking' ? 'active' : ''}`}
-            onClick={() => setActiveTab('ranking')}
-          >
-            🏆 마일리지
-          </button>
-          <button
-            className={`tab ${activeTab === 'feed' ? 'active' : ''}`}
-            onClick={() => setActiveTab('feed')}
-          >
-            🏃 오늘의 운동
-          </button>
-        </div>
-      )}
+      {selectedClub && (() => {
+        const isAdmin = selectedClub.role === 'manager' || selectedClub.role === 'vice-manager';
+        const today = new Date().getDate();
+        const periods = selectedClub.mileage_hide_periods || [];
+        const activePeriods = periods.filter(p => today >= p.from && today <= p.to);
+        const isLockPeriod = activePeriods.length > 0; // 잠금 기간 여부 (역할 무관)
+        const isMileageBlocked = isLockPeriod && !isAdmin; // 일반회원만 실제 차단
+        return (
+          <>
+          {isMileageBlocked && showLockTooltip && (
+            <div
+              style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+              onClick={() => setShowLockTooltip(false)}
+            />
+          )}
+          {/* 탭 3개는 반드시 .tabs 의 직계 button.tab 형제로 둘 것 — 예전엔 잠금 툴팁
+              앵커용으로 마일리지만 div 로 한 번 더 감쌌는데, 그러면 .tab 의 padding 이
+              wrapper 로 빠지면서 활성 밑줄(border-bottom)이 나머지 탭보다 위에 그려진다.
+              툴팁은 .tabs(position: relative) 기준으로 띄운다. */}
+          <div className="tabs">
+            <button
+              className={`tab ${activeTab === 'ranking' ? 'active' : ''}${isLockPeriod ? ' tab--locked' : ''}`}
+              onClick={() => isMileageBlocked ? setShowLockTooltip(v => !v) : setActiveTab('ranking')}
+              style={isMileageBlocked ? { cursor: 'pointer', opacity: 0.5 } : undefined}
+            >
+              마일리지{isLockPeriod && <Lock size={12} style={{ marginLeft: 4, verticalAlign: 'middle' }} />}
+            </button>
+            <button
+              className={`tab ${activeTab === 'feed' ? 'active' : ''}`}
+              onClick={() => setActiveTab('feed')}
+            >
+              오늘운동
+            </button>
+            <button
+              className={`tab ${activeTab === 'events' ? 'active' : ''}`}
+              onClick={() => setActiveTab('events')}
+            >
+              클럽달력
+            </button>
+            {isMileageBlocked && showLockTooltip && (
+              <div style={{
+                // 탭 3개가 flex:1 균등분할이므로 첫 탭의 중앙 = 전체 폭의 1/6
+                position: 'absolute', top: 'calc(100% + 8px)', left: '16.667%', transform: 'translateX(-50%)',
+                background: 'var(--card-bg)', border: '1px solid var(--border-color)',
+                borderRadius: '10px', padding: '8px 12px', whiteSpace: 'nowrap',
+                fontSize: '13px', color: 'var(--text-primary)', zIndex: 100,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              }}>
+                <div style={{ position: 'absolute', top: -6, left: '50%', transform: 'translateX(-50%)', width: 10, height: 10, background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderBottom: 'none', borderRight: 'none', rotate: '45deg' }} />
+                🔒 잠금기간
+                {activePeriods.map((p, i) => (
+                  <span key={i} style={{ display: 'block', marginTop: 2, color: 'var(--text-secondary)' }}>
+                    매월 {p.from}일 ~ {p.to}일
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          </>
+        );
+      })()}
 
       {/* 마일리지 랭킹 */}
       {activeTab === 'ranking' && (
@@ -773,6 +840,62 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               >
                 <Table size={16} />
               </button>
+              {mileageCategoryOptions.length > 0 && (
+                <div style={{ position: 'relative' }}>
+                  <button
+                    className="dashboard-action-button"
+                    onClick={() => setShowCategoryFilterMenu((v) => !v)}
+                    title="종목 필터"
+                    style={mileageCategoryFilter ? { color: '#FF6B9D', borderColor: '#FF6B9D' } : undefined}
+                  >
+                    <Filter size={16} />
+                  </button>
+                  {showCategoryFilterMenu && (
+                    <>
+                      <div
+                        style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                        onClick={() => setShowCategoryFilterMenu(false)}
+                      />
+                      <div style={{
+                        position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                        background: 'var(--card-bg)', border: '1px solid var(--border-color)',
+                        borderRadius: '10px', padding: '6px', minWidth: '140px',
+                        zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      }}>
+                        <button
+                          type="button"
+                          onClick={() => { setMileageCategoryFilter(null); setShowCategoryFilterMenu(false); }}
+                          style={{
+                            display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px',
+                            background: mileageCategoryFilter === null ? 'var(--input-bg)' : 'none',
+                            border: 'none', borderRadius: '6px', cursor: 'pointer',
+                            fontSize: '14px', fontWeight: mileageCategoryFilter === null ? 600 : 400,
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          전체 종목
+                        </button>
+                        {mileageCategoryOptions.map((opt) => (
+                          <button
+                            key={opt.category}
+                            type="button"
+                            onClick={() => { setMileageCategoryFilter(opt.category); setShowCategoryFilterMenu(false); }}
+                            style={{
+                              display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px',
+                              background: mileageCategoryFilter === opt.category ? 'var(--input-bg)' : 'none',
+                              border: 'none', borderRadius: '6px', cursor: 'pointer',
+                              fontSize: '14px', fontWeight: mileageCategoryFilter === opt.category ? 600 : 400,
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            {opt.category}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -840,7 +963,38 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               <p>랭킹 불러오는 중...</p>
             </div>
           ) : (() => {
-            const withRecord = ranking.filter(m => m.workout_count > 0 && m.total_mileage > 0);
+            // 종목별 필터 선택 시 클럽 상세 통계(종목별 마일리지)로 소스 교체.
+            // ranking 에 있는 유저로만 제한하는 이유: getClubDetailedStats 는 show_mileage=false
+            // 로 랭킹을 숨긴 멤버까지 포함하므로, 그대로 쓰면 숨김 설정을 무시하고 노출된다.
+            let source: ClubRanking[] = ranking;
+            if (mileageCategoryFilter) {
+              if (!categoryStats) {
+                return (
+                  <div className="loading-screen">
+                    <div className="spinner"></div>
+                    <p>{categoryStatsLoading ? '종목별 순위 불러오는 중...' : '종목별 순위 준비 중...'}</p>
+                  </div>
+                );
+              }
+              // 선택된 카테고리에 속한 하위분류(러닝/트레드밀 등) 전부의 마일리지를 합산
+              const keys = mileageCategoryOptions.find(o => o.category === mileageCategoryFilter)?.keys
+                ?? [mileageCategoryFilter];
+              const rankingByUser = new Map(ranking.map(m => [m.user_id, m]));
+              source = categoryStats
+                .filter(s => rankingByUser.has(s.user_id))
+                .map(s => {
+                  const base = rankingByUser.get(s.user_id)!;
+                  const mileage = keys.reduce((sum, k) => sum + (s.by_workout[k] || 0), 0);
+                  return { ...base, total_mileage: mileage, workout_count: mileage > 0 ? 1 : 0 };
+                });
+            }
+
+            // categoryStats 는 종목 합산 총점 기준으로 정렬되어 있어, 특정 종목만 골라낸 뒤에는
+            // 그 정렬이 더 이상 유효하지 않다 (예: 종합 1위가 러닝은 안 해서 실제로는 하위권일 수 있음).
+            // 순위(rank)는 배열 인덱스로 매기므로 여기서 항상 다시 정렬해야 함.
+            const withRecord = source
+              .filter(m => m.workout_count > 0 && m.total_mileage > 0)
+              .sort((a, b) => b.total_mileage - a.total_mileage);
 
             // 필터 체크박스 적용
             let filtered = withRecord;
@@ -867,7 +1021,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                 return <img src={member.profile_image} alt={member.display_name} className="ranking-profile" />;
               }
               return (
-                <div className="ranking-profile-placeholder" style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}>
+                <div className="ranking-profile-placeholder" style={{ background: 'var(--gradient-primary)' }}>
                   {member.display_name[0]}
                 </div>
               );
@@ -883,7 +1037,12 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               const slice = reranked.slice(start, end);
               return (
                 <div className="myrank-view">
-                  <div className="myrank-view-summary">전체 {reranked.length}명 중 <strong>{myEntry.rank}위</strong></div>
+                  <div className="myrank-view-summary">
+                    <span>전체 {reranked.length}명 중 <strong>{myEntry.rank}위</strong></span>
+                    {mileageCategoryFilter && (
+                      <span className="myrank-view-summary-filter">{mileageCategoryFilter} 필터중</span>
+                    )}
+                  </div>
                   <div className="my-rank-context">
                     {start > 0 && <div className="my-rank-context-ellipsis">⋯ 위 {start}명</div>}
                     {slice.map(m => {
@@ -925,6 +1084,9 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                         <input type="checkbox" checked={rookieOnly} onChange={e => setRookieOnly(e.target.checked)} />
                         <span>루키리그</span>
                       </label>
+                    )}
+                    {mileageCategoryFilter && (
+                      <span className="myrank-view-summary-filter" style={{ marginLeft: 'auto' }}>{mileageCategoryFilter} 필터중</span>
                     )}
                   </div>
                   <div className="empty-state"><p>운동 기록이 없습니다.</p></div>
@@ -972,6 +1134,9 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                       <span>루키리그</span>
                     </label>
                   )}
+                  {mileageCategoryFilter && (
+                    <span className="myrank-view-summary-filter" style={{ marginLeft: 'auto' }}>{mileageCategoryFilter} 필터중</span>
+                  )}
                 </div>
 
                 <div className="ranking-list">
@@ -992,13 +1157,13 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                           className={`ranking-item clickable ${member.is_hall_of_fame ? 'hof-highlight' : ''} ${isMyRank ? 'my-rank' : ''}`}
                           style={{
                             background: member.user_id === highlightedUserId
-                              ? 'linear-gradient(135deg, #FFE4EE 0%, #FFB6C1 100%)'
+                              ? 'var(--row-found-bg)'
                               : member.is_hall_of_fame
-                              ? 'linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%)'
+                              ? 'var(--row-hof-bg)'
                               : isMyRank
-                              ? 'linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)'
+                              ? 'var(--row-me-bg)'
                               : undefined,
-                            borderColor: member.user_id === highlightedUserId ? '#FF6B9D' : member.is_hall_of_fame ? '#FFD700' : isMyRank ? '#2196F3' : undefined,
+                            borderColor: member.user_id === highlightedUserId ? 'var(--row-found-border)' : member.is_hall_of_fame ? 'var(--row-hof-border)' : isMyRank ? 'var(--row-me-border)' : undefined,
                             borderWidth: member.user_id === highlightedUserId || member.is_hall_of_fame || isMyRank ? '2px' : undefined,
                           }}
                           onClick={() => openMemberDetail(member.user_id, member.display_name)}
@@ -1010,6 +1175,16 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                             {renderProfileImage(member)}
                             <div className="ranking-info">
                               <div className="ranking-name">
+                                {teamBadges[member.user_id] && (
+                                  <span
+                                    className="ranking-team-dot"
+                                    title={teamBadges[member.user_id].name}
+                                    style={{
+                                      background: teamBadges[member.user_id].color,
+                                      border: teamBadges[member.user_id].color.toLowerCase() === '#e2e8f0' ? '1px solid #94a3b8' : 'none',
+                                    }}
+                                  />
+                                )}
                                 {member.display_name}
                                 {isMyRank && <span className="my-rank-badge">나</span>}
                                 {member.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
@@ -1058,7 +1233,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               } else if (member.profile_image) {
                 return <img src={member.profile_image} alt={member.display_name} className="hof-card-avatar hof-card-avatar--img" />;
               }
-              return <div className="hof-card-avatar" style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)' }}>{member.display_name[0]}</div>;
+              return <div className="hof-card-avatar" style={{ background: 'var(--gradient-primary)' }}>{member.display_name[0]}</div>;
             };
 
             return (
@@ -1106,6 +1281,8 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         </div>
       ))}
 
+      {/* 소셜 탭 — 미출시, 비활성화 */}
+
       {/* 오늘의 운동 피드 */}
       {activeTab === 'feed' && selectedClub && (
         <WorkoutFeed
@@ -1129,6 +1306,15 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           onOptimisticCommentDelete={handleOptimisticCommentDelete}
           onBlock={handleBlock}
           onMemberClick={(userId, userName) => openMemberDetail(userId, userName)}
+        />
+      )}
+
+      {/* 클럽달력 */}
+      {activeTab === 'events' && selectedClub && user && (
+        <ClubCalendarTab
+          clubId={selectedClub.id}
+          userId={user.id}
+          isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
         />
       )}
 
@@ -1180,7 +1366,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             return (
               <div style={{
                 width: 40, height: 40, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #4FC3F7 0%, #FF6B9D 100%)',
+                background: 'var(--gradient-primary)',
                 color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '16px', fontWeight: 600, flexShrink: 0,
               }}>
@@ -1232,6 +1418,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                           setShowFullList(false);
                           setShowMemberSearch(false);
                           setMemberSearchQuery('');
+                          setRankingTab('all');
                         }}
                         style={{
                           display: 'flex',
@@ -1397,6 +1584,28 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             setShowChallengeCreate(false);
             setChallengeRefreshKey((k) => k + 1);
           }}
+          onTeamMatchCreated={(info) => {
+            setShowChallengeCreate(false);
+            setAssignInfo(info);
+          }}
+        />
+      )}
+
+      {/* 팀 배정 모달 (팀 대항전 생성 직후 or 재배정) */}
+      {assignInfo && selectedClub && (
+        <TeamAssignModal
+          challengeId={assignInfo.id}
+          club={selectedClub}
+          startDate={assignInfo.startDate}
+          baselineMonths={assignInfo.baselineMonths}
+          onClose={() => {
+            setAssignInfo(null);
+            setChallengeRefreshKey((k) => k + 1);
+          }}
+          onSaved={() => {
+            setAssignInfo(null);
+            setChallengeRefreshKey((k) => k + 1);
+          }}
         />
       )}
 
@@ -1483,6 +1692,14 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                   </div>
                   <ChevronRight size={16} className="cmenu-arrow" />
                 </button>
+                <button type="button" className="cmenu-row" onClick={() => { setShowClubMenu(false); navigate(`/club/gallery/${selectedClub.id}`); }}>
+                  <Image size={18} className="cmenu-row-icon" />
+                  <div className="cmenu-row-text">
+                    <div className="cmenu-row-title">사진 갤러리</div>
+                    <div className="cmenu-row-desc">증빙사진 모아보기</div>
+                  </div>
+                  <ChevronRight size={16} className="cmenu-arrow" />
+                </button>
               </div>
 
               {/* 챌린지 */}
@@ -1518,123 +1735,30 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                 )}
               </div>
 
-              {/* 마일리지 (관리자) */}
+              {/* 클럽 관리 (관리자) → 설정 허브 페이지 */}
               {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
                 <div className="cmenu-group">
-                  <button type="button" className="cmenu-row" onClick={() => setMileageMenuOpen(v => !v)}>
-                    <TrendingUp size={18} className="cmenu-row-icon" />
-                    <div className="cmenu-row-text">
-                      <div className="cmenu-row-title">마일리지</div>
-                    </div>
-                    <span className="cmenu-badge">관리자</span>
-                    <ChevronDown size={16} className={`cmenu-caret${mileageMenuOpen ? ' cmenu-caret--open' : ''}`} />
-                  </button>
-                  {mileageMenuOpen && (
-                    <>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); handleRecalculateMileage(); }}>
-                        <RefreshCw size={16} className="cmenu-row-icon" />
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">마일리지 재계산</div>
-                          <div className="cmenu-row-desc">현재 월 전체 마일리지 새로고침</div>
-                        </div>
-                      </button>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/mileage`); }}>
-                        <TrendingUp size={16} className="cmenu-row-icon" />
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">마일리지 계수 설정</div>
-                          <div className="cmenu-row-desc">운동별 계수 조정</div>
-                        </div>
-                        <ChevronRight size={16} className="cmenu-arrow" />
-                      </button>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/rookie-league`); }}>
-                        <Star size={16} className="cmenu-row-icon" />
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">리그 제도 운영</div>
-                          <div className="cmenu-row-desc">루키리그 기준 설정</div>
-                        </div>
-                        <ChevronRight size={16} className="cmenu-arrow" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* 통계 (관리자) */}
-              {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
-                <div className="cmenu-group">
-                  <button type="button" className="cmenu-row" onClick={() => setStatsMenuOpen(v => !v)}>
-                    <BarChart2 size={18} className="cmenu-row-icon" />
-                    <div className="cmenu-row-text">
-                      <div className="cmenu-row-title">통계</div>
-                    </div>
-                    <span className="cmenu-badge">관리자</span>
-                    <ChevronDown size={16} className={`cmenu-caret${statsMenuOpen ? ' cmenu-caret--open' : ''}`} />
-                  </button>
-                  {statsMenuOpen && (
-                    <>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/stats`); }}>
-                        <BarChart2 size={16} className="cmenu-row-icon" />
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">클럽 통계</div>
-                          <div className="cmenu-row-desc">월별 마일리지 · 멤버 · 종목 그래프</div>
-                        </div>
-                        <ChevronRight size={16} className="cmenu-arrow" />
-                      </button>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/growth`); }}>
-                        <TrendingUp size={16} className="cmenu-row-icon" />
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">이달의 성장</div>
-                          <div className="cmenu-row-desc">팀원별 전달 대비 성장 진척률</div>
-                        </div>
-                        <ChevronRight size={16} className="cmenu-arrow" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* 클럽 관리 (클럽장) */}
-              {user && selectedClub.created_by === user.id && (
-                <div className="cmenu-group">
-                  <button type="button" className="cmenu-row" onClick={() => setAdminMenuOpen(v => !v)}>
+                  <button type="button" className="cmenu-row" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}`); }}>
                     <Settings size={18} className="cmenu-row-icon" />
                     <div className="cmenu-row-text">
                       <div className="cmenu-row-title">클럽 관리</div>
+                      <div className="cmenu-row-desc">마일리지, 통계, 클럽원 관리 등</div>
                     </div>
-                    <span className="cmenu-badge">클럽장</span>
-                    <ChevronDown size={16} className={`cmenu-caret${adminMenuOpen ? ' cmenu-caret--open' : ''}`} />
+                    <span className="cmenu-badge">{user && selectedClub.created_by === user.id ? '클럽장' : '관리자'}</span>
+                    <ChevronRight size={16} className="cmenu-arrow" />
                   </button>
-                  {adminMenuOpen && (
-                    <>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/general`); }}>
-                        <Info size={16} className="cmenu-row-icon" />
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">클럽 정보 변경</div>
-                          <div className="cmenu-row-desc">이름, 설명, 로고 수정</div>
-                        </div>
-                        <ChevronRight size={16} className="cmenu-arrow" />
-                      </button>
-                      <button type="button" className="cmenu-row cmenu-row--sub" onClick={() => { setShowClubMenu(false); navigate(`/club/settings/${selectedClub.id}/transfer`); }}>
-                        <span style={{ fontSize: '16px', lineHeight: 1, flexShrink: 0 }}>👑</span>
-                        <div className="cmenu-row-text">
-                          <div className="cmenu-row-title">클럽장 권한 넘기기</div>
-                          <div className="cmenu-row-desc">다른 멤버에게 클럽장 위임</div>
-                        </div>
-                        <ChevronRight size={16} className="cmenu-arrow" />
-                      </button>
-                    </>
-                  )}
                 </div>
               )}
 
-              {/* 클럽 탈퇴 (비클럽장) */}
-              {user && selectedClub.created_by !== user.id && (
+              {/* 클럽 탈퇴 (관리자는 비활성) */}
+              {user && (
                 <div className="cmenu-group cmenu-group--danger">
                   <button
                     type="button"
                     className="cmenu-row cmenu-row--danger"
+                    disabled={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
                     onClick={async () => {
-                      if (!confirm(`${selectedClub.name}에서 탈퇴하시겠습니까?\n\n탈퇴 후에도 초대코드로 다시 가입할 수 있습니다.`)) return;
+                      if (!(await confirm(`${selectedClub.name}에서 탈퇴하시겠습니까?\n\n탈퇴 후에도 초대코드로 다시 가입할 수 있습니다.`))) return;
                       try {
                         await clubService.leaveClub(selectedClub.id, user.id);
                         alert('클럽에서 탈퇴했습니다.');
@@ -1652,6 +1776,11 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                       <div className="cmenu-row-desc">이 클럽에서 나가기</div>
                     </div>
                   </button>
+                  {(selectedClub.role === 'manager' || selectedClub.role === 'vice-manager') && (
+                    <div className="cmenu-group-note">
+                      관리자 자격이 없어야 탈퇴할 수 있습니다.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1659,25 +1788,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         </div>
       )}
 
-      {/* 챌린지 만들기 모달 */}
-      {showChallengeCreate && selectedClub && user && (
-        <ChallengeCreateModal
-          club={selectedClub}
-          userId={user.id}
-          onClose={() => setShowChallengeCreate(false)}
-          onCreated={() => { setShowChallengeCreate(false); setChallengeRefreshKey(k => k + 1); }}
-        />
-      )}
-
-      {/* 지난 챌린지 아카이브 모달 */}
-      {showChallengeArchive && selectedClub && (
-        <ChallengeArchiveModal
-          clubId={selectedClub.id}
-          clubName={selectedClub.name}
-          isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
-          onClose={() => setShowChallengeArchive(false)}
-        />
-      )}
+      {ConfirmDialog}
     </div>
   );
 };

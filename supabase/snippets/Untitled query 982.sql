@@ -1,0 +1,2 @@
+ALTER TABLE clubs                                                                                                                      
+    ADD COLUMN IF NOT EXISTS mileage_hide_periods jsonb NOT NULL DEFAULT '[]'::jsonb;

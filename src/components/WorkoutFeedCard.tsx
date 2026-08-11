@@ -3,7 +3,9 @@ import { Heart, MessageCircle, MoreVertical, Share, Copy, CircleOff } from 'luci
 import { useAuth } from '../contexts/AuthContext';
 import feedService from '../services/feedService';
 import { CommentSection } from './CommentSection';
+import { WorkoutDetail } from '../pages/WorkoutDetail';
 import type { WorkoutFeedItem } from '../services/feedService';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 const REPORT_REASONS = ['스팸', '욕설/혐오발언', '부적절한 내용', '기타'];
 
@@ -45,6 +47,9 @@ export const WorkoutFeedCard = ({
   const [selectedReason, setSelectedReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  useModalHistory(showReportModal, () => setShowReportModal(false));
+  useModalHistory(showBlockConfirm, () => setShowBlockConfirm(false));
+
   // 메뉴 외부 클릭 감지
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -63,16 +68,6 @@ export const WorkoutFeedCard = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showMenu]);
-
-  // 운동상세 시트 열릴 때 BottomNav 숨김
-  useEffect(() => {
-    if (showDetail) {
-      document.body.classList.add('workout-detail-open');
-    } else {
-      document.body.classList.remove('workout-detail-open');
-    }
-    return () => document.body.classList.remove('workout-detail-open');
-  }, [showDetail]);
 
   const isMyPost = user?.id === item.workout.user_id;
 
@@ -119,7 +114,7 @@ export const WorkoutFeedCard = ({
     const workoutDate = new Date(workout.workout_time);
     const dateStr = `${workoutDate.getFullYear()}.${String(workoutDate.getMonth() + 1).padStart(2, '0')}.${String(workoutDate.getDate()).padStart(2, '0')}`;
 
-    const shareTitle = `[${clubName}] ${item.user_display_name}님 (${dateStr})`;
+    const shareTitle = `[${clubName}] ${item.club_nickname ?? '회원'}님 (${dateStr})`;
 
     // 피드 로드 시 계산된 운동 번호 사용 (비동기 호출 없음)
     const numberText = item.workout_number ? `\n오늘 클럽 ${item.workout_number}번째` : '';
@@ -171,7 +166,7 @@ export const WorkoutFeedCard = ({
     const dateStr = `${workoutDate.getFullYear()}.${String(workoutDate.getMonth() + 1).padStart(2, '0')}.${String(workoutDate.getDate()).padStart(2, '0')}`;
 
     // 피드 로드 시 계산된 운동 번호 사용
-    let shareText = `[${clubName}] ${item.user_display_name}님 (${dateStr})\n`;
+    let shareText = `[${clubName}] ${item.club_nickname ?? '회원'}님 (${dateStr})\n`;
     shareText += `${workoutLabel}: ${workout.value}${workout.unit}\n`;
     if (item.workout_number) {
       shareText += `오늘 클럽 ${item.workout_number}번째\n`;
@@ -218,33 +213,6 @@ export const WorkoutFeedCard = ({
     return workout.category;
   };
 
-  const getRatioDisplay = () => {
-    if (workout.category !== '요가' && workout.category !== '복싱') {
-      return null;
-    }
-
-    if (!workout.sub_type_ratios) {
-      return null;
-    }
-
-    const ratios = workout.sub_type_ratios as Record<string, number>;
-    const entries = Object.entries(ratios);
-
-    if (entries.length === 0) {
-      return null;
-    }
-
-    // 단일 타입 100%인 경우 비율 표시 안함
-    if (entries.length === 1 && entries[0][1] === 1.0) {
-      return null;
-    }
-
-    // 비율 표시
-    return entries
-      .map(([type, ratio]) => `${type} ${Math.round(ratio * 100)}%`)
-      .join(' | ');
-  };
-
   const renderAvatar = (profileImage: string | undefined, displayName: string, className: string) => {
     if (profileImage?.startsWith('default:')) {
       // default:color 형식 - 색상 아바타
@@ -278,23 +246,6 @@ export const WorkoutFeedCard = ({
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   };
 
-  const getIntensityLabel = (intensity: number) => {
-    if (intensity <= 2) return '편안';
-    if (intensity <= 4) return '경쾌';
-    if (intensity <= 6) return '자극';
-    if (intensity <= 8) return '고강도';
-    return '한계돌파';
-  };
-
-  const getIntensityColor = (intensity: number) => {
-    if (intensity <= 2) return '#4ade80'; // green
-    if (intensity <= 4) return '#22c55e'; // green
-    if (intensity <= 6) return '#eab308'; // yellow
-    if (intensity <= 8) return '#f97316'; // orange
-    if (intensity === 9) return '#ef4444'; // red
-    return '#dc2626'; // dark red
-  };
-
   const handleLikeToggle = async () => {
     if (!user || liking) return;
 
@@ -317,12 +268,17 @@ export const WorkoutFeedCard = ({
   };
 
   return (
-    <div className={`feed-card ${item.is_disabled ? 'feed-card-disabled' : ''} ${isMyPost ? 'feed-card-my-post' : ''}`}>
-      {/* 비활성화 배지 */}
-      {item.is_disabled && (
-        <div className="feed-disabled-badge">
+    <div className={`feed-card ${(item.is_disabled || item.exclusion_snapshot) ? 'feed-card-disabled' : ''} ${isMyPost ? 'feed-card-my-post' : ''}`}>
+      {/* 미적립 배지 — 제외 규칙(커스텀 라벨) 우선, 없으면 비활성 카테고리 "미적립" */}
+      {(item.is_disabled || item.exclusion_snapshot) && (
+        <div
+          className="feed-disabled-badge"
+          style={item.exclusion_snapshot
+            ? { background: item.exclusion_snapshot.label_bg_color, color: item.exclusion_snapshot.label_fg_color }
+            : undefined}
+        >
           <CircleOff size={11} />
-          미적립
+          {item.exclusion_snapshot ? item.exclusion_snapshot.name : '미적립'}
         </div>
       )}
 
@@ -387,7 +343,9 @@ export const WorkoutFeedCard = ({
               {item.user_display_name}
             </span>
             <span className="feed-time-v2">{formatTime(workout.workout_time)}</span>
-            <span className="feed-workout-type-v2">{getWorkoutLabel()}</span>
+            <span className="feed-workout-type-v2">
+              {getWorkoutLabel()}
+            </span>
           </div>
 
           {/* 둘째 줄: 데이터 + 좋아요/댓글 */}
@@ -426,6 +384,7 @@ export const WorkoutFeedCard = ({
           clubId={clubId}
           onCommentAdded={() => onOptimisticCommentAdd(workout.id)}
           onCommentDeleted={() => onOptimisticCommentDelete(workout.id)}
+          onClose={() => setShowComments(false)}
         />
       )}
 
@@ -502,120 +461,14 @@ export const WorkoutFeedCard = ({
         </div>
       )}
 
-      {/* 상세보기 바텀시트 */}
+      {/* 상세보기 바텀시트 (기록/갤러리/멤버상세와 공유하는 컴포넌트) */}
       {showDetail && (
-        <div className="workout-sheet-overlay" onClick={() => setShowDetail(false)}>
-          <div className="workout-sheet" onClick={(e) => e.stopPropagation()}>
-            {/* 고정 헤더 */}
-            <div className="workout-sheet-header">
-              <h2>운동 상세</h2>
-              <button className="modal-close" onClick={() => setShowDetail(false)}>
-                ✕
-              </button>
-            </div>
-            {/* 스크롤 바디 */}
-            <div className="workout-sheet-body">
-              <div className="workout-detail-section">
-                <h3>운동 정보</h3>
-                <div className="workout-detail-info">
-                  <div className="workout-detail-row">
-                    <span className="label">종류</span>
-                    <span className="value">
-                      {getWorkoutLabel()}
-                      {getRatioDisplay() && (
-                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                          {getRatioDisplay()}
-                        </div>
-                      )}
-                    </span>
-                  </div>
-                  <div className="workout-detail-row">
-                    <span className="label">거리/시간</span>
-                    <span className="value">
-                      {workout.value} {workout.unit}
-                    </span>
-                  </div>
-                  <div className="workout-detail-row">
-                    <span className="label">체감 난이도</span>
-                    <span
-                      className="value intensity-value"
-                      style={{ color: getIntensityColor(workout.intensity) }}
-                    >
-                      {getIntensityLabel(workout.intensity)}
-                    </span>
-                  </div>
-                  {/* 마일리지는 클럽별로 다르므로 표시하지 않음 */}
-                  <div className="workout-detail-row">
-                    <span className="label">시간</span>
-                    <span className="value">
-                      {new Date(workout.workout_time).toLocaleString('ko-KR')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {workout.memo && (
-                <div className="workout-detail-section">
-                  <h3>메모</h3>
-                  <p className="workout-detail-memo">{workout.memo}</p>
-                </div>
-              )}
-
-              {workout.proof_image && (
-                <div className="workout-detail-section">
-                  <h3>인증 사진</h3>
-                  <div className="workout-detail-image">
-                    <img src={workout.proof_image} alt="운동 인증" />
-                  </div>
-                </div>
-              )}
-
-              <div className="workout-detail-section">
-                <h3>기록자</h3>
-                <div className="workout-detail-user">
-                  {renderAvatar(item.user_profile_image, item.user_display_name, 'user-avatar-placeholder')}
-                  <span>{item.user_display_name}</span>
-                </div>
-              </div>
-
-              {/* 신고/차단 버튼 (내 글 제외) */}
-              {!isMyPost && (
-                <div className="workout-detail-actions">
-                  <button
-                    className="detail-action-btn detail-action-report"
-                    onClick={() => { setShowDetail(false); setShowReportModal(true); }}
-                  >
-                    신고하기
-                  </button>
-                  <button
-                    className="detail-action-btn detail-action-block"
-                    onClick={() => { setShowDetail(false); setShowBlockConfirm(true); }}
-                  >
-                    차단하기
-                  </button>
-                </div>
-              )}
-            </div>
-            {/* 고정 액션바 */}
-            <div className="workout-sheet-footer">
-              <button
-                className={`sheet-action-btn ${item.is_liked_by_me ? 'liked' : ''}`}
-                onClick={handleLikeToggle}
-                disabled={liking}
-              >
-                <Heart size={18} fill={item.is_liked_by_me ? 'currentColor' : 'none'} />
-                <span>{item.like_count}</span>
-              </button>
-              <button
-                className="sheet-action-btn"
-                onClick={() => { setShowDetail(false); setShowComments(true); }}
-              >
-                <MessageCircle size={18} />
-                <span>{item.comment_count}</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <WorkoutDetail
+          workoutData={workout}
+          clubId={clubId}
+          onClose={() => setShowDetail(false)}
+          onBlock={onBlock}
+        />
       )}
     </div>
   );

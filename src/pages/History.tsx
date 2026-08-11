@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { WorkoutDetail } from './WorkoutDetail';
 import workoutService from '../services/workoutService';
 import { getThumbnail } from '../utils/r2Storage';
 import type { Workout } from '../services/workoutService';
@@ -9,6 +9,8 @@ import type { RaceRecord } from '../services/raceService';
 import { RaceRecordCard } from '../components/RaceRecordCard';
 import { AddRaceModal } from '../components/AddRaceModal';
 import { ExternalLink, Pencil, Trash2 } from 'lucide-react';
+import { WorkoutSourceIcon } from '../components/WorkoutSourceIcon';
+import { useConfirm } from '../hooks/useConfirm';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import {
@@ -42,7 +44,7 @@ const getCatGroup = (category: string) => CATEGORY_GROUPS[category] || category;
 
 export const History = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [activeTab, setActiveTab] = useState<TabType>('stats');
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,6 +55,7 @@ export const History = () => {
   const [showAddRace, setShowAddRace] = useState(false);
   const [editingRace, setEditingRace] = useState<RaceRecord | undefined>();
   const [viewingRace, setViewingRace] = useState<RaceRecord | null>(null);
+  const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
 
   // 운동 기록 불러오기
   const loadWorkouts = async () => {
@@ -91,7 +94,7 @@ export const History = () => {
   }, [activeTab, user]);
 
   const handleDeleteRace = async (id: string) => {
-    if (!confirm('이 기록을 삭제할까요?')) return;
+    if (!(await confirm('이 기록을 삭제할까요?'))) return;
     await raceService.deleteRecord(id);
     setRaceRecords(prev => prev.filter(r => r.id !== id));
   };
@@ -182,6 +185,10 @@ export const History = () => {
     const categoryCount: Record<string, number> = {};
     const distanceByGroup: Record<string, number> = {};
     const countByGroup: Record<string, number> = {};
+    // 종목 그룹별 기록값 합계. 한 그룹에 단위가 섞일 수 있어(예: 계단 = 시간(분) + 층수(층))
+    // 단위별로 따로 합산한 뒤, 기록 수가 가장 많은 단위를 그 그룹의 대표로 삼는다.
+    // (분 + 층 처럼 서로 다른 단위를 더해버리는 것을 막기 위함)
+    const valueByGroupUnit: Record<string, Record<string, { sum: number; count: number }>> = {};
     monthWorkouts.forEach((w) => {
       const label = getWorkoutLabel(w);
       categoryCount[label] = (categoryCount[label] || 0) + 1;
@@ -191,8 +198,25 @@ export const History = () => {
         const distKm = w.unit === 'm' ? w.value / 1000 : w.value;
         distanceByGroup[group] = (distanceByGroup[group] || 0) + distKm;
       }
+      // m 는 km 로 환산해 같은 단위로 묶는다
+      const unit = w.unit === 'm' ? 'km' : w.unit;
+      const value = w.unit === 'm' ? w.value / 1000 : w.value;
+      if (!valueByGroupUnit[group]) valueByGroupUnit[group] = {};
+      const bucket = valueByGroupUnit[group][unit] ?? { sum: 0, count: 0 };
+      bucket.sum += value;
+      bucket.count += 1;
+      valueByGroupUnit[group][unit] = bucket;
     });
-    return { totalWorkouts: monthWorkouts.length, totalDistance, workoutDays: uniqueDays, categoryCount, distanceByGroup, countByGroup };
+
+    const valueByGroup: Record<string, number> = {};
+    const unitByGroup: Record<string, string> = {};
+    Object.entries(valueByGroupUnit).forEach(([group, units]) => {
+      const [domUnit, domBucket] = Object.entries(units).sort((a, b) => b[1].count - a[1].count)[0];
+      valueByGroup[group] = domBucket.sum;
+      unitByGroup[group] = domUnit;
+    });
+
+    return { totalWorkouts: monthWorkouts.length, totalDistance, workoutDays: uniqueDays, categoryCount, distanceByGroup, countByGroup, valueByGroup, unitByGroup };
   };
 
   // 최근 6개월 차트 데이터
@@ -231,7 +255,9 @@ export const History = () => {
 
   const METRIC_CONFIG = {
     workoutDays:   { label: '운동일수', unit: '일' },
-    totalDistance: { label: '종목별',   unit: '회' },
+    // 종목별은 그룹마다 단위가 달라(km/분/층) 단위를 여기서 고정하지 않고
+    // 렌더 시점에 unitByGroup 에서 가져온다
+    totalDistance: { label: '종목별',   unit: '' },
   };
 
   const renderPaceBadge = (pct: number | null) => {
@@ -246,13 +272,6 @@ export const History = () => {
 
   return (
     <div className="container">
-      <div className="header">
-        <h1>기록</h1>
-        <button className="add-button" onClick={() => navigate('/add-workout')}>
-          + 기록 추가
-        </button>
-      </div>
-
       {/* 탭 */}
       <div className="tabs">
         <button
@@ -340,7 +359,7 @@ export const History = () => {
                     <div
                       key={workout.id}
                       className="workout-item clickable"
-                      onClick={() => navigate(`/workout/${workout.id}`, { state: { workout } })}
+                      onClick={() => setSelectedWorkout(workout)}
                     >
                       <div className="workout-item-content">
                         <div className="workout-item-left">
@@ -348,12 +367,14 @@ export const History = () => {
                             {getWorkoutLabel(workout)}
                           </div>
                           <div className="workout-distance">
-                            {workout.value}
-                            {workout.unit}
+                            {workout.value}{workout.unit}
                           </div>
                         </div>
                         <div className="workout-item-right">
-                          <div className="workout-date">
+                          <div className="workout-date" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            {workout.source && workout.source !== 'manual' && (
+                              <WorkoutSourceIcon source={workout.source} size={12} />
+                            )}
                             {formatDate(workout.workout_time)}
                           </div>
                         </div>
@@ -391,7 +412,7 @@ export const History = () => {
                 <div
                   key={workout.id}
                   className="workout-item clickable"
-                  onClick={() => navigate(`/workout/${workout.id}`, { state: { workout } })}
+                  onClick={() => setSelectedWorkout(workout)}
                 >
                   <div className="workout-item-content">
                     <div className="workout-item-left">
@@ -399,12 +420,14 @@ export const History = () => {
                         {getWorkoutLabel(workout)}
                       </div>
                       <div className="workout-distance">
-                        {workout.value}
-                        {workout.unit}
+                        {workout.value}{workout.unit}
                       </div>
                     </div>
                     <div className="workout-item-right">
-                      <div className="workout-date">
+                      <div className="workout-date" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        {workout.source && workout.source !== 'manual' && (
+                          <WorkoutSourceIcon source={workout.source} size={12} />
+                        )}
                         {formatDate(workout.workout_time)}
                       </div>
                     </div>
@@ -449,15 +472,31 @@ export const History = () => {
                 <YAxis hide />
                 <Tooltip
                   formatter={(val: any) => {
-                    const tooltipLabel = chartMetric === 'totalDistance' ? selectedChartCat : METRIC_CONFIG[chartMetric].label;
-                    return [`${Math.round(+val)}${METRIC_CONFIG[chartMetric].unit}`, tooltipLabel];
+                    if (chartMetric === 'totalDistance') {
+                      // 그룹마다 단위가 달라(km/분/층) 고정 단위를 쓸 수 없다
+                      const unit = chartData.find((d) => d.unitByGroup?.[selectedChartCat])?.unitByGroup?.[selectedChartCat] ?? '';
+                      const n = +val;
+                      return [`${n % 1 === 0 ? n : n.toFixed(1)}${unit}`, selectedChartCat];
+                    }
+                    return [`${Math.round(+val)}${METRIC_CONFIG[chartMetric].unit}`, METRIC_CONFIG[chartMetric].label];
                   }}
-                  contentStyle={{ borderRadius: 10, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: 13 }}
+                  // Recharts 는 툴팁을 자체 인라인 스타일로 그려서 기본값이 흰 배경이다.
+                  // 테마 토큰을 명시하지 않으면 다크에서도 흰 팝업이 뜬다.
+                  contentStyle={{
+                    borderRadius: 10,
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--card-bg)',
+                    color: 'var(--text-primary)',
+                    boxShadow: 'var(--shadow-md)',
+                    fontSize: 13,
+                  }}
+                  itemStyle={{ color: 'var(--text-primary)' }}
+                  labelStyle={{ color: 'var(--text-secondary)' }}
                   cursor={{ fill: 'rgba(79,195,247,0.08)' }}
                 />
                 <Bar
                   dataKey={chartMetric === 'totalDistance'
-                    ? (d: any) => d.countByGroup?.[selectedChartCat] ?? 0
+                    ? (d: any) => d.valueByGroup?.[selectedChartCat] ?? 0
                     : (chartMetric as string)}
                   radius={[6, 6, 0, 0]}
                   cursor="pointer"
@@ -782,6 +821,17 @@ export const History = () => {
           onSaved={() => { setShowAddRace(false); loadRaceRecords(); }}
         />
       )}
+
+      {selectedWorkout && (
+        <WorkoutDetail
+          workoutData={selectedWorkout}
+          onClose={(changed) => {
+            setSelectedWorkout(null);
+            if (changed) loadWorkouts();
+          }}
+        />
+      )}
+      {ConfirmDialog}
     </div>
   );
 };

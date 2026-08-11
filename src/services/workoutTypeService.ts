@@ -40,9 +40,35 @@ export interface UpdateWorkoutTypeInput {
   is_active?: boolean;
 }
 
+const CACHE_KEY = 'workout_types_cache_v1';
+const CACHE_TTL = 5 * 60 * 1000; // 5분
+let memCache: { data: WorkoutType[]; t: number } | null = null;
+
+function loadFromStorage(): { data: WorkoutType[]; t: number } | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
 class WorkoutTypeService {
-  // 모든 운동 종목 조회 (활성화된 것만)
+  // 캐시된 데이터 동기 반환 — UI 초기 렌더 즉시 사용 가능 (스피너 회피)
+  getCachedActiveTypes(): WorkoutType[] | null {
+    const now = Date.now();
+    if (memCache && now - memCache.t < CACHE_TTL) return memCache.data;
+    const stored = loadFromStorage();
+    if (stored && now - stored.t < CACHE_TTL) {
+      memCache = stored;
+      return stored.data;
+    }
+    return null;
+  }
+
+  // 활성 운동 종목 조회 + 캐시 (메모리 + localStorage, 5분 TTL)
   async getActiveWorkoutTypes(): Promise<WorkoutType[]> {
+    const cached = this.getCachedActiveTypes();
+    if (cached) return cached;
+
     const { data, error } = await supabase
       .from('workout_types')
       .select('*')
@@ -54,7 +80,16 @@ class WorkoutTypeService {
       throw error;
     }
 
-    return data || [];
+    const result = data || [];
+    memCache = { data: result, t: Date.now() };
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(memCache)); } catch {}
+    return result;
+  }
+
+  // 어드민 쓰기 후 캐시 무효화
+  private invalidateCache() {
+    memCache = null;
+    try { localStorage.removeItem(CACHE_KEY); } catch {}
   }
 
   // 모든 운동 종목 조회 (어드민용 - 비활성화 포함)
@@ -104,6 +139,7 @@ class WorkoutTypeService {
       throw error;
     }
 
+    this.invalidateCache();
     return data;
   }
 
@@ -121,6 +157,7 @@ class WorkoutTypeService {
       throw error;
     }
 
+    this.invalidateCache();
     return data;
   }
 
@@ -135,6 +172,7 @@ class WorkoutTypeService {
       console.error('운동 종목 삭제 실패:', error);
       throw error;
     }
+    this.invalidateCache();
   }
 
   // 순서 변경
@@ -150,6 +188,7 @@ class WorkoutTypeService {
         .update({ display_order: update.display_order })
         .eq('id', update.id);
     }
+    this.invalidateCache();
   }
 
   // 활성화/비활성화 토글
@@ -163,6 +202,7 @@ class WorkoutTypeService {
       console.error('운동 종목 활성화 토글 실패:', error);
       throw error;
     }
+    this.invalidateCache();
   }
 }
 

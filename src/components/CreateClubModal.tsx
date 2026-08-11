@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 import { ClubMemberProfileForm } from './ClubMemberProfileForm';
 import { uploadToR2 } from '../utils/r2Storage';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export const CreateClubModal = ({ onClose, onSuccess }: Props) => {
+  useModalHistory(true, onClose);
   const { user } = useAuth();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');

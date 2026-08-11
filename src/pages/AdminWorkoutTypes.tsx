@@ -5,6 +5,7 @@ import { ChevronLeft, Plus, GripVertical } from 'lucide-react';
 import workoutTypeService from '../services/workoutTypeService';
 import type { WorkoutType, CreateWorkoutTypeInput } from '../services/workoutTypeService';
 import { supabase } from '../lib/supabase';
+import { useConfirm } from '../hooks/useConfirm';
 import {
   DndContext,
   closestCenter,
@@ -83,7 +84,7 @@ function SortableWorkoutItem({
           style={{
             padding: '6px 12px',
             fontSize: '13px',
-            background: workoutType.is_active ? 'var(--secondary-bg)' : 'var(--primary-color)',
+            background: workoutType.is_active ? 'var(--input-bg)' : 'var(--primary-color)',
             color: workoutType.is_active ? 'var(--text-primary)' : 'white',
             border: 'none',
             borderRadius: '4px',
@@ -135,6 +136,7 @@ export const AdminWorkoutTypes = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingType, setEditingType] = useState<WorkoutType | null>(null);
   const [showInactiveWorkouts, setShowInactiveWorkouts] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   // 폼 상태
   const [formData, setFormData] = useState<CreateWorkoutTypeInput>({
@@ -327,7 +329,7 @@ export const AdminWorkoutTypes = () => {
       }
 
       // 운동 기록이 0개면 삭제 가능
-      if (!confirm(`"${workoutType.name}"을(를) 정말 삭제하시겠습니까?\n\n⚠️ 영구 삭제되며 되돌릴 수 없습니다.`)) {
+      if (!(await confirm(`"${workoutType.name}"을(를) 정말 삭제하시겠습니까?\n\n⚠️ 영구 삭제되며 되돌릴 수 없습니다.`))) {
         return;
       }
 
@@ -691,7 +693,7 @@ export const AdminWorkoutTypes = () => {
                       fontSize: '15px',
                       border: '2px solid var(--border-color)',
                       borderRadius: '8px',
-                      background: 'var(--secondary-bg)',
+                      background: 'var(--input-bg)',
                       color: 'var(--text-secondary)',
                       display: 'flex',
                       alignItems: 'center',
@@ -712,7 +714,7 @@ export const AdminWorkoutTypes = () => {
                         border: '2px solid var(--border-color)',
                         borderRadius: '8px',
                         transition: 'border-color 0.2s',
-                        background: 'var(--secondary-bg)',
+                        background: 'var(--input-bg)',
                         cursor: 'pointer',
                       }}
                       onFocus={(e) => {
@@ -737,7 +739,7 @@ export const AdminWorkoutTypes = () => {
                   style={{
                     marginBottom: '24px',
                     padding: '16px',
-                    background: 'var(--secondary-bg)',
+                    background: 'var(--input-bg)',
                     borderRadius: '8px',
                     border: '2px solid var(--border-color)',
                   }}
@@ -780,7 +782,7 @@ export const AdminWorkoutTypes = () => {
                       }}
                       style={{
                         padding: '16px',
-                        background: formData.sub_type_mode === 'single' ? 'var(--primary-color)' : 'var(--secondary-bg)',
+                        background: formData.sub_type_mode === 'single' ? 'var(--primary-color)' : 'var(--input-bg)',
                         color: formData.sub_type_mode === 'single' ? 'white' : 'var(--text-primary)',
                         border: `2px solid ${formData.sub_type_mode === 'single' ? 'var(--primary-color)' : 'var(--border-color)'}`,
                         borderRadius: '8px',
@@ -810,7 +812,7 @@ export const AdminWorkoutTypes = () => {
                       }}
                       style={{
                         padding: '16px',
-                        background: formData.sub_type_mode === 'mixed' ? 'var(--primary-color)' : 'var(--secondary-bg)',
+                        background: formData.sub_type_mode === 'mixed' ? 'var(--primary-color)' : 'var(--input-bg)',
                         color: formData.sub_type_mode === 'mixed' ? 'white' : 'var(--text-primary)',
                         border: `2px solid ${formData.sub_type_mode === 'mixed' ? 'var(--primary-color)' : 'var(--border-color)'}`,
                         borderRadius: '8px',
@@ -887,7 +889,7 @@ export const AdminWorkoutTypes = () => {
                         fontSize: '15px',
                         border: '2px solid var(--border-color)',
                         borderRadius: '8px',
-                        background: 'var(--secondary-bg)',
+                        background: 'var(--input-bg)',
                         cursor: 'pointer',
                         minWidth: '100px',
                       }}
@@ -967,7 +969,7 @@ export const AdminWorkoutTypes = () => {
                       padding: '14px',
                       fontSize: '15px',
                       fontWeight: '600',
-                      background: 'var(--secondary-bg)',
+                      background: 'var(--input-bg)',
                       color: 'var(--text-primary)',
                       border: '2px solid var(--border-color)',
                       borderRadius: '8px',
@@ -978,7 +980,7 @@ export const AdminWorkoutTypes = () => {
                       e.currentTarget.style.background = 'var(--border-color)';
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.background = 'var(--secondary-bg)';
+                      e.currentTarget.style.background = 'var(--input-bg)';
                     }}
                   >
                     취소
@@ -1015,6 +1017,7 @@ export const AdminWorkoutTypes = () => {
           </div>
         </div>
       )}
+      {ConfirmDialog}
     </div>
   );
 };

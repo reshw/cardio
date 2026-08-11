@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Search, Shield, User, UserX, Award } from 'lucide-react';
+import { useClubName } from '../hooks/useClubName';
+import { ChevronLeft, Search, UserX, Award } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 import type { ClubMember } from '../services/clubService';
+import { useConfirm } from '../hooks/useConfirm';
 
 export const ClubMembers = () => {
   const { clubId } = useParams<{ clubId: string }>();
+  const clubName = useClubName(clubId);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -22,6 +25,7 @@ export const ClubMembers = () => {
   const [hofUserId, setHofUserId] = useState('');
   const [hofUserName, setHofUserName] = useState('');
   const [hofReason, setHofReason] = useState('');
+  const { confirm, ConfirmDialog } = useConfirm();
 
   useEffect(() => {
     if (clubId && user) {
@@ -71,33 +75,6 @@ export const ClubMembers = () => {
     return displayName.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  // 역할 변경
-  const handleRoleChange = async (_memberId: string, userId: string, currentRole: string) => {
-    if (!clubId || !isOwner) return;
-
-    // 방장 자신은 변경 불가
-    if (userId === clubOwnerId) {
-      alert('방장의 역할은 변경할 수 없습니다.\n방장 위임 기능을 사용해주세요.');
-      return;
-    }
-
-    const newRole = currentRole === 'vice-manager' ? 'member' : 'vice-manager';
-    const roleText = newRole === 'vice-manager' ? '부매니저' : '일반 회원';
-
-    if (!confirm(`이 회원을 ${roleText}로 변경하시겠습니까?`)) {
-      return;
-    }
-
-    try {
-      await clubService.updateMemberRole(clubId, userId, newRole);
-      alert(`역할이 ${roleText}로 변경되었습니다.`);
-      loadMembers();
-    } catch (error) {
-      console.error('역할 변경 실패:', error);
-      alert('역할 변경에 실패했습니다.');
-    }
-  };
-
   // 회원 내보내기
   const handleRemoveMember = async (userId: string, displayName: string) => {
     if (!clubId || !isOwner) return;
@@ -108,7 +85,7 @@ export const ClubMembers = () => {
       return;
     }
 
-    if (!confirm(`정말로 "${displayName}" 회원을 내보내시겠습니까?`)) {
+    if (!(await confirm(`정말로 "${displayName}" 회원을 내보내시겠습니까?`))) {
       return;
     }
 
@@ -162,7 +139,7 @@ export const ClubMembers = () => {
   const handleRemoveFromHOF = async (userId: string, displayName: string) => {
     if (!clubId || (!isOwner && !isAdmin)) return;
 
-    if (!confirm(`"${displayName}"님을 명예의 전당에서 제거하시겠습니까?`)) {
+    if (!(await confirm(`"${displayName}"님을 명예의 전당에서 제거하시겠습니까?`))) {
       return;
     }
 
@@ -193,7 +170,10 @@ export const ClubMembers = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1>클럽원 목록</h1>
+        <div className="settings-header-title-group">
+          {clubName && <span className="settings-header-club-name">{clubName}</span>}
+          <h1>클럽원 목록</h1>
+        </div>
       </div>
 
       <div className="settings-form">
@@ -309,23 +289,6 @@ export const ClubMembers = () => {
                         </button>
                       )}
                       <button
-                        className="member-action-button secondary"
-                        onClick={() => handleRoleChange(member.id, member.user_id, member.role)}
-                        title={member.role === 'vice-manager' ? '일반 회원으로 변경' : '부매니저로 지정'}
-                      >
-                        {member.role === 'vice-manager' ? (
-                          <>
-                            <User size={16} />
-                            <span>회원으로</span>
-                          </>
-                        ) : (
-                          <>
-                            <Shield size={16} />
-                            <span>부매니저로</span>
-                          </>
-                        )}
-                      </button>
-                      <button
                         className="member-action-button danger"
                         onClick={() => handleRemoveMember(member.user_id, displayName)}
                         title="회원 내보내기"
@@ -379,6 +342,7 @@ export const ClubMembers = () => {
           </div>
         </div>
       )}
+      {ConfirmDialog}
     </div>
   );
 };

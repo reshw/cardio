@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Download, FileDown, Search } from 'lucide-react';
 import ExcelJS from 'exceljs';
-import html2canvas from 'html2canvas';
+import { captureElementToPng, saveBlob, describeError } from '../utils/download';
 import clubService from '../services/clubService';
 import type { ClubDetailedStats } from '../services/clubService';
 import challengeService from '../services/challengeService';
 import type { Challenge, GoalValidationRow } from '../services/challengeService';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   challenge: Challenge;
@@ -26,6 +27,7 @@ const VERDICT_COLOR: Record<string, string> = {
 };
 
 export const ChallengeStatsModal = ({ challenge, clubId, clubName, isManager, onClose }: Props) => {
+  useModalHistory(true, onClose);
   const [tab, setTab] = useState<Tab>('stats');
 
   // 마일리지 통계 탭
@@ -123,10 +125,7 @@ export const ChallengeStatsModal = ({ challenge, clubId, clubName, isManager, on
     infoRow.getCell(1).alignment = { horizontal: 'right' };
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${clubName}_${challenge.title}_통계_${queryDatetime.replace(/[: ]/g, '-')}.xlsx`;
-    link.click();
+    await saveBlob(blob, `${clubName}_${challenge.title}_통계_${queryDatetime.replace(/[: ]/g, '-')}.xlsx`);
   };
 
   const downloadValidationExcel = async () => {
@@ -195,28 +194,17 @@ export const ChallengeStatsModal = ({ challenge, clubId, clubName, isManager, on
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${clubName}_${challenge.title}_목표검증_${queryDatetime.replace(/[: ]/g, '-')}.xlsx`;
-    link.click();
+    await saveBlob(blob, `${clubName}_${challenge.title}_목표검증_${queryDatetime.replace(/[: ]/g, '-')}.xlsx`);
   };
 
   const downloadImage = async () => {
     if (!tableRef.current) return;
-    const container = tableRef.current;
-    const prev = { overflow: container.style.overflow, height: container.style.height, maxHeight: container.style.maxHeight, width: container.style.width, maxWidth: container.style.maxWidth };
-    container.style.overflow = 'visible'; container.style.height = 'auto'; container.style.maxHeight = 'none'; container.style.width = 'auto'; container.style.maxWidth = 'none';
-    await new Promise((r) => setTimeout(r, 100));
     try {
-      const canvas = await html2canvas(container, { backgroundColor: '#ffffff', scale: 2, scrollY: -window.scrollY, scrollX: -window.scrollX, width: container.scrollWidth, height: container.scrollHeight, windowWidth: container.scrollWidth, windowHeight: container.scrollHeight, useCORS: true, allowTaint: true });
-      const link = document.createElement('a');
-      link.download = `${clubName}_${challenge.title}_통계.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    } catch (e) {
-      console.error('이미지 다운로드 실패:', e);
-    } finally {
-      Object.assign(container.style, prev);
+      const blob = await captureElementToPng(tableRef.current);
+      await saveBlob(blob, `${clubName}_${challenge.title}_통계.png`, 'image/png');
+    } catch (e: any) {
+      console.error('[챌린지통계] 이미지 다운로드 실패 상세:', JSON.stringify(e), e);
+      alert(`이미지 다운로드 실패: ${describeError(e)}`);
     }
   };
 

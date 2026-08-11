@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { X, Camera } from 'lucide-react';
 import raceService, { type RaceCategory, type RaceRecord, type CreateRaceData } from '../services/raceService';
 import { uploadToR2 } from '../utils/r2Storage';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   userId: string;
@@ -29,6 +30,7 @@ function formatFinishTime(raw: string): string {
 }
 
 export const AddRaceModal = ({ userId, record, onClose, onSaved }: Props) => {
+  useModalHistory(true, onClose);
   const [raceName, setRaceName] = useState(record?.race_name ?? '');
   const [raceDate, setRaceDate] = useState(record?.race_date ?? new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState<RaceCategory>(record?.category ?? '풀');
@@ -88,7 +90,7 @@ export const AddRaceModal = ({ userId, record, onClose, onSaved }: Props) => {
   return (
     <div className="feedback-overlay" onClick={onClose}>
       <div className="feedback-sheet race-modal-sheet" onClick={e => e.stopPropagation()}>
-        <div className="feedback-sheet-handle" />
+        <div className="feedback-handle" />
 
         <div className="race-modal-header">
           <h3>{record ? '기록 수정' : '대회 기록 추가'}</h3>

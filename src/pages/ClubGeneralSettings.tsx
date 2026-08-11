@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Copy } from 'lucide-react';
+import { useClubName } from '../hooks/useClubName';
+import { ChevronLeft, Copy, Lock } from 'lucide-react';
 import clubService from '../services/clubService';
+import { useAuth } from '../contexts/AuthContext';
 import { uploadToR2 } from '../utils/r2Storage';
 
 export const ClubGeneralSettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
+  const clubName = useClubName(clubId);
+  const { user } = useAuth();
   const navigate = useNavigate();
 
+  // 부매니저도 이 화면에 들어오지만, 클럽 이름 변경은 방장만 가능
+  const [isOwner, setIsOwner] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [countExcludedWorkouts, setCountExcludedWorkouts] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -21,7 +26,7 @@ export const ClubGeneralSettings = () => {
     if (clubId) {
       loadClub();
     }
-  }, [clubId]);
+  }, [clubId, user]);
 
   const loadClub = async () => {
     if (!clubId) return;
@@ -29,11 +34,11 @@ export const ClubGeneralSettings = () => {
     setLoading(true);
     try {
       const club = await clubService.getClubById(clubId);
+      setIsOwner(!!user && club.created_by === user.id);
       setName(club.name);
       setDescription(club.description || '');
       setInviteCode(club.invite_code);
       setLogoPreview(club.logo_url || null);
-      setCountExcludedWorkouts(club.count_excluded_workouts_in_days ?? true);
     } catch (error) {
       console.error('클럽 정보 불러오기 실패:', error);
       alert('클럽 정보를 불러올 수 없습니다.');
@@ -78,7 +83,9 @@ export const ClubGeneralSettings = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!clubId || !name.trim()) {
+    if (!clubId) return;
+
+    if (isOwner && !name.trim()) {
       alert('클럽 이름을 입력해주세요.');
       return;
     }
@@ -98,7 +105,8 @@ export const ClubGeneralSettings = () => {
       }
 
       await clubService.updateClub(clubId, {
-        name: name.trim(),
+        // 방장이 아니면 이름은 payload에서 아예 제외 (input disabled만으로는 막을 수 없음)
+        ...(isOwner ? { name: name.trim() } : {}),
         description: description.trim(),
         logo_url: logoUrl || undefined,
       });
@@ -130,12 +138,17 @@ export const ClubGeneralSettings = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1>일반정보 변경</h1>
+        <div className="settings-header-title-group">
+          {clubName && <span className="settings-header-club-name">{clubName}</span>}
+          <h1>일반정보 변경</h1>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="settings-form">
         <div className="form-group">
-          <label htmlFor="name">클럽 이름 *</label>
+          <label htmlFor="name">
+            클럽 이름 {isOwner ? '*' : <Lock size={13} style={{ verticalAlign: '-2px' }} />}
+          </label>
           <input
             id="name"
             type="text"
@@ -143,9 +156,11 @@ export const ClubGeneralSettings = () => {
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="value-input"
-            required
+            required={isOwner}
+            disabled={!isOwner}
             maxLength={30}
           />
+          {!isOwner && <p className="form-hint">클럽 이름은 클럽장만 변경할 수 있습니다.</p>}
         </div>
 
         <div className="form-group">
@@ -190,20 +205,12 @@ export const ClubGeneralSettings = () => {
         </div>
 
         <div className="form-group">
-          <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={countExcludedWorkouts}
-              onChange={(e) => setCountExcludedWorkouts(e.target.checked)}
-              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-            />
-            <span style={{ fontSize: '15px', fontWeight: '600' }}>
-              📊 미산입 운동도 운동일수에 포함 (상세통계)
-            </span>
-          </label>
+          <span style={{ fontSize: '15px', fontWeight: '600' }}>
+            📊 운동일수 산입 설정
+          </span>
           <p className="form-hint">
-            마일리지 계수가 0인 운동(미산입)도 운동일수 집계에 포함합니다.<br />
-            체크 해제 시, 마일리지가 0보다 큰 운동만 운동일수로 계산됩니다.
+            운동일수 산입 여부는 이제 <strong>카테고리별</strong>로 설정합니다.<br />
+            <strong>마일리지 계수 설정</strong> 화면의 각 종목 아래 "운동일수 산입" 체크박스에서 조정하세요.
           </p>
         </div>
 

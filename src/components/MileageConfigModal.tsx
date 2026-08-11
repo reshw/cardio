@@ -4,6 +4,7 @@ import clubService from '../services/clubService';
 import type { ClubMileageConfigRow } from '../services/clubService';
 import workoutTypeService from '../services/workoutTypeService';
 import type { WorkoutType } from '../services/workoutTypeService';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   clubId: string;
@@ -61,6 +62,7 @@ const getExplanation = (coefficient: number | undefined, unit: string = 'km'): s
 };
 
 export const MileageConfigModal = ({ clubId, onClose }: Props) => {
+  useModalHistory(true, onClose);
   const [allCategories, setAllCategories] = useState<WorkoutCategory[]>([]);
   const [configRows, setConfigRows] = useState<ClubMileageConfigRow[]>([]);
 

@@ -1,0 +1,1 @@
+SELECT refresh_token FROM user_integrations WHERE provider = 'strava';

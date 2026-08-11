@@ -1,4 +1,17 @@
 {
+  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" = \"dev\" ]",
+  "framework": "vite",
+  "devCommand": "vite --port 3000",
+  "buildCommand": "tsc -b && vite build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/webhooks/strava.ts": {
+      "includeFiles": "api/fonts/**"
+    },
+    "api/webhooks/workout-inserted.ts": {
+      "includeFiles": "api/fonts/**"
+    }
+  },
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],

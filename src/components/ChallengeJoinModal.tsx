@@ -4,6 +4,7 @@ import challengeService from '../services/challengeService';
 import type { Challenge } from '../services/challengeService';
 import workoutTypeService from '../services/workoutTypeService';
 import type { WorkoutType } from '../services/workoutTypeService';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface Props {
   challenge: Challenge;
@@ -21,6 +22,7 @@ interface GoalEntry {
 type Step = 'list' | 'add';
 
 export const ChallengeJoinModal = ({ challenge, userId, onClose, onJoined }: Props) => {
+  useModalHistory(true, onClose);
   const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
   const [goals, setGoals] = useState<GoalEntry[]>([]);
   const [step, setStep] = useState<Step>('list');
@@ -121,7 +123,7 @@ export const ChallengeJoinModal = ({ challenge, userId, onClose, onJoined }: Pro
               <ChevronLeft size={18} />
             </button>
           ) : (
-            <div style={{ width: 28 }} />
+            <div style={{ width: 32 }} />
           )}
           <h3>
             {step === 'list' ? '참여 선언' : '종목 추가'}

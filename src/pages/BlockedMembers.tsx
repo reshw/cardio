@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import feedService from '../services/feedService';
+import { useConfirm } from '../hooks/useConfirm';
 
 interface BlockedUser {
   id: string;
@@ -20,6 +21,7 @@ export const BlockedMembers = () => {
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [unblocking, setUnblocking] = useState<string | null>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   useEffect(() => {
     if (user) loadBlockedUsers();
@@ -39,7 +41,7 @@ export const BlockedMembers = () => {
 
   const handleUnblock = async (blockedId: string, clubId: string, nickname: string) => {
     if (!user) return;
-    if (!confirm(`${nickname}님의 차단을 해제하시겠어요?`)) return;
+    if (!(await confirm(`${nickname}님의 차단을 해제하시겠어요?`))) return;
 
     const key = `${blockedId}_${clubId}`;
     setUnblocking(key);
@@ -117,6 +119,7 @@ export const BlockedMembers = () => {
           ))}
         </div>
       )}
+      {ConfirmDialog}
     </div>
   );
 };
