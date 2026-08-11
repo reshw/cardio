@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ChevronLeft, Search, Trash2, Shield, ShieldOff } from 'lucide-react';
+import { ChevronLeft, Search, Trash2, Shield, ShieldOff, Settings, X } from 'lucide-react';
 import userService from '../services/userService';
 import type { User } from '../services/userService';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -20,6 +20,8 @@ export const AdminUserManagement = () => {
   const [deleting, setDeleting] = useState(false);
   const [adminToggleTarget, setAdminToggleTarget] = useState<User | null>(null);
   const [subAdminToggleTarget, setSubAdminToggleTarget] = useState<User | null>(null);
+  const [actionMenuUser, setActionMenuUser] = useState<User | null>(null);
+  useModalHistory(actionMenuUser !== null, () => setActionMenuUser(null));
 
   useModalHistory(showDeleteConfirm, () => setShowDeleteConfirm(false));
 
@@ -223,45 +225,13 @@ export const AdminUserManagement = () => {
                   </div>
 
                   <div className="user-actions">
-                    {/* 어드민 지정/해제 */}
-                    {!user.is_super_admin && (
-                      <button
-                        className={`btn-icon btn-text ${user.is_admin ? 'active' : ''}`}
-                        onClick={() => handleToggleAdmin(user)}
-                        title={user.is_admin ? '어드민 해제' : '어드민 지정'}
-                      >
-                        {user.is_admin ? '🛡️ 어드민' : '어드민'}
-                      </button>
-                    )}
-
-                    {/* 부어드민 지정/해제 */}
-                    {!user.is_admin && !user.is_super_admin && (
-                      <button
-                        className={`btn-icon ${user.is_sub_admin ? 'active' : ''}`}
-                        onClick={() => handleToggleSubAdmin(user)}
-                        title={user.is_sub_admin ? '부어드민 해제' : '부어드민 지정'}
-                      >
-                        {user.is_sub_admin ? (
-                          <ShieldOff size={20} color="#f97316" />
-                        ) : (
-                          <Shield size={20} color="#6b7280" />
-                        )}
-                      </button>
-                    )}
-
-                    {/* 강제 탈퇴 */}
-                    {user.id !== currentUser?.id && !user.is_admin && !user.is_super_admin && (
-                      <button
-                        className="btn-icon btn-danger"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setShowDeleteConfirm(true);
-                        }}
-                        title="강제 탈퇴"
-                      >
-                        <Trash2 size={20} />
-                      </button>
-                    )}
+                    <button
+                      className="btn-icon"
+                      onClick={() => setActionMenuUser(user)}
+                      title="회원 관리"
+                    >
+                      <Settings size={18} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -319,6 +289,92 @@ export const AdminUserManagement = () => {
                   {deleting ? '삭제 중...' : '강제 탈퇴'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {actionMenuUser && createPortal(
+        <div className="cmenu-overlay" onClick={() => setActionMenuUser(null)}>
+          <div className="cmenu-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="cmenu-handle" />
+            <div className="cmenu-head">
+              <span className="cmenu-head-title">{actionMenuUser.display_name}</span>
+              <button type="button" className="cmenu-head-close" onClick={() => setActionMenuUser(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="cmenu-body">
+              {(!actionMenuUser.is_super_admin || (!actionMenuUser.is_admin && !actionMenuUser.is_super_admin)) && (
+                <div className="cmenu-group">
+                  {!actionMenuUser.is_super_admin && (
+                    <button
+                      className="cmenu-row"
+                      onClick={() => {
+                        const u = actionMenuUser;
+                        setActionMenuUser(null);
+                        handleToggleAdmin(u);
+                      }}
+                    >
+                      <Shield size={20} className="cmenu-row-icon" />
+                      <div className="cmenu-row-text">
+                        <div className="cmenu-row-title">{actionMenuUser.is_admin ? '어드민 해제' : '어드민 지정'}</div>
+                        <div className="cmenu-row-desc">클럽 승인·운동 종목 관리 권한</div>
+                      </div>
+                    </button>
+                  )}
+                  {!actionMenuUser.is_admin && !actionMenuUser.is_super_admin && (
+                    <button
+                      className="cmenu-row"
+                      onClick={() => {
+                        const u = actionMenuUser;
+                        setActionMenuUser(null);
+                        handleToggleSubAdmin(u);
+                      }}
+                    >
+                      {actionMenuUser.is_sub_admin ? (
+                        <ShieldOff size={20} className="cmenu-row-icon" />
+                      ) : (
+                        <Shield size={20} className="cmenu-row-icon" />
+                      )}
+                      <div className="cmenu-row-text">
+                        <div className="cmenu-row-title">
+                          {actionMenuUser.is_sub_admin ? '부어드민 해제' : '부어드민 지정'}
+                        </div>
+                        <div className="cmenu-row-desc">제한된 관리 권한 위임</div>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {actionMenuUser.id !== currentUser?.id &&
+                !actionMenuUser.is_admin &&
+                !actionMenuUser.is_super_admin && (
+                  <div className="cmenu-group cmenu-group--danger">
+                    <button
+                      className="cmenu-row cmenu-row--danger"
+                      onClick={() => {
+                        setSelectedUser(actionMenuUser);
+                        setActionMenuUser(null);
+                        setShowDeleteConfirm(true);
+                      }}
+                    >
+                      <Trash2 size={20} className="cmenu-row-icon" />
+                      <div className="cmenu-row-text">
+                        <div className="cmenu-row-title">강제 탈퇴</div>
+                        <div className="cmenu-row-desc">운동 기록·클럽 멤버십 삭제, 재가입 가능</div>
+                      </div>
+                    </button>
+                  </div>
+                )}
+
+              {actionMenuUser.is_super_admin && (
+                <p style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontSize: 14 }}>
+                  슈퍼어드민은 권한을 변경할 수 없습니다.
+                </p>
+              )}
             </div>
           </div>
         </div>,

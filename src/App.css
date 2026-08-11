@@ -1705,20 +1705,27 @@ body.search-modal-open .bottom-nav {
    월 이동 버튼을 위한 전역 규칙이라 여기서만 override) */
 .calendar-picker-sheet .react-calendar__navigation {
   display: flex;
+  align-items: center;
   height: 40px;
   margin-bottom: 8px;
+  gap: 2px;
 }
 
 .calendar-picker-sheet .react-calendar__navigation button {
-  min-width: 36px;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
   font-family: 'Noto Sans KR', sans-serif;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 50%;
   transition: background 0.15s;
 }
 
@@ -1728,14 +1735,42 @@ body.search-modal-open .bottom-nav {
 
 .calendar-picker-sheet .react-calendar__navigation button:disabled {
   color: var(--text-secondary);
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: default;
   background: none;
 }
 
 .calendar-picker-sheet .react-calendar__navigation__label {
+  flex: 1 1 auto;
+  width: auto;
+  height: 40px;
   font-size: 16px;
   font-weight: 700;
+  border-radius: 10px;
+}
+
+.calendar-picker-sheet .race-modal-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+
+.calendar-picker-sheet .race-modal-close:hover {
+  background: var(--hover-overlay);
+}
+
+/* react-calendar 기본 스타일시트가 :disabled 타일에 밝은 회색을 강제로
+   지정해와서(specificity가 우리 .react-calendar__tile 규칙보다 높음)
+   다크모드에서 미래 날짜가 흰 덩어리로 튄다 — 테마 토큰으로 override */
+.react-calendar__tile:disabled {
+  background: var(--wash) !important;
+  color: var(--text-secondary) !important;
+  opacity: 0.5;
 }
 
 .calendar-picker-sheet .react-calendar__year-view__months,
@@ -10481,24 +10516,15 @@ body.workout-detail-open .bottom-nav {
   transform: translateY(0);
 }
 
-.btn-icon.active {
-  background: rgba(249, 115, 22, 0.1);
-  border-color: #f97316;
-}
 
-/* 아이콘 대신 텍스트 라벨이 들어가는 .btn-icon (예: 어드민 지정 버튼) — 고정 40x40 정사각형 해제 */
-.btn-icon.btn-text {
-  width: auto;
-  height: auto;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  gap: 4px;
-  white-space: nowrap;
-}
-
+/* .btn-icon 과 (전혀 다른 용도인) 전역 .btn-danger 클래스가 동시에 붙으면
+   specificity가 동률이라 소스 순서상 뒤에 나오는 .btn-danger { background:#ef4444 }가
+   이겨서 아이콘 버튼이 꽉 찬 빨간 사각형으로(아이콘도 안 보임) 깨졌었다 —
+   명시적으로 다시 지정해 순서와 무관하게 항상 이기도록 함. */
 .btn-icon.btn-danger {
+  background: var(--input-bg);
   border-color: #fca5a5;
+  color: #ef4444;
 }
 
 .btn-icon.btn-danger:hover {
