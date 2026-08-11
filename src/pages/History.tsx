@@ -10,6 +10,7 @@ import { RaceRecordCard } from '../components/RaceRecordCard';
 import { AddRaceModal } from '../components/AddRaceModal';
 import { ExternalLink, Pencil, Trash2 } from 'lucide-react';
 import { WorkoutSourceIcon } from '../components/WorkoutSourceIcon';
+import { useConfirm } from '../hooks/useConfirm';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import {
@@ -43,6 +44,7 @@ const getCatGroup = (category: string) => CATEGORY_GROUPS[category] || category;
 
 export const History = () => {
   const { user } = useAuth();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [activeTab, setActiveTab] = useState<TabType>('stats');
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(false);
@@ -92,7 +94,7 @@ export const History = () => {
   }, [activeTab, user]);
 
   const handleDeleteRace = async (id: string) => {
-    if (!confirm('이 기록을 삭제할까요?')) return;
+    if (!(await confirm('이 기록을 삭제할까요?'))) return;
     await raceService.deleteRecord(id);
     setRaceRecords(prev => prev.filter(r => r.id !== id));
   };
@@ -829,6 +831,7 @@ export const History = () => {
           }}
         />
       )}
+      {ConfirmDialog}
     </div>
   );
 };

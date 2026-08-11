@@ -1,5 +1,6 @@
 import type { Challenge } from '../services/challengeService';
 import challengeService, { METRIC_LABELS, METRIC_UNITS } from '../services/challengeService';
+import { useConfirm } from '../hooks/useConfirm';
 
 interface Props {
   challenge: Challenge;
@@ -15,9 +16,10 @@ export const ChallengeCard = ({ challenge, progress, isAdmin, onDelete }: Props)
   const label = challenge.goal_metric ? METRIC_LABELS[challenge.goal_metric] : '';
   const color = challenge.theme_color || '#8b5cf6';
   const done = pct >= 100;
+  const { confirm, ConfirmDialog } = useConfirm();
 
-  const handleDelete = () => {
-    if (!confirm(`"${challenge.title}" 챌린지를 삭제하시겠습니까?`)) return;
+  const handleDelete = async () => {
+    if (!(await confirm(`"${challenge.title}" 챌린지를 삭제하시겠습니까?`))) return;
     onDelete?.(challenge.id);
   };
 
@@ -63,6 +65,7 @@ export const ChallengeCard = ({ challenge, progress, isAdmin, onDelete }: Props)
         </span>
         <span className="challenge-goal"> / {challenge.goal_value}{unit} ({pct}%)</span>
       </div>
+      {ConfirmDialog}
     </div>
   );
 };

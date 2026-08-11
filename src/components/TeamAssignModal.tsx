@@ -5,6 +5,7 @@ import type { ChallengeTeam } from '../services/teamMatchService';
 import clubService from '../services/clubService';
 import type { MyClubWithOrder } from '../services/clubService';
 import { useModalHistory } from '../hooks/useModalHistory';
+import { useConfirm } from '../hooks/useConfirm';
 
 interface Props {
   challengeId: string;
@@ -30,6 +31,7 @@ const isLight = (hex: string) => hex.toLowerCase() === '#e2e8f0';
 
 export const TeamAssignModal = ({ challengeId, club, startDate, baselineMonths = 3, onClose, onSaved }: Props) => {
   useModalHistory(true, onClose);
+  const { confirm, ConfirmDialog } = useConfirm();
   const [teams, setTeams] = useState<ChallengeTeam[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [assignment, setAssignment] = useState<Record<string, string | null>>({});
@@ -82,7 +84,7 @@ export const TeamAssignModal = ({ challengeId, club, startDate, baselineMonths =
       console.error('[team_match] 드래프트 불가 — teams 비어있음. challengeId=', challengeId);
       return;
     }
-    if (!confirm('자동 드래프트를 실행하면 현재 배정이 모두 교체됩니다. 진행할까요?')) return;
+    if (!(await confirm('자동 드래프트를 실행하면 현재 배정이 모두 교체됩니다. 진행할까요?'))) return;
     try {
       console.log('[team_match] 드래프트 시작, teams=', teams.length, 'members=', members.length);
       const result = await teamMatchService.computeSnakeDraft(club.id, startDate, teams, baselineMonths);
@@ -239,6 +241,7 @@ export const TeamAssignModal = ({ challengeId, club, startDate, baselineMonths =
           </div>
         )}
       </div>
+      {ConfirmDialog}
     </div>
   );
 };

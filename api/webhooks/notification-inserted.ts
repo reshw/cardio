@@ -92,9 +92,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ skipped: 'no device tokens' });
     }
 
-    const [{ data: actor }, { data: club }, { data: clubMember }] = await Promise.all([
+    const [{ data: actor }, { data: clubMember }] = await Promise.all([
       supabase.from('users').select('display_name').eq('id', record.actor_id).maybeSingle(),
-      supabase.from('clubs').select('name').eq('id', record.club_id).maybeSingle(),
       supabase
         .from('club_members')
         .select('club_nickname')
@@ -104,33 +103,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ]);
     // 클럽 닉네임 우선, 없으면 실명 — 인앱 알림센터(NotificationDropdown.tsx)와 동일 규칙
     const actorName = clubMember?.club_nickname || actor?.display_name || '누군가';
-    const clubPrefix = club?.name ? `[${club.name}] ` : '';
 
     const { data: workout } = record.workout_id
       ? await supabase
           .from('workouts')
-          .select('category, value, unit, workout_time, user_id')
+          .select('category, value, unit, workout_time')
           .eq('id', record.workout_id)
           .maybeSingle()
       : { data: null };
 
-    // 클럽명은 제목이 아니라 본문 앞에 붙인다 — 제목에 다 넣으면
-    // Android 알림 트레이 한 줄 제한에 걸려 닉네임 중간부터 잘림
+    // 제목 = 운동 요약 (항상 짧은 고정 포맷이라 Android 알림 트레이에서 안 잘림).
+    // 닉네임·댓글처럼 길이가 들쭉날쭉한 내용은 본문에 몰아넣는다 — 본문은
+    // 트레이에서 여러 줄까지 보여주는 경우가 많아 여유가 있다.
+    const title = workout
+      ? `${workout.category} ${workout.value}${workout.unit}${workout.workout_time ? ' ' + formatDateYMD(workout.workout_time) : ''}`
+      : '운동 기록';
+
+    // 인스타그램식: 좋아요는 "OO님이 좋아요를 눌렀어요", 댓글은 "OO : 댓글내용"
     let body = '';
     if (record.type === 'like') {
-      if (workout) {
-        const dateStr = workout.workout_time ? formatDateYMD(workout.workout_time) : '';
-        body = `${clubPrefix}${workout.category} ${workout.value}${workout.unit}${dateStr ? ' ' + dateStr : ''}`;
-      }
+      body = `${actorName}님이 좋아요를 눌렀어요`;
     } else if (record.type === 'comment') {
-      body = `${clubPrefix}${(record.comment_text || '').slice(0, MAX_BODY_LEN)}`;
+      const commentText = (record.comment_text || '').slice(0, MAX_BODY_LEN);
+      body = `${actorName} : ${commentText}`;
     }
-
-    // 받는 사람이 운동 작성자가 아니면 = 자기 댓글에 달린 답글 알림
-    const isReply = record.type === 'comment' && !!workout?.user_id && workout.user_id !== record.user_id;
-    const actionLabel =
-      record.type === 'like' ? '좋아요를 눌렀어요' : isReply ? '답글을 남겼어요' : '댓글을 남겼어요';
-    const title = `${actorName}님이 ${actionLabel}`;
 
     const path = record.workout_id ? `/workout/${record.workout_id}` : '/';
 

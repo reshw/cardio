@@ -5,6 +5,7 @@ import { ChevronLeft, Check, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import socialPointService, { getActionIcon, type SocialActionType } from '../services/socialPointService';
 import socialGatheringService, { type SocialGathering, type GatheringMember } from '../services/socialGatheringService';
+import { useConfirm } from '../hooks/useConfirm';
 
 const MANUAL_ACTION_TYPES: { type: SocialActionType; label: string; points: number; hasUrl: boolean }[] = [
   { type: 'cafe_post', label: '카페 글 작성', points: 5, hasUrl: true },
@@ -20,6 +21,7 @@ export const ClubSocialSettings: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const { confirm, ConfirmDialog } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [pendingGatherings, setPendingGatherings] = useState<SocialGathering[]>([]);
   const [clubMembers, setClubMembers] = useState<GatheringMember[]>([]);
@@ -77,7 +79,7 @@ export const ClubSocialSettings: React.FC = () => {
 
   const handleRejectGathering = async (gatheringId: string) => {
     if (!user) return;
-    if (!window.confirm('소모임 신청을 거절하시겠습니까?')) return;
+    if (!(await confirm('소모임 신청을 거절하시겠습니까?'))) return;
     try {
       await socialGatheringService.rejectGathering(gatheringId, user.id);
       setPendingGatherings(prev => prev.filter(g => g.id !== gatheringId));
@@ -118,7 +120,7 @@ export const ClubSocialSettings: React.FC = () => {
 
   const handleAwardBulk = async () => {
     if (!clubId || !user || selectedBulkMembers.size === 0) return;
-    if (!window.confirm(`${selectedBulkMembers.size}명에게 훈련 참가 +5점을 일괄 지급하시겠습니까?`)) return;
+    if (!(await confirm(`${selectedBulkMembers.size}명에게 훈련 참가 +5점을 일괄 지급하시겠습니까?`))) return;
 
     setSubmitting(true);
     try {
@@ -354,6 +356,7 @@ export const ClubSocialSettings: React.FC = () => {
           )}
         </div>
       </section>
+      {ConfirmDialog}
     </div>
   );
 };

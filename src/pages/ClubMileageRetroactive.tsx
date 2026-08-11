@@ -4,6 +4,7 @@ import { useClubName } from '../hooks/useClubName';
 import { ChevronLeft, RefreshCw, CheckCircle, AlertCircle, Download } from 'lucide-react';
 import clubService from '../services/clubService';
 import type { ClubMileageConfigRow } from '../services/clubService';
+import { useConfirm } from '../hooks/useConfirm';
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ export const ClubMileageRetroactive = () => {
   const { clubId } = useParams<{ clubId: string }>();
   const clubName = useClubName(clubId);
   const navigate = useNavigate();
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const defaultFrom = CUR_MONTH === 1
     ? { y: CUR_YEAR - 1, m: 12 }
@@ -133,7 +135,7 @@ export const ClubMileageRetroactive = () => {
     const label = `${fromYear}년 ${fromMonth}월 ~ ${toYear}년 ${toMonth}월 (${months.length}개월)\n현재 설정으로 소급 재계산합니다.`;
     const customLabel = `${fromYear}년 ${fromMonth}월 ~ ${toYear}년 ${toMonth}월 (${months.length}개월)\n직접 설정한 계수로 소급 재계산합니다.\n클럽의 현재 계수는 변경되지 않습니다.`;
 
-    if (!confirm(mode === 'current' ? label : customLabel)) return;
+    if (!(await confirm(mode === 'current' ? label : customLabel))) return;
 
     setRunning(true);
     setResult(null);
@@ -442,6 +444,7 @@ export const ClubMileageRetroactive = () => {
         </button>
 
       </div>
+      {ConfirmDialog}
     </div>
   );
 };

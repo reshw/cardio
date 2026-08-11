@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 import { uploadToR2 } from '../utils/r2Storage';
 import type { MyClubWithOrder } from '../services/clubService';
+import { useConfirm } from '../hooks/useConfirm';
 
 interface Props {
   club: MyClubWithOrder;
@@ -18,6 +19,7 @@ export const EditClubModal = ({ club, onClose, onSuccess }: Props) => {
   const [deleting, setDeleting] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(club.logo_url || null);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -71,11 +73,11 @@ export const EditClubModal = ({ club, onClose, onSuccess }: Props) => {
   };
 
   const handleDelete = async () => {
-    if (!confirm(`정말로 "${club.name}" 클럽을 삭제하시겠습니까?\n모든 멤버와 데이터가 삭제됩니다.`)) {
+    if (!(await confirm(`정말로 "${club.name}" 클럽을 삭제하시겠습니까?\n모든 멤버와 데이터가 삭제됩니다.`))) {
       return;
     }
 
-    if (!confirm('삭제된 클럽은 복구할 수 없습니다. 정말 삭제하시겠습니까?')) {
+    if (!(await confirm('삭제된 클럽은 복구할 수 없습니다. 정말 삭제하시겠습니까?'))) {
       return;
     }
 
@@ -181,6 +183,7 @@ export const EditClubModal = ({ club, onClose, onSuccess }: Props) => {
           </div>
         </div>
       </div>
+      {ConfirmDialog}
     </div>
   );
 };

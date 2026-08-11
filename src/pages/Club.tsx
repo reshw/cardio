@@ -16,6 +16,7 @@ import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { TeamAssignModal } from '../components/TeamAssignModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
 import { useModalHistory } from '../hooks/useModalHistory';
+import { useConfirm } from '../hooks/useConfirm';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, Lock, Image, Filter } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
 
@@ -71,6 +72,7 @@ export const Club = () => {
   const [showDetailedStats, setShowDetailedStats] = useState(false);
   const [showCategoryFilterMenu, setShowCategoryFilterMenu] = useState(false);
   const [showClubMenu, setShowClubMenu] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
   const [showInviteModal, setShowInviteModal] = useState(false);
   useModalHistory(showClubMenu, () => setShowClubMenu(false));
   useModalHistory(showInviteModal, () => setShowInviteModal(false));
@@ -1737,7 +1739,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                     className="cmenu-row cmenu-row--danger"
                     disabled={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
                     onClick={async () => {
-                      if (!confirm(`${selectedClub.name}에서 탈퇴하시겠습니까?\n\n탈퇴 후에도 초대코드로 다시 가입할 수 있습니다.`)) return;
+                      if (!(await confirm(`${selectedClub.name}에서 탈퇴하시겠습니까?\n\n탈퇴 후에도 초대코드로 다시 가입할 수 있습니다.`))) return;
                       try {
                         await clubService.leaveClub(selectedClub.id, user.id);
                         alert('클럽에서 탈퇴했습니다.');
@@ -1767,6 +1769,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         </div>
       )}
 
+      {ConfirmDialog}
     </div>
   );
 };

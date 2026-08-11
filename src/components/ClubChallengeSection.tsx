@@ -6,6 +6,7 @@ import type { MyClubWithOrder } from '../services/clubService';
 import { ChallengeJoinModal } from './ChallengeJoinModal';
 import { ChallengeStatsModal } from './ChallengeStatsModal';
 import { TeamMatchCard } from './TeamMatchCard';
+import { useConfirm } from '../hooks/useConfirm';
 
 interface Props {
   club: MyClubWithOrder;
@@ -30,6 +31,7 @@ export const ClubChallengeSection = ({ club, userId, isManager, onReassignTeams 
   const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({});
   const [joiningChallenge, setJoiningChallenge] = useState<Challenge | null>(null);
   const [statsChallenge, setStatsChallenge] = useState<Challenge | null>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const loadChallenges = useCallback(async () => {
     setLoading(true);
@@ -115,7 +117,7 @@ export const ClubChallengeSection = ({ club, userId, isManager, onReassignTeams 
   };
 
   const handleDelete = async (challengeId: string) => {
-    if (!confirm('챌린지를 삭제하시겠습니까? 참여자 데이터도 모두 삭제됩니다.')) return;
+    if (!(await confirm('챌린지를 삭제하시겠습니까? 참여자 데이터도 모두 삭제됩니다.'))) return;
     await challengeService.deleteChallenge(challengeId);
     loadChallenges();
   };
@@ -403,6 +405,7 @@ export const ClubChallengeSection = ({ club, userId, isManager, onReassignTeams 
           onClose={() => setStatsChallenge(null)}
         />
       )}
+      {ConfirmDialog}
     </div>
   );
 };

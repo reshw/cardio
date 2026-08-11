@@ -3,16 +3,18 @@ import { useClubName } from '../hooks/useClubName';
 import { ChevronLeft, ChevronRight, TrendingUp, Star, EyeOff, RefreshCw, Clock, Filter, ShieldOff } from 'lucide-react';
 import { useState } from 'react';
 import clubService from '../services/clubService';
+import { useConfirm } from '../hooks/useConfirm';
 
 export const ClubMileageHub = () => {
   const { clubId } = useParams<{ clubId: string }>();
   const clubName = useClubName(clubId);
   const navigate = useNavigate();
   const [recalculating, setRecalculating] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const handleRecalculate = async () => {
     if (!clubId) return;
-    if (!confirm('이번 달 모든 운동 기록의 마일리지를 현재 계수로 재계산하시겠습니까?')) return;
+    if (!(await confirm('이번 달 모든 운동 기록의 마일리지를 현재 계수로 재계산하시겠습니까?'))) return;
     setRecalculating(true);
     try {
       const now = new Date();
@@ -120,6 +122,7 @@ export const ClubMileageHub = () => {
           </button>
         </div>
       </div>
+      {ConfirmDialog}
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import clubService from '../services/clubService';
 import type { ExclusionRule, ExclusionRuleInput, RecalcScope } from '../services/clubService';
 import { useModalHistory } from '../hooks/useModalHistory';
+import { useConfirm } from '../hooks/useConfirm';
 
 interface CategoryOption {
   key: string;   // "달리기-러닝" 또는 "수영"
@@ -65,6 +66,7 @@ export const ClubExclusionRulesSection = ({ clubId, categories }: Props) => {
   // 소급 재계산 모달: 저장/삭제/토글 성공 후 어느 범위로 재계산할지
   const [showRetro, setShowRetro] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   useModalHistory(!!editing, () => setEditing(null));
   useModalHistory(showRetro, () => setShowRetro(false));
@@ -181,7 +183,7 @@ export const ClubExclusionRulesSection = ({ clubId, categories }: Props) => {
   };
 
   const handleDelete = async (r: ExclusionRule) => {
-    if (!confirm(`"${r.name}" 규칙을 삭제할까요?\n삭제만으로는 과거 미적립이 자동 복원되지 않습니다. 이후 소급 재계산에서 복원됩니다.`)) return;
+    if (!(await confirm(`"${r.name}" 규칙을 삭제할까요?\n삭제만으로는 과거 미적립이 자동 복원되지 않습니다. 이후 소급 재계산에서 복원됩니다.`))) return;
     try {
       await clubService.deleteExclusionRule(r.id);
       await loadRules();
@@ -421,6 +423,7 @@ export const ClubExclusionRulesSection = ({ clubId, categories }: Props) => {
         </div>,
         document.body
       )}
+      {ConfirmDialog}
     </div>
   );
 };

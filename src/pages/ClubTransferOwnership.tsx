@@ -5,12 +5,14 @@ import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 import type { ClubMember } from '../services/clubService';
+import { useConfirm } from '../hooks/useConfirm';
 
 export const ClubTransferOwnership = () => {
   const { clubId } = useParams<{ clubId: string }>();
   const clubName = useClubName(clubId);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const [members, setMembers] = useState<ClubMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
@@ -51,9 +53,9 @@ export const ClubTransferOwnership = () => {
     const memberName = selectedMemberData?.user?.display_name || '선택한 멤버';
 
     if (
-      !confirm(
+      !(await confirm(
         `정말로 "${memberName}"에게 클럽장을 위임하시겠습니까?\n\n위임 후에는 일반 멤버로 전환되며, 클럽 관리 권한을 잃게 됩니다.`
-      )
+      ))
     ) {
       return;
     }
@@ -176,6 +178,7 @@ export const ClubTransferOwnership = () => {
           </>
         )}
       </div>
+      {ConfirmDialog}
     </div>
   );
 };

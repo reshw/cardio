@@ -5,6 +5,7 @@ import { ChevronLeft, Search, Shield, User, UserX, Award } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 import type { ClubMember } from '../services/clubService';
+import { useConfirm } from '../hooks/useConfirm';
 
 export const ClubMembers = () => {
   const { clubId } = useParams<{ clubId: string }>();
@@ -24,6 +25,7 @@ export const ClubMembers = () => {
   const [hofUserId, setHofUserId] = useState('');
   const [hofUserName, setHofUserName] = useState('');
   const [hofReason, setHofReason] = useState('');
+  const { confirm, ConfirmDialog } = useConfirm();
 
   useEffect(() => {
     if (clubId && user) {
@@ -86,7 +88,7 @@ export const ClubMembers = () => {
     const newRole = currentRole === 'vice-manager' ? 'member' : 'vice-manager';
     const roleText = newRole === 'vice-manager' ? '부매니저' : '일반 회원';
 
-    if (!confirm(`이 회원을 ${roleText}로 변경하시겠습니까?`)) {
+    if (!(await confirm(`이 회원을 ${roleText}로 변경하시겠습니까?`))) {
       return;
     }
 
@@ -110,7 +112,7 @@ export const ClubMembers = () => {
       return;
     }
 
-    if (!confirm(`정말로 "${displayName}" 회원을 내보내시겠습니까?`)) {
+    if (!(await confirm(`정말로 "${displayName}" 회원을 내보내시겠습니까?`))) {
       return;
     }
 
@@ -164,7 +166,7 @@ export const ClubMembers = () => {
   const handleRemoveFromHOF = async (userId: string, displayName: string) => {
     if (!clubId || (!isOwner && !isAdmin)) return;
 
-    if (!confirm(`"${displayName}"님을 명예의 전당에서 제거하시겠습니까?`)) {
+    if (!(await confirm(`"${displayName}"님을 명예의 전당에서 제거하시겠습니까?`))) {
       return;
     }
 
@@ -384,6 +386,7 @@ export const ClubMembers = () => {
           </div>
         </div>
       )}
+      {ConfirmDialog}
     </div>
   );
 };

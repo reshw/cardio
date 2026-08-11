@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Copy, Trash2, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useConfirm } from '../hooks/useConfirm';
 
 interface DemoUserRow {
   tmp_number: number;
@@ -21,6 +22,7 @@ export const AdminDemoUsers = () => {
   const [newLabel, setNewLabel] = useState('');
   const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   useEffect(() => {
     if (!user?.is_admin) {
@@ -113,7 +115,7 @@ export const AdminDemoUsers = () => {
   };
 
   const handleDelete = async (tmp: number, userId: string) => {
-    if (!confirm(`tmp=${tmp} 계정을 삭제하시겠어요?\n(users 테이블의 계정도 함께 삭제됩니다)`)) return;
+    if (!(await confirm(`tmp=${tmp} 계정을 삭제하시겠어요?\n(users 테이블의 계정도 함께 삭제됩니다)`))) return;
 
     // demo_users 먼저 삭제 (FK 제약)
     await supabase.from('demo_users').delete().eq('tmp_number', tmp);
@@ -322,6 +324,7 @@ export const AdminDemoUsers = () => {
           </div>
         )}
       </div>
+      {ConfirmDialog}
     </div>
   );
 };

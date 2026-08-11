@@ -4,6 +4,7 @@ import challengeService from '../services/challengeService';
 import type { Challenge } from '../services/challengeService';
 import teamMatchService from '../services/teamMatchService';
 import type { ChallengeTeam, TeamStanding } from '../services/teamMatchService';
+import { useConfirm } from '../hooks/useConfirm';
 
 type MatchResults = Awaited<ReturnType<typeof teamMatchService.getMatchResults>>;
 
@@ -24,6 +25,7 @@ const dotStyle = (color: string) => ({
 type TeamMember = { user_id: string; name: string; mileage: number; is_captain: boolean };
 
 export const TeamMatchCard = ({ challenge, userId, isManager, onReassign, onChanged }: Props) => {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [teams, setTeams] = useState<ChallengeTeam[]>([]);
   const [standings, setStandings] = useState<TeamStanding[]>([]);
   const [membersByTeam, setMembersByTeam] = useState<Record<string, TeamMember[]>>({});
@@ -62,7 +64,7 @@ export const TeamMatchCard = ({ challenge, userId, isManager, onReassign, onChan
   useEffect(() => { load(); }, [load]);
 
   const handleDelete = async () => {
-    if (!confirm('팀 대항전을 삭제하시겠습니까? 팀 구성도 모두 삭제됩니다.')) return;
+    if (!(await confirm('팀 대항전을 삭제하시겠습니까? 팀 구성도 모두 삭제됩니다.'))) return;
     await challengeService.deleteChallenge(challenge.id);
     onChanged();
   };
@@ -233,6 +235,7 @@ export const TeamMatchCard = ({ challenge, userId, isManager, onReassign, onChan
           ))}
         </div>
       )}
+      {ConfirmDialog}
     </div>
   );
 };

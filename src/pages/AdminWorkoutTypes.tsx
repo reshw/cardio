@@ -5,6 +5,7 @@ import { ChevronLeft, Plus, GripVertical } from 'lucide-react';
 import workoutTypeService from '../services/workoutTypeService';
 import type { WorkoutType, CreateWorkoutTypeInput } from '../services/workoutTypeService';
 import { supabase } from '../lib/supabase';
+import { useConfirm } from '../hooks/useConfirm';
 import {
   DndContext,
   closestCenter,
@@ -135,6 +136,7 @@ export const AdminWorkoutTypes = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingType, setEditingType] = useState<WorkoutType | null>(null);
   const [showInactiveWorkouts, setShowInactiveWorkouts] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   // 폼 상태
   const [formData, setFormData] = useState<CreateWorkoutTypeInput>({
@@ -327,7 +329,7 @@ export const AdminWorkoutTypes = () => {
       }
 
       // 운동 기록이 0개면 삭제 가능
-      if (!confirm(`"${workoutType.name}"을(를) 정말 삭제하시겠습니까?\n\n⚠️ 영구 삭제되며 되돌릴 수 없습니다.`)) {
+      if (!(await confirm(`"${workoutType.name}"을(를) 정말 삭제하시겠습니까?\n\n⚠️ 영구 삭제되며 되돌릴 수 없습니다.`))) {
         return;
       }
 
@@ -1015,6 +1017,7 @@ export const AdminWorkoutTypes = () => {
           </div>
         </div>
       )}
+      {ConfirmDialog}
     </div>
   );
 };
