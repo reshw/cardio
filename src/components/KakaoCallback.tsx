@@ -31,7 +31,20 @@ const KakaoCallback = () => {
         return;
       }
 
+      // 아래 단계들(카카오 프로필 조회 → RPC → 세션갱신) 중 하나라도 응답 없이 멈추면
+      // processed.current 가 이미 true라 30초 타임아웃도 다시 안 걸려서 "로그인 처리
+      // 중..."에 원인 표시 없이 영원히 멈추는 문제가 있었다(2026-08-12 제보). 각 단계에
+      // 자체 타임아웃을 걸어 반드시 에러가 뜨거나 다음 단계로 넘어가게 한다.
+      // supabase.rpc(...) 는 PostgrestFilterBuilder(thenable)라 Promise<T> 가 아니라
+      // PromiseLike<T> 로 받아야 한다.
+      const withTimeout = <T,>(p: PromiseLike<T>, ms: number, label: string): Promise<T> =>
+        Promise.race([
+          Promise.resolve(p),
+          new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} 시간 초과(${ms}ms)`)), ms)),
+        ]);
+
       // Kakao /v2/user/me로 실명·전화번호·생년·성별 조회 (provider_token = Kakao access token)
+      // 부가 정보일 뿐이라 실패/지연돼도 로그인 자체는 계속 진행한다.
       let displayName: string | null = null;
       let phoneNumber: string | null = null;
       let birthyear: string | null = null;
@@ -39,9 +52,13 @@ const KakaoCallback = () => {
 
       if (kakaoAccessToken) {
         try {
-          const meRes = await fetch('https://kapi.kakao.com/v2/user/me', {
-            headers: { Authorization: `Bearer ${kakaoAccessToken}` },
-          });
+          const meRes = await withTimeout(
+            fetch('https://kapi.kakao.com/v2/user/me', {
+              headers: { Authorization: `Bearer ${kakaoAccessToken}` },
+            }),
+            8000,
+            '카카오 프로필 조회'
+          );
           if (meRes.ok) {
             const meData = await meRes.json();
             const account = meData?.kakao_account || {};
@@ -52,34 +69,49 @@ const KakaoCallback = () => {
             gender = account?.gender || null;
           }
         } catch (err) {
-          console.warn('[KakaoCallback] 카카오 사용자 정보 조회 실패:', err);
+          console.warn('[KakaoCallback] 카카오 사용자 정보 조회 실패/시간초과:', err);
+          diagLog.add('kakao-callback', `카카오 프로필 조회 실패: ${err instanceof Error ? err.message : String(err)}`);
         }
       }
 
       try {
-        // public.users와 auth.users 연결 (기존 계정 매핑 or 신규 생성)
-        await supabase.rpc('link_or_create_user', {
-          p_auth_id:       authUser.id,
-          p_kakao_id:      kakaoId,
-          p_email:         authUser.email ?? null,
-          p_display_name:  displayName
-                           ?? authUser.user_metadata?.name
-                           ?? authUser.user_metadata?.full_name
-                           ?? null,
-          p_profile_image: authUser.user_metadata?.avatar_url
-                           ?? authUser.user_metadata?.picture
-                           ?? null,
-          p_phone_number:  phoneNumber,
-          p_birthyear:     birthyear,
-          p_gender:        gender,
-        });
-      } catch (err) {
-        console.error('[KakaoCallback] link_or_create_user 실패:', err);
+        // public.users와 auth.users 연결 (기존 계정 매핑 or 신규 생성) — 이건 실패하면
+        // 로그인을 계속 진행할 수 없으므로(계정 매핑이 안 됨) 타임아웃 시 명확한 에러로 중단.
+        await withTimeout(
+          supabase.rpc('link_or_create_user', {
+            p_auth_id:       authUser.id,
+            p_kakao_id:      kakaoId,
+            p_email:         authUser.email ?? null,
+            p_display_name:  displayName
+                             ?? authUser.user_metadata?.name
+                             ?? authUser.user_metadata?.full_name
+                             ?? null,
+            p_profile_image: authUser.user_metadata?.avatar_url
+                             ?? authUser.user_metadata?.picture
+                             ?? null,
+            p_phone_number:  phoneNumber,
+            p_birthyear:     birthyear,
+            p_gender:        gender,
+          }),
+          10000,
+          '계정 연결(link_or_create_user)'
+        );
+      } catch (err: any) {
+        console.error('[KakaoCallback] link_or_create_user 실패:', JSON.stringify(err), err);
+        diagLog.add('kakao-callback', `link_or_create_user 실패: ${err?.message || JSON.stringify(err)}`);
+        setErrorMsg(`계정 연결 실패: ${err?.message || err?.error_description || err?.hint || JSON.stringify(err)}`);
+        return;
       }
 
-      // RPC 완료 후 세션 갱신 → AuthContext가 public.users를 다시 조회하도록 트리거
-      // (SIGNED_IN 시점에 레이스 컨디션으로 user=null이 된 경우 복구)
-      await supabase.auth.refreshSession();
+      try {
+        // RPC 완료 후 세션 갱신 → AuthContext가 public.users를 다시 조회하도록 트리거
+        // (SIGNED_IN 시점에 레이스 컨디션으로 user=null이 된 경우 복구)
+        await withTimeout(supabase.auth.refreshSession(), 8000, '세션 갱신');
+      } catch (err) {
+        // 세션 갱신이 지연돼도 기존 세션은 이미 유효하므로 로그인 자체는 진행한다.
+        console.warn('[KakaoCallback] refreshSession 실패/시간초과:', err);
+        diagLog.add('kakao-callback', `refreshSession 실패: ${err instanceof Error ? err.message : String(err)}`);
+      }
 
       const redirectTo = sessionStorage.getItem('redirect_after_login') || '/';
       sessionStorage.removeItem('redirect_after_login');
