@@ -75,7 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const { data: tokenRows } = await supabase
       .from('device_tokens')
-      .select('fcm_token')
+      .select('id, fcm_token')
       .eq('user_id', record.user_id);
 
     const fcmTokens = (tokenRows ?? []).map((t) => t.fcm_token as string);
@@ -131,6 +131,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     const result = await getMessaging().sendEachForMulticast(message);
+
+    if (result.failureCount > 0) {
+      const staleTokenIds: string[] = [];
+      result.responses.forEach((r, i) => {
+        if (r.success) return;
+        const row = tokenRows?.[i];
+        console.error(
+          `[notification-inserted] FCM 발송 실패 user_id=${record.user_id} token=${row?.fcm_token?.slice(0, 20)}... code=${r.error?.code} message=${r.error?.message}`
+        );
+        if (
+          row &&
+          (r.error?.code === 'messaging/registration-token-not-registered' ||
+            r.error?.code === 'messaging/invalid-argument')
+        ) {
+          staleTokenIds.push(row.id as string);
+        }
+      });
+      if (staleTokenIds.length) {
+        await supabase.from('device_tokens').delete().in('id', staleTokenIds);
+      }
+    }
+
     return res.status(200).json({ sent: result.successCount, failed: result.failureCount });
   } catch (err) {
     console.error('notification-inserted handler error:', err);
