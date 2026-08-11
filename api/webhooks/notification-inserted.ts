@@ -36,6 +36,15 @@ interface NotificationRow {
 
 const MAX_BODY_LEN = 80;
 
+function formatDateYMD(dateStr: string): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(dateStr));
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -83,29 +92,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ skipped: 'no device tokens' });
     }
 
-    const { data: actor } = await supabase
-      .from('users')
-      .select('display_name')
-      .eq('id', record.actor_id)
-      .maybeSingle();
-    const actorName = actor?.display_name || '누군가';
+    const [{ data: actor }, { data: club }, { data: clubMember }] = await Promise.all([
+      supabase.from('users').select('display_name').eq('id', record.actor_id).maybeSingle(),
+      supabase.from('clubs').select('name').eq('id', record.club_id).maybeSingle(),
+      supabase
+        .from('club_members')
+        .select('club_nickname')
+        .eq('user_id', record.actor_id)
+        .eq('club_id', record.club_id)
+        .maybeSingle(),
+    ]);
+    // 클럽 닉네임 우선, 없으면 실명 — 인앱 알림센터(NotificationDropdown.tsx)와 동일 규칙
+    const actorName = clubMember?.club_nickname || actor?.display_name || '누군가';
+    const namePrefix = club?.name ? `[${club.name}] ${actorName}` : actorName;
 
     let body = '';
     if (record.type === 'like' && record.workout_id) {
       const { data: workout } = await supabase
         .from('workouts')
-        .select('category, value, unit')
+        .select('category, value, unit, workout_time')
         .eq('id', record.workout_id)
         .maybeSingle();
       if (workout) {
-        body = `${workout.category} ${workout.value}${workout.unit}`;
+        const dateStr = workout.workout_time ? formatDateYMD(workout.workout_time) : '';
+        body = `${workout.category} ${workout.value}${workout.unit}${dateStr ? ' ' + dateStr : ''}`;
       }
     } else if (record.type === 'comment') {
       body = (record.comment_text || '').slice(0, MAX_BODY_LEN);
     }
 
     const title =
-      record.type === 'like' ? `${actorName}님이 좋아요를 눌렀어요` : `${actorName}님이 댓글을 남겼어요`;
+      record.type === 'like' ? `${namePrefix}님이 좋아요를 눌렀어요` : `${namePrefix}님이 댓글을 남겼어요`;
 
     const path = record.workout_id ? `/workout/${record.workout_id}` : '/';
 
