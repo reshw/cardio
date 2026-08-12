@@ -23,6 +23,7 @@ export interface Club {
   rookie_league_enabled?: boolean; // 루키리그 기능 활성화 여부
   mileage_hide_periods?: { from: number; to: number }[]; // 마일리지 탭 숨김 기간 목록
   mileage_filter_categories?: string[] | null; // 마일리지 탭 종목별 필터 칩 화이트리스트 (null = 활성화 종목 전체 노출)
+  enabled_features?: string[]; // opt-in 기능 키 목록 (예: 'calendar') — docs/plans/클럽-탭-optin.md
 }
 
 // 동적 마일리지 설정 (모든 운동 종목 지원)
@@ -462,6 +463,18 @@ class ClubService {
 
     if (error) {
       console.error('루키리그 설정 변경 실패:', error);
+      throw error;
+    }
+  }
+
+  async updateEnabledFeatures(clubId: string, enabledFeatures: string[]): Promise<void> {
+    const { error } = await supabase
+      .from('clubs')
+      .update({ enabled_features: enabledFeatures })
+      .eq('id', clubId);
+
+    if (error) {
+      console.error('[클럽 탭 관리] opt-in 기능 변경 실패:', JSON.stringify(error), error);
       throw error;
     }
   }

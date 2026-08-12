@@ -5,6 +5,7 @@ import { ChevronLeft, Copy, Lock } from 'lucide-react';
 import clubService from '../services/clubService';
 import { useAuth } from '../contexts/AuthContext';
 import { uploadToR2 } from '../utils/r2Storage';
+import { OPTIONAL_CLUB_FEATURES } from '../config/clubFeatures';
 
 export const ClubGeneralSettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
@@ -21,6 +22,8 @@ export const ClubGeneralSettings = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [enabledFeatures, setEnabledFeatures] = useState<string[]>([]);
+  const [featureToggling, setFeatureToggling] = useState<string | null>(null);
 
   useEffect(() => {
     if (clubId) {
@@ -39,6 +42,7 @@ export const ClubGeneralSettings = () => {
       setDescription(club.description || '');
       setInviteCode(club.invite_code);
       setLogoPreview(club.logo_url || null);
+      setEnabledFeatures(club.enabled_features ?? []);
     } catch (error) {
       console.error('클럽 정보 불러오기 실패:', error);
       alert('클럽 정보를 불러올 수 없습니다.');
@@ -57,6 +61,23 @@ export const ClubGeneralSettings = () => {
         setLogoPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const toggleFeature = async (key: string) => {
+    if (!clubId || featureToggling) return;
+    const wasOn = enabledFeatures.includes(key);
+    const next = wasOn ? enabledFeatures.filter((f) => f !== key) : [...enabledFeatures, key];
+    setFeatureToggling(key);
+    setEnabledFeatures(next); // 낙관적 업데이트, 실패 시 되돌림
+    try {
+      await clubService.updateEnabledFeatures(clubId, next);
+    } catch (error: any) {
+      console.error('[클럽 탭 관리] opt-in 기능 변경 실패:', JSON.stringify(error), error);
+      setEnabledFeatures(enabledFeatures);
+      alert(`설정 변경 실패: ${error?.message || JSON.stringify(error)}`);
+    } finally {
+      setFeatureToggling(null);
     }
   };
 
@@ -218,6 +239,35 @@ export const ClubGeneralSettings = () => {
           {updating ? '저장 중...' : '저장하기'}
         </button>
       </form>
+
+      {/* 즉시저장 — 위 폼(저장하기 버튼)과 별개로 토글 누르는 즉시 반영된다 */}
+      <div className="settings-form">
+        <div className="settings-section">
+          <div className="settings-section-title">탭 관리</div>
+          {OPTIONAL_CLUB_FEATURES.map((feature) => (
+            <div
+              key={feature.key}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0' }}
+            >
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '15px', marginBottom: '4px' }}>{feature.label}</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                  {feature.description}
+                </div>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={enabledFeatures.includes(feature.key)}
+                  disabled={featureToggling === feature.key}
+                  onChange={() => toggleFeature(feature.key)}
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
