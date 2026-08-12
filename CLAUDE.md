@@ -215,6 +215,9 @@ tsx 인라인 스타일에서도 동일하게 토큰을 쓸 것 (인라인이 CS
 - push 전 반드시 `npm run build` 통과 확인
 - 작업은 dev 브랜치에서 하고, push 요청 시 dev → master 머지 후 master push
 - Vercel 자동 배포가 가끔 웹훅 누락됨 → 미배포 확인 시 `vercel --prod` 수동 배포
+- **staging 테스트 배포는 `git push origin staging`으로만** (dev → staging merge 후) —
+  `vercel` CLI ad-hoc 배포는 브랜치 전용 환경변수(R2/Supabase/Kakao 등)를 못 받아 업로드 등이
+  500 남. 도메인·환경변수 스코프·리다이렉트 URL 등 상세는 **@docs/deploy.md**
 
 ## 네이티브 앱 연동
 
