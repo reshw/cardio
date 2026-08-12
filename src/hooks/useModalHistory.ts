@@ -82,7 +82,18 @@ export function useModalHistory(isOpen: boolean, onClose: () => void) {
 
     let closedByPop = false;
     const onPopState = (e: PopStateEvent) => {
-      if (!e.state || e.state.cardioModal !== id) {
+      // "내 id와 다르면 닫는다"가 3중 이상 중첩(예: 행사상세 → 수정폼 → 날짜피커)에서
+      // 틀렸다 — 자식(날짜피커)이 정상적으로 닫히며 history.back()을 한 번 부르면,
+      // 그 popstate는 "부모(수정폼)의 id로 정확히 되돌아온" 것이라 부모는 안 닫혀야
+      // 맞는데, 그 위의 조부모(행사상세)에게도 같은 이벤트가 전달되고, 조부모 입장에선
+      // 새 state.cardioModal(=부모 id)이 "내 id와 다르다"고 오판해 자기도 닫혀버렸다
+      // (2026-08-12 실측 — 행사수정 폼에서 날짜만 바꿔도 전체 시트가 닫히는 버그).
+      // id는 ++uidCounter 로 단조증가하므로, "새 state의 id가 내 id보다 작을 때(또는
+      // state 자체가 없을 때)만" 진짜로 내가 pop된 것이다. 내 id보다 큰 id는 나보다
+      // 나중에 열린 자손의 흔적이라 무시해야 한다.
+      const newId = e.state?.cardioModal;
+      const trulyPastMe = newId === undefined || newId === null || newId < id!;
+      if (trulyPastMe) {
         closedByPop = true;
         pushedRef.current = false;
         unlockBodyScroll();
