@@ -103,15 +103,14 @@ const KakaoCallback = () => {
         return;
       }
 
-      try {
-        // RPC 완료 후 세션 갱신 → AuthContext가 public.users를 다시 조회하도록 트리거
-        // (SIGNED_IN 시점에 레이스 컨디션으로 user=null이 된 경우 복구)
-        await withTimeout(supabase.auth.refreshSession(), 8000, '세션 갱신');
-      } catch (err) {
-        // 세션 갱신이 지연돼도 기존 세션은 이미 유효하므로 로그인 자체는 진행한다.
-        console.warn('[KakaoCallback] refreshSession 실패/시간초과:', err);
-        diagLog.add('kakao-callback', `refreshSession 실패: ${err instanceof Error ? err.message : String(err)}`);
-      }
+      // 예전엔 여기서 supabase.auth.refreshSession() 을 불렀다 — "SIGNED_IN 시점에
+      // AuthContext가 아직 public.users를 못 찾은 경우 복구용"이라는 의도였는데,
+      // 2026-08-12 diagLog 실측 결과 fetchPublicUser 는 이미 SIGNED_IN/INITIAL_SESSION
+      // 단계에서 성공하고 있었고(refreshSession 필요 없음), 그 직후 refreshSession 이
+      // 발급한 TOKEN_REFRESHED 로부터 ~0.7초 뒤 아무도 호출 안 한 SIGNED_OUT 이 떠서
+      // 로그인 화면으로 튕겨나가는 게 실제로 관찰됐다(refresh token rotation 충돌로
+      // 추정). AuthContext 쪽에 이미 자체 재시도·폴백(link_or_create_user) 로직이
+      // 있으므로 여기서 억지로 세션을 갱신할 필요가 없어 제거한다.
 
       const redirectTo = sessionStorage.getItem('redirect_after_login') || '/';
       sessionStorage.removeItem('redirect_after_login');
