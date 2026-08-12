@@ -86,14 +86,16 @@ vercel inspect <deployment-url>
 
 ---
 
-## 4. Production 환경변수와는 이미 동일함 (2026-08-12 확인)
+## 4. ⚠️ `vercel env pull` 로 "값이 같다"고 판단하면 안 된다
 
 "그냥 production 변수 다 쓰면 안 되나" 싶어서 `vercel env pull`로 두 스코프를 다운받아
-diff 떠봤는데, Vercel이 자동으로 넣는 메타데이터(`VERCEL_ENV` 등) 말고는 **모든 실제 값이
-이미 Production과 100% 동일했다.** 별도 staging 전용 Supabase 프로젝트 같은 것도 없고,
-지금 세션 내 모든 테스트(마이그레이션 적용, 테스터 계정 생성 등)도 이 동일한 프로젝트에다
-직접 했다. 즉 "값이 달라서" 나는 문제가 아니라 전부 **"애초에 못 받아서"** 나는 문제였다
-(3절). 값 자체를 손댈 필요는 없다.
+diff 떠봤더니 메타데이터(`VERCEL_ENV` 등) 말고는 값이 전부 동일해 보였다 — 그래서
+한 번은 "이미 동일하다"고 잘못 결론 내렸었다. **오판이었다.** `vercel env pull`은
+Sensitive로 표시된 변수를 **빈 문자열로** 내려주는데, 양쪽 다 빈 문자열이니 당연히
+"같다"고 나온 것뿐이었다. 실제로는 R2/Supabase 키가 서로 완전히 달랐다 (6절 참고).
+
+**값이 같은지 확인하려면 `env pull` diff로는 안 되고, 그 자격증명으로 실제 API를
+한 번 호출**(R2면 PutObject, Supabase면 `/auth/v1/settings`)**해봐야 한다.**
 
 ---
 
@@ -114,7 +116,7 @@ http://localhost:3000 / :5173 / :3003 / .../auth/callback  (로컬 개발용, �
 
 새 staging 도메인을 쓰게 되면(`crd.scnd.kr` 등) 여기 먼저 등록해야 함 —
 **등록 안 하면 로그인이 "무한로딩"처럼 보일 수 있다** (실제로는 카카오 프로필조회/RPC
-쪽에서 걸리는 것과는 다른 문제라 증상만으로는 구분이 안 된다 — 6절 참고).
+쪽에서 걸리는 것과는 다른 문제라 증상만으로는 구분이 안 된다 — 8절 참고).
 
 > ⚠️ **`supabase/config.toml`의 `additional_redirect_urls`는 로컬 개발용 URL만 있고
 > stale하다** (실제 원격 설정과 다름 — 위 목록엔 있는 프로덕션/staging 도메인이 파일엔
@@ -125,7 +127,81 @@ http://localhost:3000 / :5173 / :3003 / .../auth/callback  (로컬 개발용, �
 
 ---
 
-## 6. 카카오 로그인이 "무한 로딩"처럼 보이는 두 가지 다른 원인
+## 6. ⚠️ staging 전용 환경변수는 79일간 방치돼 값 자체가 낡아 있었다
+
+3절이 "브랜치를 잘못 태그해서 아예 못 받는" 문제였다면, 이건 그 다음 단계 —
+**받긴 받는데 그 안의 값 자체가 예전 값**이었던 사고. staging 브랜치를 실제로
+거의 안 쓰다 보니 R2 키를 로테이션하거나 Supabase API 키 형식이 바뀌는(구 JWT
+anon key → 신 `sb_publishable_...`) 동안 Production 쪽만 갱신되고 `Preview
+(staging)` 스코프는 79일 전 초기값 그대로 방치돼 있었다.
+
+**증상 두 가지, 실측으로 확정:**
+
+- `/api/upload-to-r2` → `500 SignatureDoesNotMatch` — R2 비밀키가 예전 값.
+- 카카오 로그인 PKCE 교환(`/auth/v1/token?grant_type=pkce`) → **`401 Invalid API key`**
+  — 브라우저 요청을 그대로 재현(`curl`)해서 확인. `VITE_SUPABASE_PUBLISHABLE_KEY`가
+  배포본과 로컬 `.env`에서 **글자 하나까지 다른 값**이었다.
+
+**교훈**: staging에서 뭔가 500/401 이 나는데 코드는 멀쩡해 보이면, 먼저 그 변수가
+실제로 로컬에서 작동하는 값과 일치하는지부터 의심한다. `vercel env pull`은
+Sensitive 변수를 **빈 문자열로** 내려주므로 "값이 같다"고 착각하기 쉽다 —
+diff로 비교하려면 길이/해시라도 찍어봐야 하고, 제일 확실한 건 그 자격증명으로
+실제 API를 한 번 호출(R2면 PutObject, Supabase면 `/auth/v1/settings`)해보는 것.
+
+**조치**: 로컬 `.env`(검증된 현재 값)를 기준으로 `Preview (staging)` 스코프
+변수 18개를 전부 `vercel env rm ... preview` → `vercel env add ... preview staging
+--sensitive --force` 로 갈아엎었다 (2026-08-12). Production 스코프는 손대지 않음.
+
+```bash
+# 값이 실제로 유효한지 먼저 검증(R2 예시) — 3개 파라미터만 자기 값으로 바꿔서
+node -e "
+const {S3Client,PutObjectCommand,DeleteObjectCommand}=require('@aws-sdk/client-s3');
+const c=new S3Client({region:'auto',endpoint:'https://<ACCOUNT_ID>.r2.cloudflarestorage.com',
+  credentials:{accessKeyId:'<KEY>',secretAccessKey:'<SECRET>'}});
+c.send(new PutObjectCommand({Bucket:'<BUCKET>',Key:'__test.txt',Body:'ok'}))
+  .then(()=>console.log('OK')).catch(e=>console.error('FAIL',e.message));
+"
+
+# 갱신 (staging 스코프만, production 은 안 건드림)
+vercel env rm R2_SECRET_ACCESS_KEY preview --yes
+printf '%s' "$새값" | vercel env add R2_SECRET_ACCESS_KEY preview staging --sensitive --force
+```
+
+값을 바꿔도 **기존 배포엔 반영 안 되고 새 배포부터** 적용된다 — 반드시
+`git push origin staging`(또는 최소 `git commit --allow-empty` 로 트리거)까지 해야 한다.
+
+---
+
+## 7. ⚠️ 로그인 직후 자동으로 SIGNED_OUT 이 떠서 로그인 화면으로 튕기는 문제
+
+위 두 가지를 다 고친 뒤에도 재현됨 — 카카오 로그인 자체(Kakao 프로세스 완료, 세션 수립,
+`fetchPublicUser 성공`까지)는 되는데 **0.1초 만에 로그인 화면으로 돌아갔다.**
+
+`sessionStorage.getItem('cardio_diag')` 로 흐름을 실측한 결과:
+
+```
+SIGNED_IN → INITIAL_SESSION → fetchPublicUser 성공        ← 여기서 이미 로그인 완료
+→ TOKEN_REFRESHED                                          ← KakaoCallback 이 부른 refreshSession()
+→ fetchPublicUser 성공 (다시)
+→ (~0.7초 뒤) SIGNED_OUT                                    ← 아무도 안 부름. 자동 발생
+```
+
+`KakaoCallback.tsx` 가 RPC 완료 후 `supabase.auth.refreshSession()` 을 불렀는데
+(과거에 "SIGNED_IN 시점 레이스 컨디션 복구용"으로 추가된 코드), 로그를 보면
+그 시점에 `fetchPublicUser`는 **이미** 성공해 있어서 애초에 필요가 없었고,
+오히려 이 강제 refresh 가 refresh token rotation 과 충돌해 클라이언트가 스스로
+세션을 무효화(SIGNED_OUT)하는 것으로 추정된다. **AuthContext 에 이미 자체
+재시도(500ms 후 재조회)·폴백(`link_or_create_user` 직접 호출) 로직이 있으므로**
+이 refreshSession 호출은 제거했다 (`KakaoCallback.tsx`, 2026-08-12).
+
+> 디버깅 이 필요하면 항상 `sessionStorage.getItem('cardio_diag')` 부터 — 코드
+> 수정 없이 세션에 남은 실제 이벤트 순서를 그대로 볼 수 있다. 로그인 실패
+> 화면의 "진단 요청" 버튼(`api/send-login-diagnostic.ts`)은 같은 로그를 이메일로
+> 보낸다.
+
+---
+
+## 8. 카카오 로그인이 "무한 로딩"처럼 보이는 두 가지 다른 원인
 
 증상은 똑같이 "로그인 처리 중..."에서 안 넘어가는데, 원인이 완전히 다르다.
 
