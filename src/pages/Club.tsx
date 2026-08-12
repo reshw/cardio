@@ -97,6 +97,14 @@ export const Club = () => {
   type TabType = 'ranking' | 'feed' | 'events';
   const [activeTab, setActiveTab] = useState<TabType>((location.state as { tab?: TabType } | null)?.tab ?? 'feed');
 
+  // 클럽달력이 opt-in 이라 꺼진 클럽에서 activeTab 이 'events' 로 남아있으면(딥링크 등) 안 보이는 탭에 갇히므로 되돌림
+  useEffect(() => {
+    if (activeTab === 'events' && selectedClub && !(selectedClub.enabled_features ?? []).includes('calendar')) {
+      setActiveTab('feed');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClub]);
+
   // 마일리지 표현 state
   const [mileageExpressions, setMileageExpressions] = useState(() => getExpressions(0, 1));
 
@@ -708,6 +716,8 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         const activePeriods = periods.filter(p => today >= p.from && today <= p.to);
         const isLockPeriod = activePeriods.length > 0; // 잠금 기간 여부 (역할 무관)
         const isMileageBlocked = isLockPeriod && !isAdmin; // 일반회원만 실제 차단
+        const showCalendarTab = (selectedClub.enabled_features ?? []).includes('calendar'); // opt-in — docs/plans/클럽-탭-optin.md
+        const tabCount = showCalendarTab ? 3 : 2;
         return (
           <>
           {isMileageBlocked && showLockTooltip && (
@@ -716,7 +726,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
               onClick={() => setShowLockTooltip(false)}
             />
           )}
-          {/* 탭 3개는 반드시 .tabs 의 직계 button.tab 형제로 둘 것 — 예전엔 잠금 툴팁
+          {/* 탭들은 반드시 .tabs 의 직계 button.tab 형제로 둘 것 — 예전엔 잠금 툴팁
               앵커용으로 마일리지만 div 로 한 번 더 감쌌는데, 그러면 .tab 의 padding 이
               wrapper 로 빠지면서 활성 밑줄(border-bottom)이 나머지 탭보다 위에 그려진다.
               툴팁은 .tabs(position: relative) 기준으로 띄운다. */}
@@ -734,16 +744,18 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             >
               오늘운동
             </button>
-            <button
-              className={`tab ${activeTab === 'events' ? 'active' : ''}`}
-              onClick={() => setActiveTab('events')}
-            >
-              클럽달력
-            </button>
+            {showCalendarTab && (
+              <button
+                className={`tab ${activeTab === 'events' ? 'active' : ''}`}
+                onClick={() => setActiveTab('events')}
+              >
+                클럽달력
+              </button>
+            )}
             {isMileageBlocked && showLockTooltip && (
               <div style={{
-                // 탭 3개가 flex:1 균등분할이므로 첫 탭의 중앙 = 전체 폭의 1/6
-                position: 'absolute', top: 'calc(100% + 8px)', left: '16.667%', transform: 'translateX(-50%)',
+                // 첫 탭(마일리지) 중앙 = 전체 폭의 1/(2*탭개수). 탭 개수는 클럽달력 opt-in 여부로 바뀐다.
+                position: 'absolute', top: 'calc(100% + 8px)', left: `${100 / (tabCount * 2)}%`, transform: 'translateX(-50%)',
                 background: 'var(--card-bg)', border: '1px solid var(--border-color)',
                 borderRadius: '10px', padding: '8px 12px', whiteSpace: 'nowrap',
                 fontSize: '13px', color: 'var(--text-primary)', zIndex: 100,
