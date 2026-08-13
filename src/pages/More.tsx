@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Shield, ShieldCheck, BookOpen, Smartphone, UserX, Image, MessageSquarePlus, Unlink, Trash2 } from 'lucide-react';
+import { Shield, ShieldCheck, BookOpen, Smartphone, UserX, Image, MessageSquarePlus, Unlink, Trash2, GitMerge } from 'lucide-react';
 import { InstallGuideModal } from '../components/InstallGuideModal';
 import { FeedbackModal } from '../components/FeedbackModal';
 import { supabase } from '../lib/supabase';
@@ -358,6 +358,23 @@ export const More = () => {
           </button>
         </div>
       </div>
+
+      {!user?.isGuest && (
+        <div className="section">
+          <h3>디버그 도구</h3>
+          <div className="menu-list">
+            <button
+              className="menu-item-btn"
+              onClick={() => navigate('/debug/merge-requests')}
+            >
+              <div className="menu-item-left">
+                <GitMerge size={20} />
+                <span>개인 기록 병합신청</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="section">
         <h3>앱 정보</h3>

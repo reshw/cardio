@@ -28,6 +28,7 @@ import { ClubGallery } from './pages/ClubGallery';
 import { ProtectedClubRoute } from './components/ProtectedClubRoute';
 import { More } from './pages/More';
 import { BlockedMembers } from './pages/BlockedMembers';
+import { DebugMergeRequests } from './pages/DebugMergeRequests';
 import { AdminPage } from './pages/AdminPage';
 import { AdminClubApproval } from './pages/AdminClubApproval';
 import { AdminUserManagement } from './pages/AdminUserManagement';
@@ -175,6 +176,7 @@ function ProtectedRoutes() {
           <Route path="/join/:code" element={<JoinClub />} />
           <Route path="/more" element={<More />} />
           <Route path="/blocked-members" element={<BlockedMembers />} />
+          <Route path="/debug/merge-requests" element={<DebugMergeRequests />} />
           <Route path="/guide" element={<AppGuide />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/club-approval" element={<AdminClubApproval />} />
