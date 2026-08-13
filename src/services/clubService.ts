@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase';
-import userService from './userService';
 import { sendClubRequestEmail } from '../utils/email';
 import workoutTypeService from './workoutTypeService';
 
@@ -1466,37 +1465,23 @@ class ClubService {
     try {
       console.log('📧 클럽 생성 이메일 발송 시작:', club.name);
 
-      // 어드민 이메일 목록 조회
-      const adminEmails = await userService.getAdminEmails();
-      console.log('👥 조회된 어드민 이메일:', adminEmails);
-
-      if (adminEmails.length === 0) {
-        console.warn('⚠️  어드민 이메일이 없어 알림을 보낼 수 없습니다.');
-        return;
-      }
-
       // 생성자 정보 조회
       const { data: creator } = await supabase
         .from('users')
         .select('display_name')
         .eq('id', creatorId)
-        .single();
+        .maybeSingle();
 
       const creatorName = creator?.display_name || '알 수 없음';
 
-      // 각 어드민에게 이메일 발송
-      await Promise.all(
-        adminEmails.map((adminEmail) =>
-          sendClubRequestEmail({
-            adminEmail,
-            clubName: club.name,
-            clubDescription: club.description,
-            creatorName,
-          })
-        )
-      );
+      // 수신자(어드민 이메일)는 서버가 결정한다 — 클라이언트는 지정하지 않는다.
+      await sendClubRequestEmail({
+        clubName: club.name,
+        clubDescription: club.description,
+        creatorName,
+      });
 
-      console.log(`✅ ${adminEmails.length}명의 어드민에게 이메일 발송 완료`);
+      console.log('✅ 어드민 클럽 신청 알림 요청 완료');
     } catch (error) {
       console.error('❌ 어드민 이메일 발송 실패:', error);
       // 에러를 throw하지 않아 클럽 생성은 계속 진행됨

@@ -23,16 +23,21 @@ export const FeedbackModal = ({ onClose }: Props) => {
   const [phoneNumber, setPhoneNumber] = useState('');
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || user?.isGuest) return;
+    // phone_number 는 컬럼 권한으로 차단돼 있어 직접 select 하면 permission denied.
+    // 본인 정보는 RPC 로 받는다. (docs/plans/rls-hardening.md §3-3)
     supabase
-      .from('users')
-      .select('phone_number')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.phone_number) setPhoneNumber(data.phone_number);
+      .rpc('get_my_account')
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('[피드백] 본인 연락처 조회 실패 상세:', JSON.stringify(error), error);
+          return;
+        }
+        const phone = (data as { phone_number?: string } | null)?.phone_number;
+        if (phone) setPhoneNumber(phone);
       });
-  }, [user?.id]);
+  }, [user?.id, user?.isGuest]);
 
   const handleSubmit = async () => {
     if (!title.trim() || !content.trim() || submitting) return;

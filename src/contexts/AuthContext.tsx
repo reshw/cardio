@@ -35,9 +35,11 @@ const fetchUserByTmpNumber = async (tmp: number) => {
     .eq('tmp_number', tmp)
     .maybeSingle();
   if (!row?.user_id) return null;
+  // 게스트는 anon 세션이라 users 의 PII 컬럼(email/kakao_id 등)을 읽을 수 없다.
+  // 표시에 필요한 컬럼만 조회한다. (docs/plans/rls-hardening.md §3-2)
   const { data } = await supabase
     .from('users')
-    .select('id, username, display_name, email, kakao_id, provider, profile_image, is_admin, is_super_admin, is_sub_admin')
+    .select('id, username, display_name, provider, profile_image, is_admin, is_super_admin, is_sub_admin')
     .eq('id', row.user_id)
     .maybeSingle();
   return data ?? null;
@@ -55,12 +57,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     fetchingRef.current = authId;
     try {
-      const fetchOnce = () =>
-        supabase
-          .from('users')
-          .select('id, username, display_name, email, kakao_id, provider, profile_image, is_admin, is_super_admin, is_sub_admin')
-          .eq('auth_id', authId)
-          .maybeSingle();
+      // users 의 PII 컬럼(email/kakao_id 등)은 컬럼 권한으로 차단돼 있어
+      // 직접 select 하면 permission denied 가 난다. 본인 정보는 RPC 로 받는다.
+      // (docs/plans/rls-hardening.md §3-3 — RPC 가 auth.uid() 로 본인 행을 찾는다)
+      const fetchOnce = async () =>
+        (await supabase.rpc('get_my_account').maybeSingle()) as {
+          data: User | null;
+          error: { message?: string } | null;
+        };
 
       let { data, error } = await fetchOnce();
       if (error || !data) {

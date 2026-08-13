@@ -1,7 +1,35 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
+import { createClient } from '@supabase/supabase-js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// 어드민 이메일은 service_role 로 서버에서만 조회한다.
+// 클라이언트는 users.email 을 읽을 수 없고 수신자도 지정할 수 없다.
+// (docs/plans/rls-hardening.md §3-3)
+async function fetchAdminEmails(): Promise<string[]> {
+  const url = process.env.VITE_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) {
+    throw new Error(
+      `Supabase 환경변수 누락: VITE_SUPABASE_URL=${!!url}, SUPABASE_SERVICE_ROLE_KEY=${!!serviceKey}`
+    );
+  }
+
+  const supabase = createClient(url, serviceKey);
+  const { data, error } = await supabase
+    .from('users')
+    .select('email')
+    .eq('is_admin', true)
+    .is('deleted_at', null)
+    .not('email', 'is', null);
+
+  if (error) {
+    throw new Error(`어드민 이메일 조회 실패: ${error.message} (${error.code || 'no-code'})`);
+  }
+
+  return (data || []).map((u: { email: string | null }) => u.email).filter((e): e is string => !!e);
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,15 +43,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { type, ...body } = req.body as Record<string, string>;
 
     if (type === 'club-request') {
-      const { adminEmail, clubName, clubDescription, creatorName } = body;
-      if (!adminEmail || !clubName || !creatorName) {
-        return res.status(400).json({ error: 'Missing required fields' });
+      const { clubName, clubDescription, creatorName } = body;
+      if (!clubName || !creatorName) {
+        return res.status(400).json({ error: 'Missing required fields: clubName, creatorName' });
       }
+
+      const adminEmails = await fetchAdminEmails();
+      if (adminEmails.length === 0) {
+        console.warn('⚠️ 클럽 신청 알림: 수신 가능한 어드민 이메일이 없습니다');
+        return res.status(200).json({ success: true, sent: 0, reason: 'no admin recipients' });
+      }
+
       const siteUrl = process.env.URL ||
         (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:5173');
       const { data, error } = await resend.emails.send({
         from: 'Cardio Club <ai@scnd.kr>',
-        to: [adminEmail],
+        to: adminEmails,
         subject: `🏃 새로운 클럽 생성 신청: ${clubName}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
