@@ -38,7 +38,7 @@ export function useConfirm() {
 
   const ConfirmDialog = state
     ? createPortal(
-        <div className="modal-overlay" onClick={() => settle(false)}>
+        <div className="modal-overlay confirm-dialog-overlay" onClick={() => settle(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{state.title || '확인'}</h2>

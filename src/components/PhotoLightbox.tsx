@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react';
 import { useModalHistory } from '../hooks/useModalHistory';
 
 interface LightboxPhoto {
   url: string;
   caption?: string;
+  id?: string;
+  canDelete?: boolean;
 }
 
 interface Props {
@@ -13,12 +15,14 @@ interface Props {
   index: number;
   onIndexChange: (index: number) => void;
   onClose: () => void;
+  /** 지정하면 canDelete=true 인 사진에 휴지통 버튼이 뜬다. */
+  onDelete?: (photo: LightboxPhoto) => void;
 }
 
 const SWIPE_THRESHOLD = 40;
 
 /** 사진 그리드에서 탭한 사진을 전체화면으로 보여준다 — 좌우 스와이프/화살표로 다음·이전. */
-export const PhotoLightbox = ({ photos, index, onIndexChange, onClose }: Props) => {
+export const PhotoLightbox = ({ photos, index, onIndexChange, onClose, onDelete }: Props) => {
   useModalHistory(true, onClose);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
@@ -42,6 +46,16 @@ export const PhotoLightbox = ({ photos, index, onIndexChange, onClose }: Props) 
       <button type="button" className="photo-lightbox-close" onClick={onClose}>
         <X size={22} />
       </button>
+
+      {onDelete && photo.canDelete && (
+        <button
+          type="button"
+          className="photo-lightbox-delete"
+          onClick={(e) => { e.stopPropagation(); onDelete(photo); }}
+        >
+          <Trash2 size={20} />
+        </button>
+      )}
 
       {photos.length > 1 && (
         <span className="photo-lightbox-counter">{index + 1} / {photos.length}</span>

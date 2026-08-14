@@ -772,6 +772,13 @@ body {
 }
 
 /* 검색 등 키보드 올라오는 모달 — 상단 고정 */
+/* 확인창은 그걸 띄운 다른 오버레이(feedback-sheet 1100 / photo-lightbox 1300 /
+   image-viewer 2000)보다 항상 위에 있어야 한다 — 기본 .modal-overlay(1050)만으론
+   그 위에서 뜬 확인창이 배경에 가려 클릭이 안 먹는다. useConfirm/ConfirmDialog 전용. */
+.modal-overlay.confirm-dialog-overlay {
+  z-index: 2100;
+}
+
 .modal-overlay--top {
   align-items: flex-start;
   padding-top: max(16px, env(safe-area-inset-top));
@@ -13798,6 +13805,23 @@ body.workout-detail-open .bottom-nav {
   position: absolute;
   top: max(16px, env(safe-area-inset-top));
   right: 16px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.photo-lightbox-delete {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: 60px;
   width: 36px;
   height: 36px;
   display: flex;

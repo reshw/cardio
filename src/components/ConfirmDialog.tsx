@@ -30,7 +30,7 @@ export const ConfirmDialog = ({
   if (!open) return null;
 
   return createPortal(
-    <div className="modal-overlay" onClick={onCancel}>
+    <div className="modal-overlay confirm-dialog-overlay" onClick={onCancel}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{title || '확인'}</h2>

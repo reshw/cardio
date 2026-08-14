@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Trash2 } from 'lucide-react';
 import { useModalHistory } from '../hooks/useModalHistory';
+import { useConfirm } from '../hooks/useConfirm';
 import clubEventService, { type ClubEvent, type EventPhoto, EVENT_TYPE_ICONS, EVENT_TYPE_LABELS } from '../services/clubEventService';
 import { uploadToR2 } from '../utils/r2Storage';
 import { CreateEventSheet } from './CreateEventSheet';
@@ -29,6 +31,7 @@ function formatEventDate(iso: string): string {
 
 export const EventDetailSheet = ({ eventId, userId, isManager, onClose, onChanged }: Props) => {
   useModalHistory(true, onClose);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const [event, setEvent] = useState<ClubEvent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,7 +101,7 @@ export const EventDetailSheet = ({ eventId, userId, isManager, onClose, onChange
 
   const handleDelete = async () => {
     if (!event) return;
-    if (!confirm(`"${event.title}" 행사를 삭제할까요? 체크인 기록도 함께 삭제됩니다.`)) return;
+    if (!(await confirm(`"${event.title}" 행사를 삭제할까요? 체크인 기록도 함께 삭제됩니다.`, { danger: true, confirmLabel: '삭제' }))) return;
     setDeleting(true);
     try {
       await clubEventService.deleteEvent(event.id);
@@ -134,15 +137,30 @@ export const EventDetailSheet = ({ eventId, userId, isManager, onClose, onChange
     }
   };
 
-  const handleDeletePhoto = async (photo: EventPhoto) => {
-    if (!confirm('이 사진을 삭제할까요?')) return;
+  const handleDeletePhoto = async (photo: EventPhoto): Promise<boolean> => {
+    if (!(await confirm('이 사진을 삭제할까요?', { danger: true, confirmLabel: '삭제' }))) return false;
     try {
       await clubEventService.deleteEventPhoto(photo.id);
       setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
+      return true;
     } catch (err: any) {
       console.error('[클럽달력] 행사 사진 삭제 실패:', JSON.stringify(err), err);
       alert(`삭제 실패: ${err?.message || err?.error_description || err?.hint || JSON.stringify(err)}`);
+      return false;
     }
+  };
+
+  const handleDeletePhotoFromLightbox = async (lightboxPhoto: { id?: string }) => {
+    const target = photos.find((p) => p.id === lightboxPhoto.id);
+    if (!target) return;
+    const deleted = await handleDeletePhoto(target);
+    if (!deleted) return;
+    const remaining = photos.length - 1;
+    setLightboxIndex((prev) => {
+      if (prev === null) return null;
+      if (remaining <= 0) return null;
+      return Math.min(prev, remaining - 1);
+    });
   };
 
   const approvedCheckins = event?.checkins.filter((c) => c.status !== 'rejected') ?? [];
@@ -261,7 +279,7 @@ export const EventDetailSheet = ({ eventId, userId, isManager, onClose, onChange
                           role="button"
                           className="event-photo-delete-btn"
                           onClick={(e) => { e.stopPropagation(); handleDeletePhoto(p); }}
-                        >✕</span>
+                        ><Trash2 size={14} /></span>
                       )}
                     </button>
                   ))}
@@ -317,12 +335,20 @@ export const EventDetailSheet = ({ eventId, userId, isManager, onClose, onChange
 
       {lightboxIndex !== null && (
         <PhotoLightbox
-          photos={photos.map((p) => ({ url: p.photo_url, caption: p.nickname }))}
+          photos={photos.map((p) => ({
+            id: p.id,
+            url: p.photo_url,
+            caption: p.nickname,
+            canDelete: p.user_id === userId || isManager,
+          }))}
           index={lightboxIndex}
           onIndexChange={setLightboxIndex}
           onClose={() => setLightboxIndex(null)}
+          onDelete={handleDeletePhotoFromLightbox}
         />
       )}
+
+      {ConfirmDialog}
     </div>,
     document.body
   );
