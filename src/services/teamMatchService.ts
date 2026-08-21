@@ -4,7 +4,13 @@ import clubService from './clubService';
 // ============================================
 // 팀 대항전 (team_match) 서비스
 // 팀 이름은 색깔 기반(홍/백/청/흑), 경쟁 지표는 1인당 평균 마일리지
-// 매치는 단일 월 → 기존 get_club_mileage_summary RPC 재사용
+//
+// 스코어링(getStandings 등)은 challenge.start_date~end_date 를 그대로
+// get_club_mileage_summary_range 에 넘겨 정확한 이벤트 기간으로 채점한다.
+// (예전엔 월 단위 get_club_mileage_summary 를 재사용해서 1주일짜리 이벤트도
+// 그 달 전체로 채점되는 버그가 있었다 — cardio-comms 없이 웹 세션에서 발견)
+// 드래프트 배정 기준(getBaselineMileage, "최근 n개월 평균")은 여전히 월 단위다
+// — 이건 매치 기간과 무관하게 "최근 폼"을 보는 값이라 그대로 둔다.
 // ============================================
 
 export interface TeamColorPreset {
@@ -76,10 +82,23 @@ const shiftMonth = (year: number, month: number, back: number): { year: number; 
 
 type MileageRow = { user_id: string; total_mileage: number; workout_count: number };
 
+// start~end 사이에 걸친 (year, month) 쌍 전부 (월 경계를 넘는 이벤트 대비)
+const monthsBetween = (start: string, end: string): { year: number; month: number }[] => {
+  const { year: y0, month: m0 } = monthOf(start);
+  const { year: y1, month: m1 } = monthOf(end);
+  const result: { year: number; month: number }[] = [];
+  let total = y0 * 12 + (m0 - 1);
+  const totalEnd = y1 * 12 + (m1 - 1);
+  for (; total <= totalEnd; total++) {
+    result.push({ year: Math.floor(total / 12), month: (total % 12) + 1 });
+  }
+  return result;
+};
+
 const teamMatchService = {
   TEAM_PRESETS,
 
-  // 매치 월 마일리지 합산 (스냅샷 없으면 재계산 후 재조회)
+  // 매치 월 마일리지 합산 (스냅샷 없으면 재계산 후 재조회) — 드래프트 baseline 전용
   async _fetchMonthMileage(clubId: string, year: number, month: number): Promise<MileageRow[]> {
     const { data, error } = await supabase.rpc('get_club_mileage_summary', {
       p_club_id: clubId,
@@ -96,6 +115,32 @@ const teamMatchService = {
       p_year: year,
       p_month: month,
     });
+    return (refreshed || []) as MileageRow[];
+  },
+
+  // 실제 이벤트 기간(start~end) 마일리지 합산 — 스코어링 전용.
+  // 스냅샷 누락 의심(0건인데 그 기간에 클럽 활동이 있어야 정상인 경우가 있을 수
+  // 있어) 시 걸쳐 있는 달들을 전부 재계산 후 재조회한다.
+  async _fetchRangeMileage(clubId: string, startDate: string, endDate: string): Promise<MileageRow[]> {
+    const { data, error } = await supabase.rpc('get_club_mileage_summary_range', {
+      p_club_id: clubId,
+      p_start_date: startDate,
+      p_end_date: endDate,
+    });
+    if (error) throw error;
+    if (data && data.length > 0) return data as MileageRow[];
+
+    await Promise.all(
+      monthsBetween(startDate, endDate).map(({ year, month }) =>
+        clubService.recalculateClubMonthMileage(clubId, year, month).catch(() => {})
+      )
+    );
+    const { data: refreshed, error: refreshErr } = await supabase.rpc('get_club_mileage_summary_range', {
+      p_club_id: clubId,
+      p_start_date: startDate,
+      p_end_date: endDate,
+    });
+    if (refreshErr) throw refreshErr;
     return (refreshed || []) as MileageRow[];
   },
 
@@ -237,16 +282,15 @@ const teamMatchService = {
     return (data as ChallengeTeamMember) || null;
   },
 
-  // 팀 순위 (매치 월 1인당 평균 마일리지)
+  // 팀 순위 (이벤트 기간 1인당 평균 마일리지)
   async getStandings(
-    challenge: { id: string; club_id: string | null; start_date: string; meta_data?: any },
+    challenge: { id: string; club_id: string | null; start_date: string; end_date: string; meta_data?: any },
     denominator: 'recorded' | 'all' = 'recorded'
   ): Promise<{ standings: TeamStanding[]; mileageByUser: Record<string, number> }> {
     if (!challenge.club_id) return { standings: [], mileageByUser: {} };
 
     const { teams, members } = await this.getTeamsWithMembers(challenge.id);
-    const { year, month } = monthOf(challenge.start_date);
-    const rows = await this._fetchMonthMileage(challenge.club_id, year, month);
+    const rows = await this._fetchRangeMileage(challenge.club_id, challenge.start_date, challenge.end_date);
 
     const mileageByUser: Record<string, number> = {};
     rows.forEach((r) => { mileageByUser[r.user_id] = Number(r.total_mileage || 0); });
@@ -275,7 +319,7 @@ const teamMatchService = {
 
   // 매치 상세 (카드 렌더용): 팀 순위 + 팀별 팀원(닉네임·마일리지) + 내 소속
   async getMatchDetail(
-    challenge: { id: string; club_id: string | null; start_date: string; meta_data?: any },
+    challenge: { id: string; club_id: string | null; start_date: string; end_date: string; meta_data?: any },
     userId: string
   ): Promise<{
     teams: ChallengeTeam[];
@@ -328,7 +372,7 @@ const teamMatchService = {
 
   // 종료 매치 결과·시상 (우승팀 / MVP / 아차상)
   async getMatchResults(
-    challenge: { id: string; club_id: string | null; start_date: string; meta_data?: any },
+    challenge: { id: string; club_id: string | null; start_date: string; end_date: string; meta_data?: any },
     userId: string
   ): Promise<{
     winner: TeamStanding | null;
@@ -368,15 +412,25 @@ const teamMatchService = {
       });
     });
 
-    // 아차상: 직전 baseline개월 대비 매치 기간 성장률 최고 (기록 있던 사람만)
+    // 아차상: 직전 baseline개월 평균 대비 매치 기간 성장률 최고 (기록 있던 사람만)
+    // baseline은 "월평균"이라 매치 기간이 한 달보다 짧으면(1주일 이벤트 등)
+    // 그대로 비교하면 항상 마이너스로 나온다 — 매치 기간 일수만큼 일할 계산해서
+    // 같은 기준으로 맞춘다 (예: 월평균 30 → 1주일 이벤트면 30 * 7/30.44 ≈ 6.9와 비교).
     const baseline = await this.getBaselineMileage(challenge.club_id, challenge.start_date, meta.baseline_months);
+    const periodDays =
+      (new Date(challenge.end_date + 'T00:00:00').getTime() -
+        new Date(challenge.start_date + 'T00:00:00').getTime()) /
+        86400000 +
+      1;
+    const DAYS_PER_MONTH = 30.44;
     let comeback: { name: string; growthPct: number; teamName: string; teamColor: string } | null = null;
     Object.entries(detail.membersByTeam).forEach(([teamId, list]) => {
       const t = teamById[teamId];
       list.forEach((m) => {
         const baseMonthly = (baseline[m.user_id] || 0) / meta.baseline_months;
-        if (baseMonthly <= 0 || m.mileage <= 0) return; // 무기록/신규는 성장률 산정 제외
-        const growthPct = Math.round(((m.mileage - baseMonthly) / baseMonthly) * 100);
+        const baseForPeriod = (baseMonthly / DAYS_PER_MONTH) * periodDays;
+        if (baseForPeriod <= 0 || m.mileage <= 0) return; // 무기록/신규는 성장률 산정 제외
+        const growthPct = Math.round(((m.mileage - baseForPeriod) / baseForPeriod) * 100);
         if (!comeback || growthPct > comeback.growthPct) {
           comeback = { name: m.name, growthPct, teamName: t?.name || '', teamColor: t?.color || '#999' };
         }
