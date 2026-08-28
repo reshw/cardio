@@ -6,6 +6,7 @@ import { CommentSection } from './CommentSection';
 import { WorkoutDetail } from '../pages/WorkoutDetail';
 import type { WorkoutFeedItem } from '../services/feedService';
 import { useModalHistory } from '../hooks/useModalHistory';
+import { shareWorkout } from '../utils/shareInvite';
 
 const REPORT_REASONS = ['스팸', '욕설/혐오발언', '부적절한 내용', '기타'];
 
@@ -100,59 +101,30 @@ export const WorkoutFeedCard = ({
     }
   };
 
-  // 카카오톡으로 공유하기
-  const handleKakaoShare = () => {
-    if (!window.Kakao || !window.Kakao.isInitialized()) {
-      alert('카카오톡 공유 기능을 사용할 수 없습니다.');
-      return;
-    }
-
-    const workoutLabel = getWorkoutLabel();
-    const appUrl = `${window.location.origin}/workout/${workout.id}?clubId=${clubId}`;
-
-    // 날짜 포맷팅
+  // 공유하기 — 환경별 4단 폴백 (네이티브 공유시트 → Web Share → 카카오 SDK → 클립보드).
+  // 앱 웹뷰 안에서는 카카오 SDK 가 kakaolink:// 스킴을 못 띄워 무반응이 되므로 직접 부르지 않는다.
+  const handleKakaoShare = async () => {
     const workoutDate = new Date(workout.workout_time);
     const dateStr = `${workoutDate.getFullYear()}.${String(workoutDate.getMonth() + 1).padStart(2, '0')}.${String(workoutDate.getDate()).padStart(2, '0')}`;
 
-    const shareTitle = `[${clubName}] ${item.club_nickname ?? '회원'}님 (${dateStr})`;
-
-    // 피드 로드 시 계산된 운동 번호 사용 (비동기 호출 없음)
-    const numberText = item.workout_number ? `\n오늘 클럽 ${item.workout_number}번째` : '';
-    const shareDescription = `${workoutLabel}: ${workout.value}${workout.unit}${numberText}`;
-
     try {
-      const shareData: any = {
-        objectType: 'feed',
-        content: {
-          title: shareTitle,
-          description: shareDescription,
-          link: {
-            mobileWebUrl: appUrl,
-            webUrl: appUrl,
-          },
-        },
-        buttons: [
-          {
-            title: '나도 기록하기',
-            link: {
-              mobileWebUrl: appUrl,
-              webUrl: appUrl,
-            },
-          },
-        ],
-      };
-
-      // imageUrl은 존재할 때만 추가 (undefined 방지)
-      if (workout.proof_image) {
-        shareData.content.imageUrl = workout.proof_image;
-      }
-
-      console.log('카카오 공유 데이터:', shareData);
-      window.Kakao.Share.sendDefault(shareData);
+      const result = await shareWorkout({
+        workoutId: workout.id,
+        clubId,
+        clubName,
+        nickname: item.club_nickname ?? '회원',
+        dateStr,
+        workoutLabel: getWorkoutLabel(),
+        value: workout.value,
+        unit: workout.unit,
+        workoutNumber: item.workout_number,
+        proofImage: workout.proof_image,
+      });
+      if (result === 'clipboard') alert('공유 내용이 복사되었습니다! 📋');
       setShowMenu(false);
-    } catch (error) {
-      console.error('카카오톡 공유 실패:', error);
-      alert('카카오톡 공유에 실패했습니다.');
+    } catch (err: any) {
+      console.error('[피드공유] 공유 실패 상세:', JSON.stringify(err), err);
+      alert(`공유에 실패했습니다: ${err?.message || err?.error_description || JSON.stringify(err)}`);
     }
   };
 

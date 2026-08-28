@@ -18,6 +18,7 @@ import { TeamAssignModal } from '../components/TeamAssignModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
 import { useModalHistory } from '../hooks/useModalHistory';
 import { useConfirm } from '../hooks/useConfirm';
+import { shareClubInvite, buildInviteUrl } from '../utils/shareInvite';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, Lock, Image, Filter } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
 
@@ -524,53 +525,18 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     }
   };
 
-  // 카카오톡으로 클럽 초대 공유
-  const handleKakaoInviteShare = () => {
+  // 클럽 초대 공유 — 환경별 4단 폴백 (네이티브 공유시트 → Web Share → 카카오 SDK → 클립보드).
+  // 앱 웹뷰 안에서는 카카오 SDK 가 kakaolink:// 스킴을 못 띄워 무반응이 되므로 직접 부르지 않는다.
+  const handleKakaoInviteShare = async () => {
     if (!selectedClub) return;
-
-    if (!window.Kakao || !window.Kakao.isInitialized()) {
-      alert('카카오톡 공유 기능을 사용할 수 없습니다.');
-      return;
-    }
-
-    const inviteUrl = `${window.location.origin}/join/${selectedClub.invite_code}`;
-
-    console.log('🔗 생성된 초대 URL:', inviteUrl);
-    console.log('📋 초대 코드:', selectedClub.invite_code);
-
     try {
-      const shareData: any = {
-        objectType: 'feed',
-        content: {
-          title: `🏃 ${selectedClub.name} 클럽 초대`,
-          description: `${selectedClub.name} 클럽에 초대합니다!\n함께 운동하며 건강한 습관을 만들어봐요 💪`,
-          link: {
-            mobileWebUrl: inviteUrl,
-            webUrl: inviteUrl,
-          },
-        },
-        buttons: [
-          {
-            title: '클럽 가입하기',
-            link: {
-              mobileWebUrl: inviteUrl,
-              webUrl: inviteUrl,
-            },
-          },
-        ],
-      };
-
-      // imageUrl은 존재할 때만 추가
-      if (selectedClub.logo_url) {
-        shareData.content.imageUrl = selectedClub.logo_url;
-      }
-
-      console.log('카카오 클럽 초대 공유 데이터:', shareData);
-      window.Kakao.Share.sendDefault(shareData);
+      const result = await shareClubInvite(selectedClub);
+      // OS/카톡이 자기 UI 를 띄우는 경우엔 우리가 덧붙이면 중복이다
+      if (result === 'clipboard') alert('초대 메시지가 복사되었습니다! 📋');
       setShowInviteModal(false);
-    } catch (error) {
-      console.error('카카오톡 공유 실패:', error);
-      alert('카카오톡 공유에 실패했습니다.');
+    } catch (err: any) {
+      console.error('[클럽초대] 공유 실패 상세:', JSON.stringify(err), err);
+      alert(`공유에 실패했습니다: ${err?.message || err?.error_description || JSON.stringify(err)}`);
     }
   };
 
@@ -578,7 +544,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const handleCopyInviteLink = () => {
     if (!selectedClub) return;
 
-    const inviteUrl = `${window.location.origin}/join/${selectedClub.invite_code}`;
+    const inviteUrl = buildInviteUrl(selectedClub.invite_code);
     const copyText = `${selectedClub.name} 클럽으로 초대합니다.\n${inviteUrl}`;
 
     if (navigator.clipboard && window.isSecureContext) {

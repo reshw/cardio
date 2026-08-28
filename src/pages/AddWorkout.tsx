@@ -6,6 +6,7 @@ import workoutService from '../services/workoutService';
 import workoutTypeService from '../services/workoutTypeService';
 import type { WorkoutType } from '../services/workoutTypeService';
 import { getDeviceInfo } from '../utils/deviceInfo';
+import { shareWorkout } from '../utils/shareInvite';
 import type { WorkoutCategory, WorkoutSubType, WorkoutUnit, Workout } from '../services/workoutService';
 import clubService from '../services/clubService';
 import type { MyClubWithOrder } from '../services/clubService';
@@ -14,7 +15,10 @@ import ValuePickerSheet from '../components/ValuePickerSheet';
 import { getWorkoutEntryLimitDays, DEFAULT_ENTRY_LIMIT_DAYS } from '../services/settingsService';
 
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
-const SESSION_KEY = 'addworkout_draft_v3';
+// v3→v4: savedAt 추가. 예전 버전엔 만료 개념이 없어 몇 주 전 중단한 기록도 그대로
+// 복원돼버리는 문제가 있었다(날짜·카테고리가 뜬금없이 과거로 고정된 것처럼 보이는 민원의 원인).
+const SESSION_KEY = 'addworkout_draft_v4';
+const DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24시간 지난 draft는 폐기
 const PENDING_PHOTO_KEY = 'addworkout_pending_photo_url';
 
 type AddWorkoutDraft = {
@@ -28,6 +32,7 @@ type AddWorkoutDraft = {
   memo: string;
   showOtherWorkouts: boolean;
   proofImageUrl?: string;
+  savedAt: number;
 };
 
 const DIFF_LEVELS = [
@@ -64,7 +69,13 @@ export const AddWorkout = () => {
     if (editWorkout) return null;
     try {
       const raw = localStorage.getItem(SESSION_KEY);
-      return raw ? (JSON.parse(raw) as Partial<AddWorkoutDraft>) : null;
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as Partial<AddWorkoutDraft>;
+      if (!parsed.savedAt || Date.now() - parsed.savedAt > DRAFT_TTL_MS) {
+        localStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+      return parsed;
     } catch {
       return null;
     }
@@ -172,6 +183,7 @@ export const AddWorkout = () => {
       memo,
       showOtherWorkouts,
       proofImageUrl: proofImageUrl ?? undefined,
+      savedAt: Date.now(),
     };
     try { localStorage.setItem(SESSION_KEY, JSON.stringify(draft)); } catch {}
   }, [editWorkout, step, category, subType, subTypeRatio, value, workoutDate, intensity, memo, showOtherWorkouts, proofImageUrl]);
@@ -606,18 +618,22 @@ export const AddWorkout = () => {
                     <div className="step3-date-edit-chip">✎ 변경</div>
                   </div>
                 </div>
-                {/* datetime-local은 항상 DOM에 유지 (9a49807 구조 복원) —
-                    Samsung Internet이 form 내 datetime-local 부재 시 파일피커 동작 달라짐.
-                    실제 조작은 커스텀 DatePickerSheet로 하므로 항상 pointerEvents:none. */}
-                <input
-                  ref={dateInputRef}
-                  type="datetime-local"
-                  value={workoutDate}
-                  onChange={(e) => setWorkoutDate(e.target.value)}
-                  className="step3-date-hidden-input"
-                  style={{ pointerEvents: 'none' }}
-                />
               </div>
+              {/* datetime-local은 항상 DOM에 유지 (9a49807 구조 복원) —
+                  Samsung Internet이 form 내 datetime-local 부재 시 파일피커 동작 달라짐.
+                  실제 조작은 커스텀 DatePickerSheet로 하므로 pointerEvents:none인데,
+                  예전엔 날짜 카드 전체(inset:0)와 완전히 겹쳐 있어서 삼성인터넷 일부 빌드에서
+                  pointer-events:none을 무시하고 이 네이티브 input이 탭을 가로채는 사례가 의심됨
+                  (변경 버튼을 눌러도 커스텀 시트가 안 열린다는 민원). 카드 바깥으로 빼고
+                  1x1px로 최소화해 애초에 겹칠 일이 없게 함. */}
+              <input
+                ref={dateInputRef}
+                type="datetime-local"
+                value={workoutDate}
+                onChange={(e) => setWorkoutDate(e.target.value)}
+                className="step3-date-hidden-input"
+                style={{ pointerEvents: 'none' }}
+              />
               {showDatePicker && (
                 <DatePickerSheet
                   value={workoutDate}
@@ -791,28 +807,32 @@ export const AddWorkout = () => {
               {myClubs.length > 0 && (
                 <button
                   className="kakao-share-btn"
-                  onClick={() => {
-                    if (!window.Kakao?.isInitialized()) { navigate('/'); return; }
+                  onClick={async () => {
+                    // 환경별 4단 폴백 (네이티브 공유시트 → Web Share → 카카오 SDK → 클립보드).
+                    // 앱 웹뷰에서는 카카오 SDK 가 kakaolink:// 를 못 띄워 무반응이 되므로 직접 안 부른다.
                     const club = myClubs.find(c => c.id === shareClubId);
-                    const appUrl = `${window.location.origin}/workout/${savedWorkout.id}?clubId=${shareClubId}`;
-                    const displayName = shareNickname ?? '회원';
-                    const numberText = shareWorkoutNumber ? `\n오늘 클럽 ${shareWorkoutNumber}번째` : '';
                     const workoutDate = new Date(savedWorkout.workout_time);
                     const dateStr = `${workoutDate.getFullYear()}.${String(workoutDate.getMonth() + 1).padStart(2, '0')}.${String(workoutDate.getDate()).padStart(2, '0')}`;
-                    const workoutLabel = savedWorkout.sub_type
-                      ? `${savedWorkout.category}-${savedWorkout.sub_type}`
-                      : savedWorkout.category;
-                    const shareData: any = {
-                      objectType: 'feed',
-                      content: {
-                        title: `[${club?.name ?? ''}] ${displayName}님 (${dateStr})`,
-                        description: `${workoutLabel}: ${savedWorkout.value}${savedWorkout.unit}${numberText}`,
-                        link: { mobileWebUrl: appUrl, webUrl: appUrl },
-                      },
-                      buttons: [{ title: '나도 기록하기', link: { mobileWebUrl: appUrl, webUrl: appUrl } }],
-                    };
-                    if (savedWorkout.proof_image) shareData.content.imageUrl = savedWorkout.proof_image;
-                    window.Kakao.Share.sendDefault(shareData);
+                    try {
+                      const result = await shareWorkout({
+                        workoutId: savedWorkout.id,
+                        clubId: shareClubId,
+                        clubName: club?.name ?? '',
+                        nickname: shareNickname ?? '회원',
+                        dateStr,
+                        workoutLabel: savedWorkout.sub_type
+                          ? `${savedWorkout.category}-${savedWorkout.sub_type}`
+                          : savedWorkout.category,
+                        value: savedWorkout.value,
+                        unit: savedWorkout.unit,
+                        workoutNumber: shareWorkoutNumber,
+                        proofImage: savedWorkout.proof_image,
+                      });
+                      if (result === 'clipboard') alert('공유 내용이 복사되었습니다! 📋');
+                    } catch (err: any) {
+                      console.error('[기록공유] 공유 실패 상세:', JSON.stringify(err), err);
+                      alert(`공유에 실패했습니다: ${err?.message || JSON.stringify(err)}`);
+                    }
                     localStorage.removeItem(SESSION_KEY);
                     localStorage.removeItem(DEBUG_LOG_KEY);
                     navigate('/');

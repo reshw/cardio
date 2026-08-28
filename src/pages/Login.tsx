@@ -4,22 +4,8 @@ import KakaoLogin from '../components/KakaoLogin';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { diagLog } from '../lib/diagLog';
-
-type InAppKind = 'kakaotalk' | 'naver' | 'facebook' | 'instagram' | 'line' | null;
-
-const detectInApp = (): InAppKind => {
-  if (typeof navigator === 'undefined') return null;
-  const ua = navigator.userAgent || '';
-  if (/KAKAOTALK/i.test(ua)) return 'kakaotalk';
-  if (/NAVER\(inapp/i.test(ua)) return 'naver';
-  if (/FBAN|FBAV/i.test(ua)) return 'facebook';
-  if (/Instagram/i.test(ua)) return 'instagram';
-  if (/ Line\//i.test(ua)) return 'line';
-  return null;
-};
-
-const isAndroid = () =>
-  typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent || '');
+// 판별 로직은 초대 게이트웨이(InviteLanding)와 공유한다 — 여기에 다시 정의하지 말 것
+import { detectInApp, isAndroid, type InAppKind } from '../utils/browserEnv';
 
 export const Login = () => {
   const { loginAsDemo } = useAuth();

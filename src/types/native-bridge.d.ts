@@ -15,6 +15,18 @@ interface CardioNativeBridge {
    * (<meta name="theme-color"> 는 WKWebView/Android WebView 안에선 효과가 없어 이 채널이 유일하다)
    */
   onThemeChange?: (theme: 'light' | 'dark') => void;
+  /**
+   * 공유 시 호출 — 네이티브가 OS 공유 시트를 띄운다
+   * (iOS: UIActivityViewController / Android: Intent.ACTION_SEND).
+   *
+   * 카카오 JS SDK 는 `kakaolink://` 스킴으로 카톡을 띄우는데 WebView 가 그 이동을 삼켜서
+   * 앱 안에서는 공유가 무반응이 된다. OS 공유 시트가 카톡·문자·복사를 다 커버하므로
+   * 스킴 통과를 허용하는 것보다 이쪽이 낫다.
+   *
+   * 미구현이면 웹이 Web Share → 카카오 SDK → 클립보드 순으로 자동 폴백하므로
+   * 이 메서드가 없어도 웹은 깨지지 않는다 (src/utils/shareInvite.ts).
+   */
+  share?: (payload: { url: string; text: string; title?: string }) => void;
 }
 
 /**

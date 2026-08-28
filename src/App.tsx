@@ -43,6 +43,7 @@ import { TermsOfService } from './pages/TermsOfService';
 import { Download } from './pages/Download';
 import { Support } from './pages/Support';
 import { JoinClub } from './pages/JoinClub';
+import { InviteLanding } from './pages/InviteLanding';
 import { AppGuide } from './pages/AppGuide';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
@@ -212,6 +213,8 @@ function App() {
           {/* App Store Connect 지원 URL — 심사자는 비로그인이라 반드시 public 이어야 한다 */}
           <Route path="/support" element={<Support />} />
           <Route path="/download" element={<Download />} />
+          {/* 클럽 초대 게이트웨이 — 카카오 공유 링크의 착지점. 비로그인 외부인이 보므로 public */}
+          <Route path="/i/:code" element={<InviteLanding />} />
           <Route path="/photo-upload" element={<PhotoUpload />} />
 
           {/* Android 앱 세션 브릿지 */}
