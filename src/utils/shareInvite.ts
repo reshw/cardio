@@ -7,29 +7,30 @@
  * shouldOverrideUrlLoading). 즉 앱 안에서 공유 버튼이 무반응이 된다.
  * (WebView 에서 window.confirm() 이 조용히 무시되던 것과 같은 계열의 문제 — useConfirm.tsx 참고)
  *
- * ⚠️ 2026-08-28 최초 배포 버전은 이 순서를 모든 환경에 동일하게 적용했다가 회귀를 냈다
- * (2026-08-29 다수 민원으로 발견): navigator.share(Web Share API)가 안드로이드 Chrome·
- * iOS Safari 대부분에 이미 있어서, **정상 브라우저로 접속한 대다수 사용자**가 카카오
- * 전용 피드 카드(이미지+제목+설명+버튼) 대신 OS 기본 공유시트로 빠져버렸다 — 카톡을
- * 골라도 밋밋한 링크 텍스트만 전달됨. WebView 무반응 문제는 실제로는 native app
- * 안에서만 일어나므로, `isNativeApp()` 으로 분기해서 그 환경에서만 순서를 바꾼다.
+ * ⚠️ 그런데 **그 전제는 실측으로 확인된 적이 없다.** 설계 문서(§1-1)도 "네이티브가 이걸
+ * 구현해뒀는지 확인이 안 됐고, 안 했다면 무반응이다"라고 적고 있고, 같은 문서의
+ * "실측으로 확인한 제약" 표에도 이 항목은 없다. 그 미검증 가정 하나 때문에 2026-08-28
+ * 배포에서 공유 순서를 바꿨다가 회귀가 났다:
  *
- *   네이티브 앱 WebView (isNativeApp() === true) — kakaolink:// 가 안 먹으니 우회:
- *     1. CardioNative.share  — OS 공유 시트 (앱 안. 카톡·문자·복사 전부 커버)
- *     2. navigator.share     — Web Share API (iOS WKWebView. Android WebView 미지원)
- *     3. Kakao.Share
- *     4. 클립보드
+ *   navigator.share(Web Share API)는 안드로이드 Chrome·iOS Safari 대부분에 이미 있어서,
+ *   **정상 브라우저 사용자 대다수**가 카카오 전용 피드 카드(이미지+제목+설명+버튼) 대신
+ *   OS 기본 공유시트로 빠졌다 — 카톡을 골라도 밋밋한 링크 텍스트만 전달됨.
  *
- *   일반 브라우저 (그 외 전부) — 예전부터 잘 동작하던 카카오 카드 그대로 1순위:
- *     1. CardioNative.share  — 원래 항상 undefined 라 사실상 안 탐
- *     2. Kakao.Share         — 일반 모바일/데스크톱 브라우저
- *     3. navigator.share
- *     4. 클립보드            — 무조건 성공하는 바닥
+ * 2026-08-29 1차로 `isNativeApp()` 분기를 넣어 일반 브라우저만 되돌렸으나 민원이 계속돼,
+ * **카카오 SDK를 전 환경 1순위로 복원**했다(= 01f4c06 이전의 검증된 동작). 폴백은 카카오가
+ * 정말 없거나 던질 때만 탄다.
+ *
+ *   1. CardioNative.share  — 네이티브 공유 시트. 브릿지가 있을 때만 (and/app 미구현이라
+ *                            현재는 항상 스킵). 구현되면 앱 안에서 이게 최선이다.
+ *   2. Kakao.Share         — 카카오 카드. 전 환경 기본값
+ *   3. navigator.share     — Web Share API
+ *   4. 클립보드            — 무조건 성공하는 바닥
+ *
+ * 앱 웹뷰에서 카카오 카드가 정말 안 뜬다면 해결은 순서 바꾸기가 아니라 네이티브 쪽에서
+ * `CardioNative.share` 브릿지를 구현하거나 `kakaolink://` 스킴 통과를 허용하는 것이다.
  *
  * 설계: docs/plans/kakao-invite-app-onboarding.md
  */
-
-import { isNativeApp } from './browserEnv';
 
 /** 어느 수단으로 공유됐는지. 호출부는 'clipboard' 일 때만 안내 문구를 띄운다 —
  *  나머지는 OS/카톡이 자기 UI 를 띄우므로 우리가 덧붙이면 중복이다. */
@@ -95,19 +96,13 @@ export async function shareContent({ url, text, title, kakaoPayload }: ShareCont
     }
   }
 
-  if (isNativeApp()) {
-    // 네이티브 앱 WebView — 카카오 SDK가 kakaolink:// 를 못 띄워 무반응이므로 Web Share 우선
-    const webshareResult = await tryWebShare(title, text, url);
-    if (webshareResult) return webshareResult;
-    const kakaoResult = tryKakao(kakaoPayload);
-    if (kakaoResult) return kakaoResult;
-  } else {
-    // 일반 브라우저 — 카카오 전용 카드(이미지+제목+설명+버튼)가 정상 동작하므로 그대로 1순위
-    const kakaoResult = tryKakao(kakaoPayload);
-    if (kakaoResult) return kakaoResult;
-    const webshareResult = await tryWebShare(title, text, url);
-    if (webshareResult) return webshareResult;
-  }
+  // 카카오 카드가 이 앱의 기본 공유 형태다 — 환경 분기 없이 항상 먼저 시도한다.
+  const kakaoResult = tryKakao(kakaoPayload);
+  if (kakaoResult) return kakaoResult;
+
+  // 카카오가 아예 없거나(SDK 미로드/미초기화) 던진 경우에만 내려간다
+  const webshareResult = await tryWebShare(title, text, url);
+  if (webshareResult) return webshareResult;
 
   // 바닥 — 클립보드
   await copyToClipboard(`${text}\n${url}`);
