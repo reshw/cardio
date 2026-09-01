@@ -175,30 +175,6 @@ export default function PhotoUpload() {
             >
               취소
             </button>
-
-            {/* 임시 디버그: 인앱에서 콘솔이 안 보이므로 로그를 메일로 전송 */}
-            <button
-              type="button"
-              onClick={mailLogs}
-              disabled={mailStatus === 'sending'}
-              style={{
-                marginTop: 10,
-                width: '100%',
-                padding: 12,
-                background: mailStatus === 'sent' ? '#E8F5E9' : 'transparent',
-                border: `1.5px dashed ${mailStatus === 'error' ? '#C00' : 'var(--border-color, #ddd)'}`,
-                borderRadius: 12,
-                fontSize: 13,
-                color: mailStatus === 'error' ? '#C00' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-            >
-              {mailStatus === 'sending' ? '전송 중...'
-                : mailStatus === 'sent' ? '✅ 로그 전송됨 (reshw@naver.com)'
-                : mailStatus === 'error' ? `전송 실패: ${mailError} — 다시 시도`
-                : '🐛 디버그 로그 메일로 보내기'}
-            </button>
           </>
         )}
 
@@ -225,6 +201,25 @@ export default function PhotoUpload() {
           </div>
         )}
       </div>
+
+      {/* 임시 디버그: 인앱에서 콘솔이 안 보이므로 로그를 메일로 전송 (좌하단 고정) */}
+      <button
+        type="button"
+        onClick={mailLogs}
+        disabled={mailStatus === 'sending'}
+        style={{
+          position: 'fixed', left: 8, bottom: 16, zIndex: 9998,
+          padding: '6px 10px', borderRadius: 8, border: 'none',
+          fontSize: 11, fontFamily: 'monospace',
+          background: mailStatus === 'sent' ? '#2e7d32' : mailStatus === 'error' ? '#c62828' : 'rgba(0,0,0,0.55)',
+          color: '#fff',
+        }}
+      >
+        {mailStatus === 'sending' ? '전송중…'
+          : mailStatus === 'sent' ? '✅ 로그전송됨'
+          : mailStatus === 'error' ? `실패:${mailError?.slice(0, 20)}`
+          : '🐛 로그 메일'}
+      </button>
     </div>
   );
 }
