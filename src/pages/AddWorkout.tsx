@@ -13,6 +13,7 @@ import clubService from '../services/clubService';
 import type { MyClubWithOrder } from '../services/clubService';
 import DatePickerSheet from '../components/DatePickerSheet';
 import ValuePickerSheet from '../components/ValuePickerSheet';
+import { ClubPickerSheet } from '../components/ClubPickerSheet';
 import { getWorkoutEntryLimitDays, DEFAULT_ENTRY_LIMIT_DAYS } from '../services/settingsService';
 
 const KAKAO_SHARE_KEY = 'kakao_share_auto_popup';
@@ -137,6 +138,7 @@ export const AddWorkout = () => {
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showValuePicker, setShowValuePicker] = useState(false);
+  const [showClubPicker, setShowClubPicker] = useState(false);
   // 수기 입력 허용 기간 (당일 포함 일수, null = 무제한) — 어드민 설정
   const [entryLimitDays, setEntryLimitDays] = useState<number | null>(DEFAULT_ENTRY_LIMIT_DAYS);
   const [uploading, setUploading] = useState(false);
@@ -824,16 +826,25 @@ export const AddWorkout = () => {
 
             {myClubs.length > 0 ? (
               <>
-                <select
+                {/* 네이티브 앱 WebView 에서 <select> 팝업이 안 떠서 바텀시트로 교체 */}
+                <button
+                  type="button"
                   className="kakao-share-select"
-                  value={shareClubId}
-                  onChange={e => { addLog(`select change → ${e.target.value}`, '#8f8'); setShareClubId(e.target.value); }}
-                  onClick={() => addLog('select tap', '#ff8')}
+                  onClick={() => setShowClubPicker(true)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer' }}
                 >
-                  {myClubs.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                  <span>{myClubs.find(c => c.id === shareClubId)?.name ?? '클럽 선택'}</span>
+                  <span aria-hidden style={{ opacity: 0.6 }}>▾</span>
+                </button>
+                {showClubPicker && (
+                  <ClubPickerSheet
+                    title="공유할 클럽"
+                    options={myClubs.map(c => ({ id: c.id, name: c.name }))}
+                    selectedId={shareClubId}
+                    onSelect={setShareClubId}
+                    onClose={() => setShowClubPicker(false)}
+                  />
+                )}
                 <div className="kakao-share-info">
                   <p className="kakao-share-info-name">{shareNickname ?? '회원'}</p>
                   {shareWorkoutNumber && <p className="kakao-share-info-number">오늘 클럽 {shareWorkoutNumber}번째 🏅</p>}
