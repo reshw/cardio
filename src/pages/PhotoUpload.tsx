@@ -71,7 +71,7 @@ export default function PhotoUpload() {
         <h1>사진 첨부</h1>
       </div>
 
-      <div style={{ padding: '24px 20px', minHeight: 'calc(100vh - 56px)', background: 'var(--bg-color, #fff)' }}>
+      <div style={{ padding: '24px 20px', background: 'var(--bg-color, #fff)' }}>
         {uploading ? (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <div className="spinner" style={{ margin: '0 auto 16px' }} />
@@ -84,9 +84,13 @@ export default function PhotoUpload() {
               운동 기록 화면으로 돌아갑니다.
             </p>
 
+            {/* 안드로이드 WebView는 pointer-events:none + 1x1 로 숨긴 file input 을
+                label 로 포워딩해도 갤러리(onShowFileChooser)를 안 여는 기기가 있다.
+                실제 <input type=file> 를 버튼 위에 풀사이즈로 얹어 사용자가 직접 탭하게 한다. */}
             <label
-              htmlFor="photo-upload-input"
+              onClick={() => log('label tap', '#ff8')}
               style={{
+                position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -100,17 +104,26 @@ export default function PhotoUpload() {
                 userSelect: 'none',
                 WebkitTapHighlightColor: 'transparent',
                 boxShadow: '0 4px 14px rgba(79, 195, 247, 0.3)',
+                overflow: 'hidden',
               }}
             >
               📷 갤러리에서 사진 선택
+              <input
+                id="photo-upload-input"
+                type="file"
+                accept="image/*"
+                onChange={onChange}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  opacity: 0,
+                  cursor: 'pointer',
+                  fontSize: 100, // iOS: 탭 타깃을 요소 전체로 키움
+                }}
+              />
             </label>
-            <input
-              id="photo-upload-input"
-              type="file"
-              accept="image/*"
-              onChange={onChange}
-              style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
-            />
 
             {error && (
               <div style={{

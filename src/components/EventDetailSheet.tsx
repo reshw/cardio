@@ -244,18 +244,29 @@ export const EventDetailSheet = ({ eventId, userId, isManager, onClose, onChange
             <div className="event-detail-participants">
               <h4>행사 사진{photos.length > 0 && ` ${photos.length}장`}</h4>
 
-              <label htmlFor="event-photo-input" className="event-photo-upload-btn">
+              {/* 실제 <input type=file> 를 버튼 위에 풀사이즈로 얹어 직접 탭되게 한다.
+                  pointer-events:none + 1x1 로 숨기면 안드로이드 WebView 일부 기기에서
+                  label 포워딩으로는 갤러리(onShowFileChooser)가 안 열린다. */}
+              <label className="event-photo-upload-btn" style={{ position: 'relative', overflow: 'hidden' }}>
                 {uploadingPhoto ? '업로드 중...' : '📷 사진 추가'}
+                <input
+                  id="event-photo-input"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={uploadingPhoto}
+                  onChange={handlePhotoUpload}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer',
+                    fontSize: 100,
+                  }}
+                />
               </label>
-              <input
-                id="event-photo-input"
-                type="file"
-                accept="image/*"
-                multiple
-                disabled={uploadingPhoto}
-                onChange={handlePhotoUpload}
-                style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
-              />
 
               {photoError && <p className="create-event-error">{photoError}</p>}
 
