@@ -48,7 +48,9 @@ export const AddWorkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const editWorkout = (location.state as any)?.editWorkout as Workout | undefined;
-  const isDebug = window.location.hash.includes('debug=1') || new URLSearchParams(window.location.search).get('debug') === '1';
+  const isDebug = window.location.hash.includes('debug=1')
+    || new URLSearchParams(window.location.search).get('debug') === '1'
+    || (() => { try { return localStorage.getItem('diag-enabled') === '1'; } catch { return false; } })();
   const DEBUG_LOG_KEY = 'addworkout_debug_log';
   const [debugLogs, setDebugLogs] = useState<{ t: string; msg: string; color: string }[]>(() => {
     if (!isDebug) return [];
@@ -396,6 +398,7 @@ export const AddWorkout = () => {
           </div>
           {showDebug && (
             <div style={{ overflowY: 'auto', maxHeight: 'calc(45vh - 36px)', padding: '4px 8px' }}>
+              <div style={{ color: '#8cf', padding: '2px 0', borderBottom: '1px solid #222', wordBreak: 'break-all' }}>UA: {navigator.userAgent}</div>
               {debugLogs.length === 0 && <div style={{ color: '#888', padding: 4 }}>이벤트 없음 — 사진 추가 버튼을 눌러보세요</div>}
               {debugLogs.map((l, i) => (
                 <div key={i} style={{ color: l.color, padding: '2px 0', borderBottom: '1px solid #222' }}>
@@ -788,7 +791,8 @@ export const AddWorkout = () => {
                 <select
                   className="kakao-share-select"
                   value={shareClubId}
-                  onChange={e => setShareClubId(e.target.value)}
+                  onChange={e => { addLog(`select change → ${e.target.value}`, '#8f8'); setShareClubId(e.target.value); }}
+                  onClick={() => addLog('select tap', '#ff8')}
                 >
                   {myClubs.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>

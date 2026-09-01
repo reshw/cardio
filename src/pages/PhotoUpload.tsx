@@ -13,7 +13,9 @@ const LOG_KEY = 'photo_upload_log';
 
 export default function PhotoUpload() {
   const navigate = useNavigate();
-  const isDebug = window.location.hash.includes('debug=1') || new URLSearchParams(window.location.search).get('debug') === '1';
+  const isDebug = window.location.hash.includes('debug=1')
+    || new URLSearchParams(window.location.search).get('debug') === '1'
+    || (() => { try { return localStorage.getItem('diag-enabled') === '1'; } catch { return false; } })();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<{ t: string; msg: string; color: string }[]>(() => {
@@ -172,6 +174,7 @@ export default function PhotoUpload() {
             overflowY: 'auto',
           }}>
             <div style={{ marginBottom: 6 }}>🐛 로그</div>
+            <div style={{ color: '#8cf', padding: '2px 0', borderBottom: '1px solid #222', wordBreak: 'break-all' }}>UA: {navigator.userAgent}</div>
             {logs.length === 0 && <div style={{ color: '#888' }}>이벤트 없음</div>}
             {logs.map((l, i) => (
               <div key={i} style={{ color: l.color, padding: '2px 0', borderBottom: '1px solid #222' }}>
