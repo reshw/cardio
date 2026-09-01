@@ -24,6 +24,7 @@ import { ClubGrowthDashboard } from './components/ClubGrowthDashboard';
 import { ClubMySettings } from './pages/ClubMySettings';
 import { ClubTransferOwnership } from './pages/ClubTransferOwnership';
 import { ClubMembers } from './pages/ClubMembers';
+import { ClubAwards } from './pages/ClubAwards';
 import { ClubGallery } from './pages/ClubGallery';
 import { ProtectedClubRoute } from './components/ProtectedClubRoute';
 import { More } from './pages/More';
@@ -151,6 +152,11 @@ function ProtectedRoutes() {
           <Route path="/club/settings/:clubId/social" element={
             <ProtectedClubRoute requireAdmin>
               <ClubSocialSettings />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId/awards" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubAwards />
             </ProtectedClubRoute>
           } />
           <Route path="/club/settings/:clubId/permissions" element={

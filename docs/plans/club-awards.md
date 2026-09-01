@@ -17,77 +17,74 @@ CREATE TABLE public.club_awards (
   club_id    uuid NOT NULL REFERENCES public.clubs(id) ON DELETE CASCADE,
   year       integer NOT NULL,
   month      integer NOT NULL CHECK (month BETWEEN 1 AND 12),
-  award_type text NOT NULL,   -- 'mileage_rank' | 'rookie_rank' | 'mvp' | 클럽 자유값
-  rank       integer,          -- 순위형 상일 때 1,2,3… 아니면 NULL
   user_id    uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  mileage    numeric,          -- 시상 근거 스냅샷
-  note       text,
+  tags       jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(tags) = 'array'),
   awarded_by uuid REFERENCES public.users(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (club_id, year, month, award_type, user_id)
+  UNIQUE (club_id, year, month, user_id)
 );
 ```
 
 ### 설계 근거
 
-- **`award_type` 을 enum 이 아니라 text 로** — 클럽마다 상 이름이 다를 수 있고,
-  나중에 상 종류가 늘어날 때 마이그레이션 없이 쓰게 한다. 대신 앱에서 쓰는
-  표준값(`mileage_rank` 등)은 서비스 계층 상수로 고정한다.
-- **`rank` 는 nullable** — MVP·개근상처럼 순위 개념이 없는 상이 있다.
-- **`mileage` 스냅샷** — 마일리지는 재계산(`recalculate_club_mileage`)으로 나중에
-  값이 바뀔 수 있다. 시상 당시 근거를 남겨두지 않으면 "왜 이 사람이 1등이었지?"를
-  못 설명하게 된다. `club_workout_mileage` 가 이미 `mileage_config_snapshot` 을
-  같은 이유로 남기고 있다.
-- **UNIQUE 에 `rank` 를 넣지 않음** — Postgres 는 NULL 을 서로 다른 값으로 보므로
-  rank 가 NULL 인 상(MVP 등)에 대해 중복 방지가 안 걸린다. "한 사람이 같은 달에
-  같은 종류의 상을 두 번 받을 수 없다"가 실제 규칙이므로 rank 를 뺀다.
-  동점자 1위 2명은 user_id 가 달라 정상적으로 두 행이 된다.
+- **상 종류를 컬럼으로 고정하지 않는다.** 시상 체계는 클럽(테넌트)마다 다르다.
+  `award_type` enum 을 두면 클럽이 상을 하나 추가할 때마다 마이그레이션이 필요해진다.
+  처음엔 `award_type` + `rank` + `mileage` 를 두려 했으나, 그건 특정 클럽의 운영
+  방식을 전체에 강요하는 과설계였다.
+- **자유 텍스트 비고가 아니라 `tags` 키워드 배열.** 비고로 두면 나중에 정렬·필터를
+  하려 할 때 결국 문자열 파싱을 해야 해서 못 쓰게 된다. jsonb 배열 + GIN 인덱스면
+  `WHERE tags @> '["1등"]'` 로 바로 걸린다.
+- **UNIQUE 는 (club, year, month, user)** — 한 사람이 같은 달에 두 행을 갖지 않게
+  한다. 상을 여러 개 받으면 `tags` 에 함께 넣는다(`["마일리지","1등","개근"]`).
+  실제 규칙이 "이 사람이 이번 달 수상자인가"이므로 이 형태가 맞다.
 
 ### 인덱스
 
 ```sql
 CREATE INDEX club_awards_club_month_idx ON public.club_awards (club_id, year DESC, month DESC);
 CREATE INDEX club_awards_user_idx       ON public.club_awards (club_id, user_id, year DESC, month DESC);
+CREATE INDEX club_awards_tags_idx       ON public.club_awards USING gin (tags jsonb_path_ops);
 ```
 
 두 번째는 나중에 "이 사람이 최근 N개월 안에 받았나"(쿨다운 판정)를 위한 것.
 
+### ⚠️ 알려진 한계
+
+키워드 배열은 **필터**(1등인 사람 찾기)엔 좋지만 **순위 정렬**(1·2·3등 순으로 나열)은
+별도 처리가 필요하다. 순위 정렬이 실제로 필요해지면 그때 nullable `rank` 컬럼을
+추가하면 된다 — 기존 행에 영향 없는 무중단 변경이다.
+
 ### RLS
 
-`hall_of_fame` 선례를 그대로 따른다 (같은 성격의 클럽 표창 데이터).
+`hall_of_fame` 선례를 따른다 (같은 성격의 클럽 표창 데이터).
 
-- SELECT: `TO anon, authenticated USING (true)` — 게스트 모드(anon)에서도 클럽
-  화면이 보여야 하고, 랭킹·명전이 이미 공개다.
-- 쓰기: `cmer_is_manager(club_id)` — 방장/부방장만.
+- SELECT: `TO anon, authenticated USING (true)` — 게스트 모드(anon)도 클럽 화면을 본다
+- 쓰기: `cmer_is_manager(club_id)` — 방장/부방장만
 
----
+실측 검증 완료 (트랜잭션 롤백 테스트 7종): 운영진 기록 허용 / 일반회원·게스트 기록
+차단 / 일반회원·게스트 조회 허용 / 키워드 필터 / upsert 중복 방지.
 
 ## 2. 서비스 계층 — `src/services/clubAwardService.ts`
 
 ```ts
-export const AWARD_TYPES = {
-  mileage_rank: '마일리지 순위',
-  rookie_rank:  '루키 순위',
-  mvp:          'MVP',
-  attendance:   '개근상',
-} as const;
-
 getAwards(clubId, {year, month}?)        // 월별 조회 (연월 생략 시 전체 이력)
-getAwardsByUser(clubId, userId, limit?)  // 특정 회원 수상 이력 (쿨다운 판정용 기반)
-addAward({...})                          // 수상자 기록
-deleteAward(id)                          // 잘못 넣은 기록 삭제
+getAwardsByUser(clubId, userId, limit?)  // 특정 회원 수상 이력
+getUsedTags(clubId)                      // 이 클럽이 쓴 키워드 (입력 추천용)
+upsertAward({...})                       // 기록 (같은 달 같은 사람이면 tags 덮어쓰기)
+deleteAward(id)
 ```
 
-`getAwardsByUser` 는 지금 UI 에서 안 쓰지만, 이 작업의 목적("관리 변수화")이
-바로 이 조회를 가능하게 하는 것이므로 같이 만든다.
+`getAwardsByUser` 는 지금 UI 에서 안 쓴다. 하지만 이 작업의 목적("관리 변수화")이
+바로 이 조회를 가능하게 하는 것이므로 같이 만들어둔다.
 
 ## 3. UI — `/club/settings/:clubId/awards` (운영진 전용)
 
-- 라우트는 `ProtectedClubRoute requireAdmin` 으로 감싼다 (기존 설정 페이지와 동일)
-- 클럽 설정 메뉴에 "시상 관리" 항목 추가
-- 월 선택 → 그 달 수상자 목록 + 추가/삭제
-- 수상자 추가 시 **그 달 랭킹에서 고르게** 한다 — 이름을 직접 타이핑하면 오타·동명이인
-  문제가 생기고, 마일리지 스냅샷도 자동으로 채울 수 있다
+- 클럽 설정 > **시상 관리** (운영진 전용 섹션, `ProtectedClubRoute requireAdmin`)
+- 월 이동 → 그 달 수상자 목록 + 추가/삭제
+- **수상자는 그 달 랭킹에서 고른다** (`1위 · 메메 (56.0점)` 형태). 이름을 직접
+  타이핑하면 오타·동명이인으로 엉뚱한 사람이 기록된다
+- 키워드는 자유 입력 + 이 클럽이 이전에 쓴 키워드를 칩으로 추천 → 표기 흔들림을 줄인다
+- 이미 기록된 사람은 후보에서 제외해 중복 선택을 막는다
 
 ## 4. 범위 밖 (나중에)
 
