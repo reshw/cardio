@@ -113,6 +113,7 @@ export interface ClubRanking {
   is_hall_of_fame?: boolean;  // 명예의 전당 여부
   hof_reason?: string;  // 명예의 전당 사유
   is_rookie?: boolean;  // 루키리그 여부 (한 번도 월 100점 미달성)
+  role?: 'manager' | 'vice-manager' | 'member';  // 클럽 내 직책 (운영진 제외 필터용)
 }
 
 export interface ClubWorkoutMileage {
@@ -882,7 +883,7 @@ class ClubService {
     // 클럽 멤버 조회 (show_mileage=true만)
     const { data: members, error: membersError } = await supabase
       .from('club_members')
-      .select('user_id, club_nickname, club_profile_image, rookie_graduated_at')
+      .select('user_id, club_nickname, club_profile_image, rookie_graduated_at, role')
       .eq('club_id', clubId)
       .eq('show_mileage', true);
 
@@ -895,10 +896,12 @@ class ClubService {
     const nicknameMap: Record<string, string> = {};
     const clubProfileImageMap: Record<string, string> = {};
     const rookieMap: Record<string, boolean> = {};
+    const roleMap: Record<string, 'manager' | 'vice-manager' | 'member'> = {};
     members.forEach((m) => {
       if (m.club_nickname) nicknameMap[m.user_id] = m.club_nickname;
       if (m.club_profile_image) clubProfileImageMap[m.user_id] = m.club_profile_image;
       rookieMap[m.user_id] = !m.rookie_graduated_at;
+      roleMap[m.user_id] = m.role ?? 'member';
     });
 
     const targetMonth = month || {
@@ -977,6 +980,7 @@ class ClubService {
         is_hall_of_fame: hofSet.has(user.id),
         hof_reason: hofReasonMap[user.id] || undefined,
         is_rookie: rookieMap[user.id] ?? true,
+        role: roleMap[user.id] ?? 'member',
       }))
       .sort((a, b) => b.total_mileage - a.total_mileage)
       .map((item, index) => ({ ...item, rank: index + 1 }));

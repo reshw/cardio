@@ -123,6 +123,11 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [rankingTab, setRankingTab] = useState<RankingTab>('myrank');
   const [showHof, setShowHof] = useState(false);
   const [hideHof, setHideHof] = useState(false);
+  // 운영진 제외 — 운영진(방장/부방장)만 켤 수 있는 필터.
+  // 권한 없는 클럽으로 전환해도 잔류 state 가 몰래 적용되지 않도록,
+  // 아래 canFilterStaff 로 "적용" 시점에도 한 번 더 막는다.
+  const [hideStaff, setHideStaff] = useState(false);
+  const canFilterStaff = selectedClub?.role === 'manager' || selectedClub?.role === 'vice-manager';
   const [rookieOnly, setRookieOnly] = useState(false);
   const rankingRequestId = useRef(0);
 
@@ -977,6 +982,9 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             // 필터 체크박스 적용
             let filtered = withRecord;
             if (hideHof) filtered = filtered.filter(m => !m.is_hall_of_fame);
+            if (hideStaff && canFilterStaff) {
+              filtered = filtered.filter(m => m.role !== 'manager' && m.role !== 'vice-manager');
+            }
             if (rookieOnly) filtered = filtered.filter(m => m.is_rookie);
 
             // 필터 적용 후 순위 재계산
@@ -1057,6 +1065,12 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                       <input type="checkbox" checked={hideHof} onChange={e => setHideHof(e.target.checked)} />
                       <span>명전 제외</span>
                     </label>
+                    {canFilterStaff && (
+                      <label className="filter-check-label">
+                        <input type="checkbox" checked={hideStaff} onChange={e => setHideStaff(e.target.checked)} />
+                        <span>운영진 제외</span>
+                      </label>
+                    )}
                     {selectedClub?.rookie_league_enabled !== false && (
                       <label className="filter-check-label">
                         <input type="checkbox" checked={rookieOnly} onChange={e => setRookieOnly(e.target.checked)} />
@@ -1106,6 +1120,12 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                     <input type="checkbox" checked={hideHof} onChange={e => { setHideHof(e.target.checked); setShowFullList(false); }} />
                     <span>명전 제외</span>
                   </label>
+                  {canFilterStaff && (
+                    <label className="filter-check-label">
+                      <input type="checkbox" checked={hideStaff} onChange={e => { setHideStaff(e.target.checked); setShowFullList(false); }} />
+                      <span>운영진 제외</span>
+                    </label>
+                  )}
                   {selectedClub?.rookie_league_enabled !== false && (
                     <label className="filter-check-label">
                       <input type="checkbox" checked={rookieOnly} onChange={e => { setRookieOnly(e.target.checked); setShowFullList(false); }} />
