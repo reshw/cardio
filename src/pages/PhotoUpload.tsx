@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { uploadToR2 } from '../utils/r2Storage';
+import { sendDebugLog } from '../utils/sendDebugLog';
 
 /**
  * 가벼운 사진 업로드 전용 페이지.
@@ -18,19 +19,35 @@ export default function PhotoUpload() {
     || (() => { try { return localStorage.getItem('diag-enabled') === '1'; } catch { return false; } })();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 로그는 항상 기록한다(인앱에서 콘솔이 안 보이므로) — isDebug 는 패널 표시 여부만 결정
   const [logs, setLogs] = useState<{ t: string; msg: string; color: string }[]>(() => {
-    if (!isDebug) return [];
     try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch { return []; }
   });
+  const [mailStatus, setMailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [mailError, setMailError] = useState<string | null>(null);
 
   const log = (msg: string, color = '#fff') => {
-    if (!isDebug) return;
     const t = new Date().toISOString().slice(11, 23);
     setLogs(prev => {
       const next = [...prev.slice(-49), { t, msg, color }];
       try { localStorage.setItem(LOG_KEY, JSON.stringify(next)); } catch {}
       return next;
     });
+  };
+
+  const mailLogs = async () => {
+    setMailStatus('sending');
+    setMailError(null);
+    try {
+      log('디버그 로그 메일 전송 시도', '#ff8');
+      const lines = JSON.parse(localStorage.getItem(LOG_KEY) || '[]')
+        .map((l: { t: string; msg: string }) => `${l.t} ${l.msg}`);
+      await sendDebugLog('photo-upload', lines, { hasError: error, uploading });
+      setMailStatus('sent');
+    } catch (err) {
+      setMailStatus('error');
+      setMailError(err instanceof Error ? err.message : String(err));
+    }
   };
 
   useEffect(() => {
@@ -157,6 +174,30 @@ export default function PhotoUpload() {
               }}
             >
               취소
+            </button>
+
+            {/* 임시 디버그: 인앱에서 콘솔이 안 보이므로 로그를 메일로 전송 */}
+            <button
+              type="button"
+              onClick={mailLogs}
+              disabled={mailStatus === 'sending'}
+              style={{
+                marginTop: 10,
+                width: '100%',
+                padding: 12,
+                background: mailStatus === 'sent' ? '#E8F5E9' : 'transparent',
+                border: `1.5px dashed ${mailStatus === 'error' ? '#C00' : 'var(--border-color, #ddd)'}`,
+                borderRadius: 12,
+                fontSize: 13,
+                color: mailStatus === 'error' ? '#C00' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {mailStatus === 'sending' ? '전송 중...'
+                : mailStatus === 'sent' ? '✅ 로그 전송됨 (reshw@naver.com)'
+                : mailStatus === 'error' ? `전송 실패: ${mailError} — 다시 시도`
+                : '🐛 디버그 로그 메일로 보내기'}
             </button>
           </>
         )}
