@@ -9,6 +9,15 @@ interface CardioNativeBridge {
   /** 더보기 > 건강 데이터 동기화 관리 클릭 시 호출 — 네이티브가 Health Connect/Apple Health 화면을 연다 */
   openHealthSync?: () => void;
   /**
+   * 헬스 자동 동기화 현재 on/off. 페이지 로드 시 네이티브가 1회 주입한다.
+   * 이후 값 변화는 CardioWeb.setHealthSyncEnabled 로 되쏜다. (cardio-comms #107)
+   * 이 프로퍼티(정확히는 setHealthSyncEnabled)가 없는 환경 = 일반 브라우저 or 미대응 플랫폼
+   * → 더보기의 토글이 렌더되지 않는다.
+   */
+  healthSyncEnabled?: boolean;
+  /** 헬스 자동 동기화 토글 변경 요청. 네이티브가 처리 후 CardioWeb.setHealthSyncEnabled 로 결과 회신 */
+  setHealthSyncEnabled?: (enabled: boolean) => void;
+  /**
    * 테마가 정해질 때마다 호출 — 웹뷰 부팅 직후 1회 + 사용자가 토글할 때마다 1회.
    * 네이티브는 이 값으로 상태바·노치 배경·네이티브 탭바를 칠하고, 저장해 뒀다가
    * 다음 실행 때 웹 로드 전에 선반영하고, 살아있는 다른 웹뷰에 CardioWeb.setTheme 으로 전파한다.
@@ -37,6 +46,8 @@ interface CardioNativeBridge {
 interface CardioWebApi {
   /** 같은 값이면 no-op — onThemeChange 가 되쏘여 무한 왕복하는 것을 웹에서 끊는다 */
   setTheme: (theme: 'light' | 'dark') => void;
+  /** 네이티브가 헬스 동기화 상태를 바꾼 뒤(또는 SyncView 에서 최초 권한 허용 시) 되쏘는 콜백 (cardio-comms #107) */
+  setHealthSyncEnabled?: (enabled: boolean) => void;
 }
 
 interface Window {
