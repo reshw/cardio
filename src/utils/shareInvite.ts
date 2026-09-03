@@ -1,35 +1,32 @@
 /**
  * 공유 폴백.
  *
- * 왜 필요한가: 카카오 JS SDK(`Kakao.Share.sendDefault`)는 내부적으로 `kakaolink://` 커스텀
- * 스킴으로 카톡 앱을 띄우는데, **네이티브 앱 WebView 안에서는 네이티브가 스킴 이동을 직접
- * 처리해주지 않으면 그 네비게이션이 그냥 삼켜진다** (iOS decidePolicyFor / Android
- * shouldOverrideUrlLoading). 즉 앱 안에서 공유 버튼이 무반응이 된다.
- * (WebView 에서 window.confirm() 이 조용히 무시되던 것과 같은 계열의 문제 — useConfirm.tsx 참고)
+ * 목표는 언제나 **카카오 피드 카드**(이미지+제목+설명+버튼)다. `Kakao.Share.sendDefault` 가
+ * 이걸 만든다. 나머지는 카카오가 불가능할 때의 폴백.
  *
- * ⚠️ 그런데 **그 전제는 실측으로 확인된 적이 없다.** 설계 문서(§1-1)도 "네이티브가 이걸
- * 구현해뒀는지 확인이 안 됐고, 안 했다면 무반응이다"라고 적고 있고, 같은 문서의
- * "실측으로 확인한 제약" 표에도 이 항목은 없다. 그 미검증 가정 하나 때문에 2026-08-28
- * 배포에서 공유 순서를 바꿨다가 회귀가 났다:
+ * 순서 (2026-09-03 기준):
+ *   1. Kakao.Share.sendDefault  — 카카오 피드 카드. 환경 분기 없이 항상 먼저.
+ *   2. navigator.share          — Web Share API (모바일 Safari·iOS WKWebView. Android WebView 미지원)
+ *   3. CardioNative.share       — 네이티브 OS 공유 시트 (앱 안 폴백). 주로 Android WebView 가 여기서 잡힘.
+ *   4. 클립보드                 — 무조건 성공하는 바닥
  *
- *   navigator.share(Web Share API)는 안드로이드 Chrome·iOS Safari 대부분에 이미 있어서,
- *   **정상 브라우저 사용자 대다수**가 카카오 전용 피드 카드(이미지+제목+설명+버튼) 대신
- *   OS 기본 공유시트로 빠졌다 — 카톡을 골라도 밋밋한 링크 텍스트만 전달됨.
+ * ## 왜 CardioNative.share 가 1순위가 아니라 3순위인가
  *
- * 2026-08-29 1차로 `isNativeApp()` 분기를 넣어 일반 브라우저만 되돌렸으나 민원이 계속돼,
- * **카카오 SDK를 전 환경 1순위로 복원**했다(= 01f4c06 이전의 검증된 동작). 폴백은 카카오가
- * 정말 없거나 던질 때만 탄다.
+ * 카카오 JS SDK 는 `kakaolink://` 커스텀 스킴으로 카톡을 여는데, 앱 WebView 가 그 스킴을
+ * 네이티브로 넘겨주지 않으면 조용히 삼켜진다. 그래서 and/app 이 2026-09-01 에
+ * `CardioNative.share`(iOS `UIActivityViewController` / Android `Intent.ACTION_SEND`)를
+ * 구현했고 web 은 그걸 1순위로 뒀다.
  *
- *   1. CardioNative.share  — 네이티브 공유 시트. 브릿지가 있을 때만 (and/app 미구현이라
- *                            현재는 항상 스킵). 구현되면 앱 안에서 이게 최선이다.
- *   2. Kakao.Share         — 카카오 카드. 전 환경 기본값
- *   3. navigator.share     — Web Share API
- *   4. 클립보드            — 무조건 성공하는 바닥
+ * 그런데 OS 공유 시트로 카톡을 고르면 iOS/Android 둘 다 **이미지·텍스트를 별개 아이템으로**
+ * 카톡에 넘겨서 피드 카드가 안 만들어지고 조각조각 전달된다 (사용자 민원, cardio-comms #109).
  *
- * 앱 웹뷰에서 카카오 카드가 정말 안 뜬다면 해결은 순서 바꾸기가 아니라 네이티브 쪽에서
- * `CardioNative.share` 브릿지를 구현하거나 `kakaolink://` 스킴 통과를 허용하는 것이다.
+ * app 이 다음 릴리즈에서 `kakaolink://` 스킴 통과를 배포하면(WKWebView `decidePolicyFor` →
+ * `UIApplication.open`) iOS 앱 안에서도 1)의 카카오 SDK 가 그대로 예쁜 카드를 만든다 → 그때는
+ * `CardioNative.share` 가 아예 안 불린다 (app #111). Android(`and`)도 같은 스킴 통과 요청 중.
  *
- * 설계: docs/plans/kakao-invite-app-onboarding.md
+ * 그때까지의 임시 상태: 앱 안에서는 1)이 조용히 실패 → 2)/3) 로 내려가 "카드는 아니지만 동작".
+ *
+ * 설계: docs/plans/kakao-invite-app-onboarding.md · cardio-comms #109~#111
  */
 
 /** 어느 수단으로 공유됐는지. 호출부는 'clipboard' 일 때만 안내 문구를 띄운다 —
@@ -86,7 +83,19 @@ const tryWebShare = async (title: string, text: string, url: string): Promise<Sh
 };
 
 export async function shareContent({ url, text, title, kakaoPayload }: ShareContentArgs): Promise<ShareResult> {
-  // 네이티브 공유 시트 — 브릿지가 있을 때만 (일반 브라우저에선 항상 undefined라 안 탐)
+  // 1) 카카오 피드 카드(이미지+제목+설명+버튼) — 이 앱 공유의 기본 형태. 환경 분기 없이 먼저.
+  const kakaoResult = tryKakao(kakaoPayload);
+  if (kakaoResult) return kakaoResult;
+
+  // 2) Web Share API (iOS WKWebView·모바일 Safari 대부분 지원, Android WebView 미지원)
+  const webshareResult = await tryWebShare(title, text, url);
+  if (webshareResult) return webshareResult;
+
+  // 3) 네이티브 OS 공유 시트 — 위 둘이 다 실패한 "앱 안" 폴백.
+  //    이전엔 이게 1순위였는데, iOS(UIActivityVC)/Android(ACTION_SEND) 둘 다 카톡에
+  //    이미지·텍스트를 별개 아이템으로 넘겨서 카카오가 피드 카드를 못 만들고 조각조각 전달됐다.
+  //    지금은 폴백으로 내림 — 주로 Android WebView(navigator.share 미지원)가 여기서 잡힌다.
+  //    iOS 는 app 이 kakaolink:// 스킴 통과를 배포하면(cardio-comms #111) 1)에서 잡히므로 여기 안 옴.
   if (window.CardioNative?.share) {
     try {
       window.CardioNative.share({ url, text, title });
@@ -96,15 +105,7 @@ export async function shareContent({ url, text, title, kakaoPayload }: ShareCont
     }
   }
 
-  // 카카오 카드가 이 앱의 기본 공유 형태다 — 환경 분기 없이 항상 먼저 시도한다.
-  const kakaoResult = tryKakao(kakaoPayload);
-  if (kakaoResult) return kakaoResult;
-
-  // 카카오가 아예 없거나(SDK 미로드/미초기화) 던진 경우에만 내려간다
-  const webshareResult = await tryWebShare(title, text, url);
-  if (webshareResult) return webshareResult;
-
-  // 바닥 — 클립보드
+  // 4) 바닥 — 클립보드
   await copyToClipboard(`${text}\n${url}`);
   return 'clipboard';
 }
