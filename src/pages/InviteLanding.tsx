@@ -12,14 +12,17 @@ import { detectInApp, getPlatform, isNativeApp } from '../utils/browserEnv';
  *   앱 웹뷰    → /join/:code 로 즉시 통과 (설치 안내가 무의미)
  *   카톡 인앱  → 외부 브라우저 안내 (카톡 안에서는 카카오 로그인이 차단됨)
  *   iOS        → App Store 우선
- *   Android    → 웹 우선 (Android 는 공개 스토어 링크가 없다 — 비공개 테스트 중)
+ *   Android    → Google Play 우선
  *   데스크톱   → 웹
  *
  * 비로그인 외부인이 보는 첫 화면이라 앱 셸(Header/BottomNav) 밖 public 라우트에 둔다.
  * 설계: docs/plans/kakao-invite-app-onboarding.md
  */
 
+// 링크가 바뀌면 Download.tsx 의 같은 상수도 함께 고칠 것
 const IOS_STORE_FALLBACK = 'https://apps.apple.com/kr/app/cardioxclub/id6779019606';
+const ANDROID_STORE_FALLBACK = 'https://play.google.com/store/apps/details?id=com.reshw.cardio';
+const STORE_FALLBACK: Record<string, string> = { ios: IOS_STORE_FALLBACK, android: ANDROID_STORE_FALLBACK };
 
 export const InviteLanding = () => {
   const { code } = useParams<{ code: string }>();
@@ -33,7 +36,7 @@ export const InviteLanding = () => {
   const [ownerName, setOwnerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [iosUrl, setIosUrl] = useState(IOS_STORE_FALLBACK);
+  const [storeUrl, setStoreUrl] = useState(STORE_FALLBACK[platform] ?? '');
   const [copied, setCopied] = useState(false);
   // ?to=install 로 들어오면(카카오 "앱 설치하기" 버튼) 절차 안내를 펼친 채로 시작
   const [showSteps, setShowSteps] = useState(searchParams.get('to') === 'install');
@@ -73,22 +76,22 @@ export const InviteLanding = () => {
     return () => { alive = false; };
   }, [code]);
 
-  // iOS 스토어 링크는 app_releases 에서 (없으면 상수 폴백)
+  // 스토어 링크는 app_releases 에서 (없으면 상수 폴백)
   useEffect(() => {
-    if (platform !== 'ios') return;
+    if (platform !== 'ios' && platform !== 'android') return;
     supabase
       .from('app_releases')
       .select('url')
-      .eq('platform', 'ios')
+      .eq('platform', platform)
       .order('released_at', { ascending: false })
       .limit(1)
       .maybeSingle()
       .then(({ data, error }) => {
         if (error) {
-          console.error('[초대] iOS 릴리스 조회 실패, 기본 링크 사용:', JSON.stringify(error), error);
+          console.error(`[초대] ${platform} 릴리스 조회 실패, 기본 링크 사용:`, JSON.stringify(error), error);
           return;
         }
-        if (data?.url) setIosUrl(data.url);
+        if (data?.url) setStoreUrl(data.url);
       });
   }, [platform]);
 
@@ -189,10 +192,10 @@ export const InviteLanding = () => {
 
             {/* 환경별 CTA */}
             <div style={S.ctaCol}>
-              {platform === 'ios' ? (
+              {platform === 'ios' || platform === 'android' ? (
                 <>
                   <a
-                    href={iosUrl}
+                    href={storeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={S.primaryBtn}
@@ -203,20 +206,6 @@ export const InviteLanding = () => {
                   <button type="button" onClick={goJoin} style={S.secondaryBtn}>
                     웹으로 계속하기
                   </button>
-                </>
-              ) : platform === 'android' ? (
-                <>
-                  <button type="button" onClick={goJoin} style={S.primaryBtn}>
-                    웹으로 클럽 가입하기
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/download')}
-                    style={S.secondaryBtn}
-                  >
-                    Android 앱 알림 받기
-                  </button>
-                  <p style={S.note}>Android 앱은 준비 중이에요. 지금은 웹으로 바로 이용할 수 있습니다.</p>
                 </>
               ) : (
                 <>
