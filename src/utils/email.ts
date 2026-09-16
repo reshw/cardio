@@ -18,18 +18,6 @@ export const sendMileageAlertEmail = async (data: {
   }
 };
 
-export const sendTesterApplicationEmail = async (email: string): Promise<void> => {
-  const response = await fetch('/api/send-email', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'tester-application', email, timestamp: new Date().toISOString() }),
-  });
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body?.error || `요청 실패 (${response.status})`);
-  }
-};
-
 // 수신자(어드민 이메일)는 서버가 service_role 로 직접 조회한다.
 // 클라이언트는 어드민 이메일을 읽을 수도, 수신자를 지정할 수도 없다.
 // (docs/plans/rls-hardening.md §3-3)
