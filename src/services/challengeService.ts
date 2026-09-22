@@ -50,6 +50,8 @@ export interface Challenge {
   theme_color: string;
   allowed_categories: string[] | null;
   allow_late_join: boolean;
+  join_disabled: boolean;
+  join_disabled_message: string | null;
   meta_data: Record<string, any> | null;
   created_at: string;
 }
@@ -62,6 +64,8 @@ export interface CreateChallengeData {
   end_date: string;
   allowed_categories?: string[] | null;
   allow_late_join?: boolean;
+  join_disabled?: boolean;
+  join_disabled_message?: string | null;
 }
 
 export interface ChallengeParticipant {
@@ -133,6 +137,8 @@ const challengeService = {
         end_date: data.end_date,
         allowed_categories: data.allowed_categories ?? null,
         allow_late_join: data.allow_late_join ?? false,
+        join_disabled: data.join_disabled ?? false,
+        join_disabled_message: data.join_disabled ? (data.join_disabled_message ?? null) : null,
         status: 'active',
         theme_color: '#8b5cf6',
       })

@@ -28,6 +28,8 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated, onTeamM
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [allAllowed, setAllAllowed] = useState(true);
   const [allowLateJoin, setAllowLateJoin] = useState(false);
+  const [joinDisabled, setJoinDisabled] = useState(false);
+  const [joinDisabledMessage, setJoinDisabledMessage] = useState('');
   // 팀 대항전 전용
   const [teamCount, setTeamCount] = useState(2);
   const [recordedOnly, setRecordedOnly] = useState(true);
@@ -92,6 +94,9 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated, onTeamM
     if (!allAllowed && selectedCategories.length === 0) {
       setError('허용 종목을 하나 이상 선택해주세요.'); return;
     }
+    if (joinDisabled && !joinDisabledMessage.trim()) {
+      setError('참여 신청을 막으려면 안내 문구를 입력해주세요.'); return;
+    }
     setSubmitting(true);
     try {
       await challengeService.createChallenge({
@@ -102,10 +107,14 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated, onTeamM
         end_date: endDate,
         allowed_categories: allAllowed ? null : selectedCategories,
         allow_late_join: allowLateJoin,
+        join_disabled: joinDisabled,
+        join_disabled_message: joinDisabled ? joinDisabledMessage.trim() : null,
       });
       onCreated();
-    } catch {
-      setError('챌린지 생성에 실패했습니다.');
+    } catch (err: any) {
+      console.error('[챌린지 생성] 실패 상세:', JSON.stringify(err), err);
+      const msg = err?.message || err?.error_description || err?.hint || JSON.stringify(err);
+      setError(`챌린지 생성 실패: ${msg}`);
     } finally {
       setSubmitting(false);
     }
@@ -276,6 +285,35 @@ export const ChallengeCreateModal = ({ club, userId, onClose, onCreated, onTeamM
             />
             <span className={`challenge-toggle-track ${allowLateJoin ? 'on' : ''}`} />
           </label>
+
+          {/* 참여 신청 직접 접수 막기 */}
+          <label className="challenge-toggle-row">
+            <span className="challenge-toggle-label">
+              참여 신청 직접 접수 막기
+              <span className="challenge-toggle-hint">켜면 참여 버튼 대신 안내 문구가 표시돼요 (게시판 댓글 등 다른 방식으로 접수할 때)</span>
+            </span>
+            <input
+              type="checkbox"
+              className="challenge-toggle-input"
+              checked={joinDisabled}
+              onChange={(e) => setJoinDisabled(e.target.checked)}
+            />
+            <span className={`challenge-toggle-track ${joinDisabled ? 'on' : ''}`} />
+          </label>
+
+          {joinDisabled && (
+            <div className="race-form-group">
+              <label>안내 문구</label>
+              <textarea
+                value={joinDisabledMessage}
+                onChange={(e) => setJoinDisabledMessage(e.target.value)}
+                placeholder="예: 참여 신청은 게시판 댓글로 받고 있어요 🙋"
+                className="race-textarea"
+                rows={2}
+                maxLength={100}
+              />
+            </div>
+          )}
           </>
           )}
 
