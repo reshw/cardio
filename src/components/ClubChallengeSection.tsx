@@ -223,6 +223,10 @@ export const ClubChallengeSection = ({ club, userId, isManager, onReassignTeams 
                   </span>
                 </div>
               )
+            ) : challenge.join_disabled ? (
+              <p className="challenge-join-locked">
+                {challenge.join_disabled_message || '참여 신청은 앱 밖에서 접수하고 있어요.'}
+              </p>
             ) : !ended && !joinLocked ? (
               <button
                 className="challenge-join-btn"
@@ -281,7 +285,7 @@ export const ClubChallengeSection = ({ club, userId, isManager, onReassignTeams 
                           </span>
                         </div>
                       ))}
-                    {upcoming && !ended && (
+                    {upcoming && !ended && !challenge.join_disabled && (
                       <button
                         className="challenge-join-add-btn small"
                         onClick={(e) => { e.stopPropagation(); setJoiningChallenge(challenge); }}
