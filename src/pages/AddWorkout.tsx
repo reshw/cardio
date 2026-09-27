@@ -7,7 +7,6 @@ import workoutTypeService from '../services/workoutTypeService';
 import type { WorkoutType } from '../services/workoutTypeService';
 import { getDeviceInfo } from '../utils/deviceInfo';
 import { shareWorkout } from '../utils/shareInvite';
-import { sendDebugLog } from '../utils/sendDebugLog';
 import type { WorkoutCategory, WorkoutSubType, WorkoutUnit, Workout } from '../services/workoutService';
 import clubService from '../services/clubService';
 import type { MyClubWithOrder } from '../services/clubService';
@@ -59,8 +58,6 @@ export const AddWorkout = () => {
     try { return JSON.parse(localStorage.getItem(DEBUG_LOG_KEY) || '[]'); } catch { return []; }
   });
   const [showDebug, setShowDebug] = useState(isDebug);
-  const [mailStatus, setMailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [mailError, setMailError] = useState<string | null>(null);
   const addLog = (msg: string, color = '#fff') => {
     const t = new Date().toISOString().slice(11, 23);
     const entry = { t, msg, color };
@@ -69,20 +66,6 @@ export const AddWorkout = () => {
       try { localStorage.setItem(DEBUG_LOG_KEY, JSON.stringify(next)); } catch {}
       return next;
     });
-  };
-  const mailDebugLogs = async () => {
-    setMailStatus('sending');
-    setMailError(null);
-    try {
-      addLog('디버그 로그 메일 전송 시도', '#ff8');
-      const lines: string[] = JSON.parse(localStorage.getItem(DEBUG_LOG_KEY) || '[]')
-        .map((l: { t: string; msg: string }) => `${l.t} ${l.msg}`);
-      await sendDebugLog('add-workout', lines, { step, isEdit: !!editWorkout, hasProofImage: !!proofImageUrl });
-      setMailStatus('sent');
-    } catch (err) {
-      setMailStatus('error');
-      setMailError(err instanceof Error ? err.message : String(err));
-    }
   };
   const savedDraft = (() => {
     if (editWorkout) return null;
@@ -427,25 +410,6 @@ export const AddWorkout = () => {
           )}
         </div>
       )}
-
-      {/* 임시 디버그: 인앱에서 콘솔이 안 보이므로 로그를 메일로 전송 */}
-      <button
-        type="button"
-        onClick={mailDebugLogs}
-        disabled={mailStatus === 'sending'}
-        style={{
-          position: 'fixed', left: 8, bottom: 84, zIndex: 9998,
-          padding: '6px 10px', borderRadius: 8, border: 'none',
-          fontSize: 11, fontFamily: 'monospace',
-          background: mailStatus === 'sent' ? '#2e7d32' : mailStatus === 'error' ? '#c62828' : 'rgba(0,0,0,0.55)',
-          color: '#fff',
-        }}
-      >
-        {mailStatus === 'sending' ? '전송중…'
-          : mailStatus === 'sent' ? '✅ 로그전송됨'
-          : mailStatus === 'error' ? `실패:${mailError?.slice(0, 20)}`
-          : '🐛 로그 메일'}
-      </button>
 
       <div className="detail-header">
         <button className="back-button" onClick={handleBack}>
