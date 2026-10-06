@@ -40,7 +40,8 @@ function isoDay(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-const memberName = (m: ClubMember) => m.club_nickname || m.user?.display_name || '회원';
+// 클럽 닉네임만 — 본명(users.display_name)은 노출하지 않는다 (MemberPickerSheet 주석 참고)
+const memberName = (m: ClubMember) => m.club_nickname || '(닉네임 없음)';
 
 export const ClubCalendarTab = ({
   clubId,

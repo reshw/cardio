@@ -16,7 +16,7 @@ export interface ClubAward {
   tags: string[];
   awarded_by: string | null;
   created_at: string;
-  /** 조인 결과 — 클럽 닉네임 우선, 없으면 users.display_name */
+  /** 조인 결과 — 클럽 닉네임만 (본명 미사용) */
   display_name?: string;
 }
 
@@ -28,21 +28,19 @@ class ClubAwardService {
     if (rows.length === 0) return rows;
     const userIds = [...new Set(rows.map(r => r.user_id))];
 
-    const [{ data: members }, { data: users }] = await Promise.all([
-      supabase
-        .from('club_members')
-        .select('user_id, club_nickname')
-        .eq('club_id', clubId)
-        .in('user_id', userIds),
-      supabase.from('users').select('id, display_name').in('id', userIds),
-    ]);
+    // 클럽 닉네임만 — 본명(users.display_name)으로 대체하지 않는다
+    const { data: members } = await supabase
+      .from('club_members')
+      .select('user_id, club_nickname')
+      .eq('club_id', clubId)
+      .in('user_id', userIds);
 
     const nickMap = Object.fromEntries((members || []).map((m: any) => [m.user_id, m.club_nickname]));
-    const nameMap = Object.fromEntries((users || []).map((u: any) => [u.id, u.display_name]));
 
     return rows.map(r => ({
       ...r,
-      display_name: nickMap[r.user_id] || nameMap[r.user_id] || '(이름 없음)',
+      // 탈퇴 등으로 클럽에 없는 수상자는 닉네임을 알 수 없다
+      display_name: nickMap[r.user_id] || '(클럽 탈퇴 회원)',
     }));
   }
 
