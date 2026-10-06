@@ -7,6 +7,8 @@ interface Props {
   title: string;
   members: ClubMember[];
   excludeUserIds?: Set<string>;
+  /** 이름 옆에 붙일 보조 문구 (예: 시상 관리의 "1위 · 56.0점"). 없으면 생략 */
+  metaByUserId?: Record<string, string>;
   onSelect: (userId: string) => void;
   onClose: () => void;
 }
@@ -14,7 +16,7 @@ interface Props {
 // 모바일에서 카드마다 검색창을 따로 두면 손이 많이 가서, 등록 지점(부클럽장 카드,
 // 커스텀 등급 카드)마다 이 시트 하나를 공유해서 연다. 닉네임뿐 아니라 실명(계정
 // display_name)으로도 찾을 수 있게 해서, 클럽 닉네임을 못 외워도 찾을 수 있다.
-export const MemberPickerSheet = ({ title, members, excludeUserIds, onSelect, onClose }: Props) => {
+export const MemberPickerSheet = ({ title, members, excludeUserIds, metaByUserId, onSelect, onClose }: Props) => {
   useModalHistory(true, onClose);
   const [query, setQuery] = useState('');
 
@@ -82,6 +84,9 @@ export const MemberPickerSheet = ({ title, members, excludeUserIds, onSelect, on
                   <div className="member-picker-item-text">
                     <span className="member-picker-nickname">{nickname}</span>
                     {showRealName && <span className="member-picker-realname">{m.user!.display_name}</span>}
+                    {metaByUserId?.[m.user_id] && (
+                      <span className="member-picker-realname">{metaByUserId[m.user_id]}</span>
+                    )}
                   </div>
                 </button>
               );

@@ -5,8 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 import clubAwardService from '../services/clubAwardService';
 import type { ClubAward } from '../services/clubAwardService';
 import clubService from '../services/clubService';
-import type { ClubRanking } from '../services/clubService';
+import type { ClubRanking, ClubMember } from '../services/clubService';
 import { useConfirm } from '../hooks/useConfirm';
+import { MemberPickerSheet } from '../components/MemberPickerSheet';
 
 export const ClubAwards = () => {
   const { clubId } = useParams<{ clubId: string }>();
@@ -27,6 +28,8 @@ export const ClubAwards = () => {
   // 추가 폼
   const [adding, setAdding] = useState(false);
   const [pickedUserId, setPickedUserId] = useState('');
+  const [showPicker, setShowPicker] = useState(false);
+  const [members, setMembers] = useState<ClubMember[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -36,14 +39,16 @@ export const ClubAwards = () => {
     setLoading(true);
     setError(null);
     try {
-      const [a, r, t] = await Promise.all([
+      const [a, r, t, m] = await Promise.all([
         clubAwardService.getAwards(clubId, { year, month }),
         clubService.getClubRanking(clubId, { year, month }),
         clubAwardService.getUsedTags(clubId),
+        clubService.getClubMembers(clubId),
       ]);
       setAwards(a);
       setRanking(r);
       setUsedTags(t);
+      setMembers(m);
     } catch (err: any) {
       setError(err?.message || String(err));
     } finally {
@@ -103,6 +108,17 @@ export const ClubAwards = () => {
   // 이미 기록된 사람은 후보에서 빼서 중복 선택을 막는다
   const awardedIds = new Set(awards.map(a => a.user_id));
   const candidates = ranking.filter(r => !awardedIds.has(r.user_id));
+
+  // 피커는 ClubMember 형태가 필요하다 (닉네임·실명 동시 검색). 랭킹 순서를 유지해서
+  // 1위부터 위에 오게 하고, 이름 옆에 "N위 · 점수"를 붙여 랭킹을 보며 고르게 한다.
+  const memberById = new Map(members.map(m => [m.user_id, m]));
+  const pickerMembers = candidates
+    .map(c => memberById.get(c.user_id))
+    .filter((m): m is ClubMember => !!m);
+  const metaByUserId = Object.fromEntries(
+    candidates.map(c => [c.user_id, `${c.rank}위 · ${c.total_mileage.toFixed(1)}점`])
+  );
+  const picked = candidates.find(c => c.user_id === pickedUserId);
 
   return (
     <div className="container">
@@ -172,18 +188,18 @@ export const ClubAwards = () => {
                 <label>수상자</label>
                 {/* 이름을 직접 입력받지 않고 그 달 랭킹에서 고르게 한다 —
                     오타·동명이인으로 엉뚱한 사람이 기록되는 걸 막는다 */}
-                <select
+                {/* <select> 금지 — cardio-android WebView 에서 select 드롭다운이 조용히 실패해
+                    앱에서는 수상자를 아예 못 골랐다. 바텀시트 피커로 고른다. */}
+                <button
+                  type="button"
                   className="race-form-input"
-                  value={pickedUserId}
-                  onChange={e => setPickedUserId(e.target.value)}
+                  style={{ textAlign: 'left', cursor: 'pointer', color: picked ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                  onClick={() => setShowPicker(true)}
                 >
-                  <option value="">선택하세요</option>
-                  {candidates.map(c => (
-                    <option key={c.user_id} value={c.user_id}>
-                      {c.rank}위 · {c.display_name} ({c.total_mileage.toFixed(1)}점)
-                    </option>
-                  ))}
-                </select>
+                  {picked
+                    ? `${picked.rank}위 · ${picked.display_name} (${picked.total_mileage.toFixed(1)}점)`
+                    : '수상자 선택'}
+                </button>
               </div>
 
               <div className="race-form-group">
@@ -234,6 +250,15 @@ export const ClubAwards = () => {
             </div>
           )}
         </>
+      )}
+      {showPicker && (
+        <MemberPickerSheet
+          title="수상자 선택"
+          members={pickerMembers}
+          metaByUserId={metaByUserId}
+          onSelect={id => setPickedUserId(id)}
+          onClose={() => setShowPicker(false)}
+        />
       )}
       {ConfirmDialog}
     </div>
