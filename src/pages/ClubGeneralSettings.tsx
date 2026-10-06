@@ -5,7 +5,7 @@ import { ChevronLeft, Copy, Lock } from 'lucide-react';
 import clubService from '../services/clubService';
 import { useAuth } from '../contexts/AuthContext';
 import { uploadToR2 } from '../utils/r2Storage';
-import { OPTIONAL_CLUB_FEATURES } from '../config/clubFeatures';
+import { CLUB_FEATURES } from '../config/clubFeatures';
 
 export const ClubGeneralSettings = () => {
   const { clubId } = useParams<{ clubId: string }>();
@@ -22,7 +22,8 @@ export const ClubGeneralSettings = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [enabledFeatures, setEnabledFeatures] = useState<string[]>([]);
+  // opt-out: 운영진이 끈 기능 목록. 비어 있으면 전부 켜짐 (config/clubFeatures.ts)
+  const [disabledFeatures, setDisabledFeatures] = useState<string[]>([]);
   const [featureToggling, setFeatureToggling] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export const ClubGeneralSettings = () => {
       setDescription(club.description || '');
       setInviteCode(club.invite_code);
       setLogoPreview(club.logo_url || null);
-      setEnabledFeatures(club.enabled_features ?? []);
+      setDisabledFeatures(club.disabled_features ?? []);
     } catch (error) {
       console.error('클럽 정보 불러오기 실패:', error);
       alert('클럽 정보를 불러올 수 없습니다.');
@@ -66,15 +67,16 @@ export const ClubGeneralSettings = () => {
 
   const toggleFeature = async (key: string) => {
     if (!clubId || featureToggling) return;
-    const wasOn = enabledFeatures.includes(key);
-    const next = wasOn ? enabledFeatures.filter((f) => f !== key) : [...enabledFeatures, key];
+    const wasOn = !disabledFeatures.includes(key);
+    // 켜져 있던 걸 끄면 끈 목록에 추가, 꺼져 있던 걸 켜면 목록에서 제거
+    const next = wasOn ? [...disabledFeatures, key] : disabledFeatures.filter((f) => f !== key);
     setFeatureToggling(key);
-    setEnabledFeatures(next); // 낙관적 업데이트, 실패 시 되돌림
+    setDisabledFeatures(next); // 낙관적 업데이트, 실패 시 되돌림
     try {
-      await clubService.updateEnabledFeatures(clubId, next);
+      await clubService.updateDisabledFeatures(clubId, next);
     } catch (error: any) {
-      console.error('[클럽 탭 관리] opt-in 기능 변경 실패:', JSON.stringify(error), error);
-      setEnabledFeatures(enabledFeatures);
+      console.error('[클럽 기능 관리] 기능 on/off 변경 실패:', JSON.stringify(error), error);
+      setDisabledFeatures(disabledFeatures);
       alert(`설정 변경 실패: ${error?.message || JSON.stringify(error)}`);
     } finally {
       setFeatureToggling(null);
@@ -243,8 +245,8 @@ export const ClubGeneralSettings = () => {
       {/* 즉시저장 — 위 폼(저장하기 버튼)과 별개로 토글 누르는 즉시 반영된다 */}
       <div className="settings-form">
         <div className="settings-section">
-          <div className="settings-section-title">탭 관리</div>
-          {OPTIONAL_CLUB_FEATURES.map((feature) => (
+          <div className="settings-section-title">기능 관리</div>
+          {CLUB_FEATURES.map((feature) => (
             <div
               key={feature.key}
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0' }}
@@ -258,7 +260,7 @@ export const ClubGeneralSettings = () => {
               <label className="toggle-switch">
                 <input
                   type="checkbox"
-                  checked={enabledFeatures.includes(feature.key)}
+                  checked={!disabledFeatures.includes(feature.key)}
                   disabled={featureToggling === feature.key}
                   onChange={() => toggleFeature(feature.key)}
                 />

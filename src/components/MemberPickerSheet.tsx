@@ -59,11 +59,26 @@ export const MemberPickerSheet = ({ title, members, excludeUserIds, onSelect, on
                   className="member-picker-item"
                   onClick={() => { onSelect(m.user_id); onClose(); }}
                 >
-                  {m.club_profile_image || m.user?.profile_image ? (
-                    <img src={m.club_profile_image || m.user?.profile_image} alt={nickname} className="participant-avatar" />
-                  ) : (
-                    <div className="participant-avatar participant-avatar--fallback">{nickname[0]}</div>
-                  )}
+                  {(() => {
+                    const img = m.club_profile_image || m.user?.profile_image;
+                    // 'default:<색상>' 은 URL 이 아니라 색상 아바타 표기다 (WorkoutFeedCard 와 같은 규칙).
+                    // 예전엔 이걸 그대로 <img src> 에 넣어 ERR_UNKNOWN_URL_SCHEME 로 깨졌다.
+                    if (img?.startsWith('default:')) {
+                      return (
+                        <div
+                          className="participant-avatar participant-avatar--fallback"
+                          style={{ background: img.slice('default:'.length), color: 'white' }}
+                        >
+                          {nickname[0]}
+                        </div>
+                      );
+                    }
+                    return img ? (
+                      <img src={img} alt={nickname} className="participant-avatar" />
+                    ) : (
+                      <div className="participant-avatar participant-avatar--fallback">{nickname[0]}</div>
+                    );
+                  })()}
                   <div className="member-picker-item-text">
                     <span className="member-picker-nickname">{nickname}</span>
                     {showRealName && <span className="member-picker-realname">{m.user!.display_name}</span>}

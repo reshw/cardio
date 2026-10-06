@@ -19,6 +19,7 @@ import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
 import { useModalHistory } from '../hooks/useModalHistory';
 import { useConfirm } from '../hooks/useConfirm';
 import { shareClubInvite, buildInviteUrl } from '../utils/shareInvite';
+import { isClubFeatureOn } from '../config/clubFeatures';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, Lock, Image, Filter } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
 
@@ -97,14 +98,6 @@ export const Club = () => {
   // 피드 관련 state
   type TabType = 'ranking' | 'feed' | 'events';
   const [activeTab, setActiveTab] = useState<TabType>((location.state as { tab?: TabType } | null)?.tab ?? 'feed');
-
-  // 클럽달력이 opt-in 이라 꺼진 클럽에서 activeTab 이 'events' 로 남아있으면(딥링크 등) 안 보이는 탭에 갇히므로 되돌림
-  useEffect(() => {
-    if (activeTab === 'events' && selectedClub && !(selectedClub.enabled_features ?? []).includes('calendar')) {
-      setActiveTab('feed');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClub]);
 
   // 마일리지 표현 state
   const [mileageExpressions, setMileageExpressions] = useState(() => getExpressions(0, 1));
@@ -687,7 +680,9 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         const activePeriods = periods.filter(p => today >= p.from && today <= p.to);
         const isLockPeriod = activePeriods.length > 0; // 잠금 기간 여부 (역할 무관)
         const isMileageBlocked = isLockPeriod && !isAdmin; // 일반회원만 실제 차단
-        const showCalendarTab = (selectedClub.enabled_features ?? []).includes('calendar'); // opt-in — docs/plans/클럽-탭-optin.md
+        // 클럽달력 탭은 항상 노출 — 날짜별 운동 갯수는 모든 클럽에 의미가 있다.
+        // 행사 기능만 opt-out 대상이고 탭 안에서 가린다 (docs/plans/club-workout-calendar.md)
+        const showCalendarTab = true;
         const tabCount = showCalendarTab ? 3 : 2;
         return (
           <>
@@ -1311,8 +1306,13 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
       {activeTab === 'events' && selectedClub && user && (
         <ClubCalendarTab
           clubId={selectedClub.id}
+          clubName={selectedClub.name}
           userId={user.id}
           isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
+          eventsEnabled={isClubFeatureOn(selectedClub, 'calendar')}
+          categoryOptions={mileageCategoryOptions}
+          enabledCategorySet={enabledCategorySet}
+          onMemberClick={(userId, userName) => openMemberDetail(userId, userName)}
         />
       )}
 

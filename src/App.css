@@ -13598,9 +13598,9 @@ body.workout-detail-open .bottom-nav {
 .club-calendar-grid .react-calendar__tile.has-event::after {
   content: '';
   position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
+  /* 하단엔 운동 갯수 숫자가 들어가므로 행사 점은 우상단으로 (겹침 방지) */
+  top: 4px;
+  right: 4px;
   width: 5px;
   height: 5px;
   border-radius: 50%;
@@ -13609,6 +13609,130 @@ body.workout-detail-open .bottom-nav {
 
 .club-calendar-grid .react-calendar__tile--active.has-event::after {
   background: var(--on-accent);
+}
+
+/* ---------- 클럽달력: 날짜별 운동 갯수 + 핀셋 필터 (docs/plans/club-workout-calendar.md) ---------- */
+
+/* 칸 안에 날짜 + 그날 운동 갯수를 세로로 */
+.club-calendar-grid .react-calendar__tile {
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cal-workout-count {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--primary-color);
+}
+
+/* 선택된 칸은 그라데이션 배경이라 강조색 글자는 안 보인다 → on-accent */
+.club-calendar-grid .react-calendar__tile--active .cal-workout-count {
+  color: var(--on-accent);
+}
+
+.club-calendar-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.club-calendar-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.club-calendar-filter-chip.active {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.club-calendar-filter-clear {
+  display: inline-flex;
+  margin-left: 2px;
+  opacity: 0.8;
+}
+
+.club-calendar-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+}
+
+.club-calendar-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 140px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+}
+
+.club-calendar-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.club-calendar-menu-item.selected {
+  background: var(--input-bg);
+  font-weight: 600;
+}
+
+/* 날짜 탭 → 그날 피드 시트. 간격은 변수로만 (바텀시트 가이드 4-3) */
+.day-feed-sheet {
+  --sheet-gap: 12px;
+}
+
+.day-feed-events {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.day-feed-event-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.day-feed-event-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .date-events-panel {

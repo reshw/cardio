@@ -22,7 +22,7 @@ export interface Club {
   rookie_league_enabled?: boolean; // 루키리그 기능 활성화 여부
   mileage_hide_periods?: { from: number; to: number }[]; // 마일리지 탭 숨김 기간 목록
   mileage_filter_categories?: string[] | null; // 마일리지 탭 종목별 필터 칩 화이트리스트 (null = 활성화 종목 전체 노출)
-  enabled_features?: string[]; // opt-in 기능 키 목록 (예: 'calendar') — docs/plans/클럽-탭-optin.md
+  disabled_features?: string[]; // 운영진이 끈 기능 키 목록 (opt-out, 비면 전부 켜짐) — docs/plans/club-workout-calendar.md
 }
 
 // 동적 마일리지 설정 (모든 운동 종목 지원)
@@ -467,16 +467,48 @@ class ClubService {
     }
   }
 
-  async updateEnabledFeatures(clubId: string, enabledFeatures: string[]): Promise<void> {
+  async updateDisabledFeatures(clubId: string, disabledFeatures: string[]): Promise<void> {
     const { error } = await supabase
       .from('clubs')
-      .update({ enabled_features: enabledFeatures })
+      .update({ disabled_features: disabledFeatures })
       .eq('id', clubId);
 
     if (error) {
-      console.error('[클럽 탭 관리] opt-in 기능 변경 실패:', JSON.stringify(error), error);
+      console.error('[클럽 기능 관리] 기능 on/off 변경 실패:', JSON.stringify(error), error);
       throw error;
     }
+  }
+
+  // 날짜별 운동 갯수 (클럽달력). 오늘운동 피드와 같은 규칙으로 센다 — 달력 숫자를 누르면
+  // 그 날짜 피드가 열리므로 두 수가 반드시 일치해야 한다. 규칙은 RPC 주석 참고.
+  async getWorkoutDayCounts(
+    clubId: string,
+    year: number,
+    month: number, // 1-12
+    filters: { userId?: string | null; category?: string | null } = {}
+  ): Promise<Record<string, number>> {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const lastDay = new Date(year, month, 0).getDate();
+    const { data, error } = await supabase.rpc('get_club_workout_day_counts', {
+      p_club_id: clubId,
+      p_start_date: `${year}-${pad(month)}-01`,
+      p_end_date: `${year}-${pad(month)}-${pad(lastDay)}`,
+      p_user_id: filters.userId ?? null,
+      p_category: filters.category ?? null,
+    });
+
+    if (error) {
+      console.error('[클럽달력] 날짜별 운동 갯수 조회 실패 상세:', JSON.stringify(error), error);
+      const msg = error.message || error.details || error.hint || JSON.stringify(error);
+      throw new Error(`운동 갯수 조회 실패: ${msg}`);
+    }
+
+    // 'YYYY-MM-DD' → 건수
+    const map: Record<string, number> = {};
+    (data || []).forEach((r: { workout_date: string; workout_count: number }) => {
+      map[r.workout_date] = Number(r.workout_count) || 0;
+    });
+    return map;
   }
 
   // 클럽 삭제
@@ -671,7 +703,7 @@ class ClubService {
   async getClubMembers(clubId: string): Promise<ClubMember[]> {
     const { data: members, error } = await supabase
       .from('club_members')
-      .select('id, club_id, user_id, role, joined_at, display_order, club_nickname, club_profile_image')
+      .select('id, club_id, user_id, role, joined_at, display_order, club_nickname, club_profile_image, show_in_feed')
       .eq('club_id', clubId);
 
     if (error) {
