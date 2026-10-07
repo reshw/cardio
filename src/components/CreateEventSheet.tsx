@@ -10,6 +10,8 @@ interface Props {
   clubId: string;
   userId: string;
   existingEvent?: ClubEvent; // 있으면 수정 모드
+  /** 신규 등록일 때 날짜 기본값 (날짜 시트에서 "이 날짜로 행사 등록") */
+  initialDate?: Date;
   onClose: () => void;
   onCreated: () => void;
 }
@@ -18,10 +20,10 @@ interface Props {
 // 나머지는 클럽장이 직접 채워 넣는다 (일시/집결장소·짐보관/코스/장비/난이도).
 const MEMO_TEMPLATE = `1. 일시: \n2. 집결장소 및 짐 보관: \n3. 코스: \n4. 장비: \n5. 난이도: `;
 
-export const CreateEventSheet = ({ clubId, userId, existingEvent, onClose, onCreated }: Props) => {
+export const CreateEventSheet = ({ clubId, userId, existingEvent, initialDate, onClose, onCreated }: Props) => {
   useModalHistory(true, onClose);
 
-  const initial = existingEvent ? new Date(existingEvent.starts_at) : new Date();
+  const initial = existingEvent ? new Date(existingEvent.starts_at) : (initialDate ?? new Date());
 
   const [title, setTitle] = useState(existingEvent?.title ?? '');
   const [eventType, setEventType] = useState<ClubEventType>(existingEvent?.event_type ?? 'etc');

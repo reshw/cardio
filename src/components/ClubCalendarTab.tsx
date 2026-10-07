@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Calendar from 'react-calendar';
-import { ChevronRight, User, Filter, X } from 'lucide-react';
-import clubEventService, { type ClubEvent, EVENT_TYPE_ICONS } from '../services/clubEventService';
+import { User, Filter, X } from 'lucide-react';
+import clubEventService, { type ClubEvent, type EventPhotoSummary, EVENT_TYPE_ICONS } from '../services/clubEventService';
 import clubService from '../services/clubService';
 import type { ClubMember } from '../services/clubService';
 import { EventDetailSheet } from './EventDetailSheet';
 import { CreateEventSheet } from './CreateEventSheet';
 import { MemberPickerSheet } from './MemberPickerSheet';
-import { DayWorkoutFeedSheet } from './DayWorkoutFeedSheet';
+import { ClubDaySheet, type DaySheetTab } from './ClubDaySheet';
+import { ClubCalendarToday } from './ClubCalendarToday';
+import { UpcomingEventsSection, PastEventsSection } from './ClubEventLists';
 
 interface Props {
   clubId: string;
@@ -20,14 +22,6 @@ interface Props {
   categoryOptions: { category: string; keys: string[] }[];
   enabledCategorySet: Set<string>;
   onMemberClick: (userId: string, userName: string) => void;
-}
-
-const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
-
-// 시각은 메모(1. 일시)에 적으므로 여기선 달력 배치용 날짜만 표시한다.
-function formatEventDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}/${d.getDate()}(${WEEKDAY_KO[d.getDay()]})`;
 }
 
 function dateKey(d: Date): string {
@@ -68,16 +62,27 @@ export const ClubCalendarTab = ({
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [showMemberPicker, setShowMemberPicker] = useState(false);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
-  const [feedDate, setFeedDate] = useState<Date | null>(null);
+  const [daySheet, setDaySheet] = useState<{ date: Date; tab?: DaySheetTab } | null>(null);
+  const [photoSummaries, setPhotoSummaries] = useState<Record<string, EventPhotoSummary>>({});
+  const [todayWorkoutCount, setTodayWorkoutCount] = useState<number | null>(null);
   const [countsVersion, setCountsVersion] = useState(0); // 차단 등으로 다시 세야 할 때 올린다
 
+  // 다시 불러올 때(사진·수정 직후 등)는 로딩 표시를 켜지 않는다 — 섹션이 깜빡이며 사라지는 걸 막는다
+  const loadedOnceRef = useRef(false);
   const loadEvents = async () => {
     if (!eventsEnabled) return;
-    setEventsLoading(true);
+    if (!loadedOnceRef.current) setEventsLoading(true);
     try {
       const data = await clubEventService.listEvents(clubId);
       setEvents(data);
       setEventsError(null);
+      loadedOnceRef.current = true;
+      clubEventService
+        .listEventPhotoSummaries(data.map((e) => e.id))
+        .then(setPhotoSummaries)
+        .catch((err: any) => {
+          console.error('[클럽달력] 행사 사진 요약 로드 실패:', JSON.stringify(err), err);
+        });
     } catch (err: any) {
       console.error('[클럽달력] 행사 목록 로드 실패:', JSON.stringify(err), err);
       setEventsError(err?.message || err?.error_description || err?.hint || JSON.stringify(err));
@@ -87,6 +92,8 @@ export const ClubCalendarTab = ({
   };
 
   useEffect(() => {
+    loadedOnceRef.current = false;
+    setPhotoSummaries({});
     if (eventsEnabled) loadEvents();
     else setEvents([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,13 +129,37 @@ export const ClubCalendarTab = ({
     return () => { cancelled = true; };
   }, [clubId, calendarMonth, filterUserId, filterCategory, countsVersion]);
 
-  const upcomingEvents = useMemo(() => {
+  // 오늘 카드의 운동 횟수 — 달력의 dayCounts 는 사람·종목 필터와 보고 있는 달에 묶여 있어 못 쓴다
+  useEffect(() => {
+    let cancelled = false;
+    setTodayWorkoutCount(null);
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    return events
-      .filter((e) => new Date(e.starts_at).getTime() >= startOfToday.getTime())
-      .slice(0, 2);
-  }, [events]);
+    clubService
+      .getWorkoutDayCounts(clubId, now.getFullYear(), now.getMonth() + 1)
+      .then((map) => { if (!cancelled) setTodayWorkoutCount(map[isoDay(now)] ?? 0); })
+      .catch((err: any) => {
+        console.error('[클럽달력] 오늘 운동 갯수 조회 실패:', JSON.stringify(err), err);
+      });
+    return () => { cancelled = true; };
+  }, [clubId, countsVersion]);
+
+  // 오늘 행사 / 오늘 이후 행사 / 사진 있는 지난 행사 (오늘 행사는 맨 위 카드로 올라가므로 목록에서 뺀다)
+  const { todayEvents, upcomingEvents, pastAlbum } = useMemo(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const dayOf = (e: ClubEvent) => {
+      const d = new Date(e.starts_at);
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    };
+    return {
+      todayEvents: events.filter((e) => dayOf(e) === todayStart),
+      upcomingEvents: events.filter((e) => dayOf(e) > todayStart),
+      pastAlbum: events
+        .filter((e) => dayOf(e) < todayStart && photoSummaries[e.id])
+        .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime())
+        .map((e) => ({ event: e, summary: photoSummaries[e.id] })),
+    };
+  }, [events, photoSummaries]);
 
   const eventsByDateKey = useMemo(() => {
     const map = new Map<string, ClubEvent[]>();
@@ -142,16 +173,16 @@ export const ClubCalendarTab = ({
   }, [events]);
 
   const filterMember = filterUserId ? members.find((m) => m.user_id === filterUserId) : undefined;
-  const feedTitle =
-    [filterMember ? memberName(filterMember) : null, filterCategory].filter(Boolean).join(' · ') || '운동 기록';
+  const filterLabel = [filterMember ? memberName(filterMember) : null, filterCategory].filter(Boolean).join(' · ') || null;
 
   return (
     <div className="club-calendar-tab">
-      {eventsEnabled && isManager && (
-        <button type="button" className="club-calendar-add-btn" onClick={() => setShowCreateSheet(true)}>
-          + 행사 등록
-        </button>
-      )}
+      <ClubCalendarToday
+        todayEvents={todayEvents}
+        workoutCount={todayWorkoutCount}
+        photoCount={todayEvents[0] ? photoSummaries[todayEvents[0].id]?.count ?? 0 : 0}
+        onOpen={(tab) => setDaySheet({ date: new Date(), tab })}
+      />
 
       {eventsEnabled && eventsError && (
         <div className="empty-state">
@@ -160,34 +191,14 @@ export const ClubCalendarTab = ({
         </div>
       )}
 
-      {eventsEnabled && !eventsLoading && upcomingEvents.length > 0 && (
-        <div className="upcoming-events-section">
-          <h3 className="section-title">다가오는 행사</h3>
-          {upcomingEvents.map((event) => {
-            const approvedCount = event.checkins.filter((c) => c.status !== 'rejected').length;
-            return (
-              <button
-                key={event.id}
-                type="button"
-                className="upcoming-event-card"
-                onClick={() => setOpenEventId(event.id)}
-              >
-                <span className="upcoming-event-icon">{EVENT_TYPE_ICONS[event.event_type]}</span>
-                <div className="upcoming-event-info">
-                  <div className="upcoming-event-title">{event.title}</div>
-                  <div className="upcoming-event-meta">
-                    {formatEventDate(event.starts_at)}
-                    {event.category_text && ` · ${event.category_text}`}
-                  </div>
-                  {approvedCount > 0 && (
-                    <div className="upcoming-event-participants">참가 {approvedCount}명</div>
-                  )}
-                </div>
-                <ChevronRight size={18} className="upcoming-event-chevron" />
-              </button>
-            );
-          })}
-        </div>
+      {eventsEnabled && !eventsLoading && !eventsError && (upcomingEvents.length > 0 || isManager) && (
+        <UpcomingEventsSection
+          events={upcomingEvents}
+          hasAnyEvent={events.length > 0}
+          isManager={isManager}
+          onOpen={setOpenEventId}
+          onCreate={() => setShowCreateSheet(true)}
+        />
       )}
 
       {/* 핀셋 필터 — 같은 달력의 숫자가 이 조건으로 좁혀진다 */}
@@ -285,7 +296,6 @@ export const ClubCalendarTab = ({
           tileClassName={({ date, view }) => {
             if (view !== 'month') return null;
             const classes: string[] = [];
-            if (eventsByDateKey.has(dateKey(date))) classes.push('has-event');
             if (date.getDay() === 0) classes.push('is-sunday');
             if (date.getDay() === 6) classes.push('is-saturday');
             return classes.join(' ') || null;
@@ -293,10 +303,16 @@ export const ClubCalendarTab = ({
           tileContent={({ date, view }) => {
             if (view !== 'month') return null;
             const n = dayCounts[isoDay(date)];
-            // 0 은 안 찍는다 — 빈 칸은 그냥 빈 칸. "안 한 날"을 도드라지게 만들지 않는다
-            return n ? <span className="cal-workout-count">{n}</span> : null;
+            const firstEvent = eventsByDateKey.get(dateKey(date))?.[0];
+            return (
+              <>
+                {firstEvent && <span className="cal-event-icon">{EVENT_TYPE_ICONS[firstEvent.event_type]}</span>}
+                {/* 0 은 안 찍는다 — 빈 칸은 그냥 빈 칸. "안 한 날"을 도드라지게 만들지 않는다 */}
+                {n ? <span className="cal-workout-count">{n}</span> : null}
+              </>
+            );
           }}
-          onClickDay={(date) => setFeedDate(date)}
+          onClickDay={(date) => setDaySheet({ date })}
           onActiveStartDateChange={({ activeStartDate }) => {
             if (activeStartDate) setCalendarMonth(activeStartDate);
           }}
@@ -309,6 +325,10 @@ export const ClubCalendarTab = ({
         )}
       </div>
 
+      {eventsEnabled && !eventsLoading && pastAlbum.length > 0 && (
+        <PastEventsSection items={pastAlbum} onOpen={setOpenEventId} />
+      )}
+
       {showMemberPicker && (
         <MemberPickerSheet
           title="사람으로 보기"
@@ -318,21 +338,25 @@ export const ClubCalendarTab = ({
         />
       )}
 
-      {feedDate && (
-        <DayWorkoutFeedSheet
+      {daySheet && (
+        <ClubDaySheet
           clubId={clubId}
           clubName={clubName}
           viewerUserId={userId}
-          initialDate={feedDate}
+          isManager={isManager}
+          eventsEnabled={eventsEnabled}
+          initialDate={daySheet.date}
+          initialTab={daySheet.tab}
           filterUserId={filterUserId}
           filterCategory={filterCategory}
-          title={feedTitle}
+          filterLabel={filterLabel}
           enabledCategorySet={enabledCategorySet}
-          eventsForDate={(d) => eventsByDateKey.get(dateKey(d)) ?? []}
-          onOpenEvent={(id) => setOpenEventId(id)}
+          events={events}
+          photoSummaries={photoSummaries}
           onMemberClick={onMemberClick}
           onBlocked={() => setCountsVersion((v) => v + 1)}
-          onClose={() => setFeedDate(null)}
+          onEventsChanged={loadEvents}
+          onClose={() => setDaySheet(null)}
         />
       )}
 

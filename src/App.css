@@ -13591,24 +13591,18 @@ body.workout-detail-open .bottom-nav {
   pointer-events: none;
 }
 
-.club-calendar-grid .react-calendar__tile.has-event {
+.club-calendar-grid .react-calendar__tile {
   position: relative;
 }
 
-.club-calendar-grid .react-calendar__tile.has-event::after {
-  content: '';
+/* 행사 있는 날: 행사 종류 아이콘을 우상단에 작게. 하단엔 운동 갯수 숫자가 들어간다.
+   이모지는 고유 색이라 선택된 칸(그라데이션 배경)에서도 따로 바꿀 게 없다. */
+.cal-event-icon {
   position: absolute;
-  /* 하단엔 운동 갯수 숫자가 들어가므로 행사 점은 우상단으로 (겹침 방지) */
-  top: 4px;
-  right: 4px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--primary-color);
-}
-
-.club-calendar-grid .react-calendar__tile--active.has-event::after {
-  background: var(--on-accent);
+  top: 2px;
+  right: 3px;
+  font-size: 10px;
+  line-height: 1;
 }
 
 /* ---------- 클럽달력: 날짜별 운동 갯수 + 핀셋 필터 (docs/plans/club-workout-calendar.md) ---------- */
@@ -13706,33 +13700,172 @@ body.workout-detail-open .bottom-nav {
 /* 날짜 탭 → 그날 피드 시트. 간격은 변수로만 (바텀시트 가이드 4-3) */
 .day-feed-sheet {
   --sheet-gap: 12px;
+  --day-sheet-header-h: 48px;
 }
 
-.day-feed-events {
+/* 날짜 이동 줄 + 탭: 헤더 바로 아래에 고정한다 (바텀시트 가이드 4절).
+   헤더가 자기 원래 자리(top = 핸들 8px + gap)에 붙고 높이가 --day-sheet-header-h 이므로
+   그 바로 아래에 이어 붙인다 — 헤더 바닥과 맞닿아 있어 틈이 없다. */
+.day-sheet-sticky {
+  position: sticky;
+  top: calc(8px + var(--sheet-gap, 0px) + var(--day-sheet-header-h));
+  z-index: 1;
+  background: var(--card-bg);
+  margin: 0 calc(-1 * var(--sheet-pad-x, 0px));
+  padding: 0 var(--sheet-pad-x, 0px) 4px;
+}
+
+.day-sheet-sticky .feed-date-navigation {
+  margin-bottom: 8px;
+}
+
+.day-sheet-tabs {
+  margin: 0;
+}
+
+.day-sheet-filter-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.day-event-list {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.day-feed-event-chip {
+.day-sheet-back-btn {
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  max-width: 100%;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--border-color);
-  background: var(--input-bg);
-  color: var(--text-primary);
-  font-size: 13px;
+  gap: 2px;
+  padding: 4px 8px 4px 4px;
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 14px;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
 }
 
-.day-feed-event-title {
+.day-sheet-create-btn {
+  margin: 12px auto 0;
+}
+
+/* ---------- 클럽달력 페이지: 오늘 카드 / 섹션 헤더 / D-day / 지난 행사 ---------- */
+
+.club-today-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.club-today-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 8px;
+}
+
+.club-today-body {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.club-today-summary {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.club-today-more {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.club-today-meta {
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.club-today-photos {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.club-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.club-section-action {
+  background: var(--gradient-primary);
+  color: var(--on-accent);
+  border: none;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.club-section-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.club-section-more {
+  align-self: center;
+  background: none;
+  border: none;
+  padding: 4px 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.dday-badge {
+  flex-shrink: 0;
+  min-width: 40px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: var(--gradient-light);
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.past-event-cover {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--input-bg);
 }
 
 .date-events-panel {

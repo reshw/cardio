@@ -34,6 +34,12 @@ export interface EventPhoto {
   profile_image?: string;
 }
 
+/** 행사별 사진 요약 — 지난 행사 앨범·오늘 카드용 (대표 사진 = 가장 먼저 올라온 것) */
+export interface EventPhotoSummary {
+  count: number;
+  coverUrl: string;
+}
+
 export interface EventCheckin {
   id: string;
   event_id: string;
@@ -394,6 +400,29 @@ const clubEventService = {
       nickname: nicknameMap.get(p.user_id)?.nickname ?? '회원',
       profile_image: nicknameMap.get(p.user_id)?.profileImage,
     }));
+  },
+
+  /** 행사 ID별 사진 수 + 대표 사진 (사진 없는 행사는 키 자체가 없다) */
+  async listEventPhotoSummaries(eventIds: string[]): Promise<Record<string, EventPhotoSummary>> {
+    if (eventIds.length === 0) return {};
+    const { data, error } = await supabase
+      .from('club_event_photos')
+      .select('event_id, photo_url, created_at')
+      .in('event_id', eventIds)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('[클럽달력] 행사 사진 요약 조회 실패:', JSON.stringify(error), error);
+      throw error;
+    }
+
+    const map: Record<string, EventPhotoSummary> = {};
+    for (const p of data ?? []) {
+      const cur = map[p.event_id];
+      if (cur) cur.count += 1;
+      else map[p.event_id] = { count: 1, coverUrl: p.photo_url };
+    }
+    return map;
   },
 
   /** uploadToR2로 이미 올라간 사진 URL을 행사 갤러리에 등록 */
