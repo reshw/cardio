@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
+import clubPermissionService from '../services/clubPermissionService';
 import teamMatchService from '../services/teamMatchService';
 import { getExpressions } from '../utils/mileageExpressions';
 import { CreateClubModal } from '../components/CreateClubModal';
@@ -136,6 +137,18 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [categoryStatsLoading, setCategoryStatsLoading] = useState(false);
   const categoryStatsRequestId = useRef(0);
   const categoryStatsKeyRef = useRef<string | null>(null); // 마지막으로 fetch 성공한 club-year-month
+  // 클럽달력 행사 관리 권한 — 방장/부방장 외에 'manage_events' 커스텀 등급(예: 파트장)도 포함
+  const [canManageEventsByRole, setCanManageEventsByRole] = useState(false);
+  useEffect(() => {
+    const clubId = selectedClub?.id;
+    if (!clubId) { setCanManageEventsByRole(false); return; }
+    let cancelled = false;
+    setCanManageEventsByRole(false);
+    clubPermissionService.canManageEvents(clubId)
+      .then((ok) => { if (!cancelled) setCanManageEventsByRole(ok); })
+      .catch((err) => console.error('[Club] 행사관리 권한 조회 실패 상세:', JSON.stringify(err), err));
+    return () => { cancelled = true; };
+  }, [selectedClub?.id]);
   const [showMemberSearch, setShowMemberSearch] = useState(false);
   useModalHistory(showMemberSearch, () => setShowMemberSearch(false));
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
@@ -1328,7 +1341,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           clubId={selectedClub.id}
           clubName={selectedClub.name}
           userId={user.id}
-          isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
+          isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager' || canManageEventsByRole}
           eventsEnabled={isClubFeatureOn(selectedClub, 'calendar')}
           categoryOptions={mileageCategoryOptions}
           enabledCategorySet={enabledCategorySet}

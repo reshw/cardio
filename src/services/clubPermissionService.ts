@@ -175,6 +175,16 @@ const clubPermissionService = {
       throw error;
     }
   },
+
+  /** 행사(클럽달력) 관리 가능 여부 — 방장/부방장 OR 'manage_events' 커스텀 등급 소속. RLS 와 같은 함수로 판정. */
+  async canManageEvents(clubId: string): Promise<boolean> {
+    const { data, error } = await supabase.rpc('is_club_event_manager', { p_club_id: clubId });
+    if (error) {
+      console.error('[권한관리] 행사관리 권한 조회 실패:', JSON.stringify(error), error);
+      throw error;
+    }
+    return data === true;
+  },
 };
 
 export default clubPermissionService;
