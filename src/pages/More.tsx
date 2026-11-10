@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Shield, ShieldCheck, BookOpen, Smartphone, UserX, Image, MessageSquarePlus, Unlink, Trash2 } from 'lucide-react';
+import { Shield, ShieldCheck, BookOpen, Smartphone, UserX, Image, MessageSquarePlus, Unlink, Trash2, GitMerge } from 'lucide-react';
 import { InstallGuideModal } from '../components/InstallGuideModal';
 import { FeedbackModal } from '../components/FeedbackModal';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../hooks/useTheme';
+import { useHealthSync } from '../hooks/useHealthSync';
 import userService from '../services/userService';
 import { useModalHistory } from '../hooks/useModalHistory';
 
@@ -21,6 +22,7 @@ const SHOW_EXTERNAL_INTEGRATIONS = false;
 export const More = () => {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const healthSync = useHealthSync();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showInstallGuide, setShowInstallGuide] = useState(false);
@@ -330,6 +332,22 @@ export const More = () => {
               <span className="toggle-slider" />
             </label>
           </div>
+          {healthSync.available && (
+            <div className="menu-item-btn" style={{ cursor: 'default' }}>
+              <div className="menu-item-left">
+                <span style={{ fontSize: 20 }}>❤️‍🩹</span>
+                <span>헬스 데이터 자동 동기화</span>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={healthSync.enabled}
+                  onChange={() => healthSync.setEnabled(!healthSync.enabled)}
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+          )}
           {typeof window !== 'undefined' && window.CardioNative?.openHealthSync && (
             <button
               className="menu-item-btn"
@@ -358,6 +376,23 @@ export const More = () => {
           </button>
         </div>
       </div>
+
+      {!user?.isGuest && (
+        <div className="section">
+          <h3>디버그 도구</h3>
+          <div className="menu-list">
+            <button
+              className="menu-item-btn"
+              onClick={() => navigate('/debug/merge-requests')}
+            >
+              <div className="menu-item-left">
+                <GitMerge size={20} />
+                <span>개인 기록 병합신청</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="section">
         <h3>앱 정보</h3>

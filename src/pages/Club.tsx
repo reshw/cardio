@@ -13,11 +13,14 @@ import { ClubMemberDetailModal } from '../components/ClubMemberDetailModal';
 import type { MyClubWithOrder, ClubRanking, ClubDetailedStats } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
+import { CardioWrapped } from '../components/CardioWrapped';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { TeamAssignModal } from '../components/TeamAssignModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
 import { useModalHistory } from '../hooks/useModalHistory';
 import { useConfirm } from '../hooks/useConfirm';
+import { shareClubInvite, buildInviteUrl } from '../utils/shareInvite';
+import { isClubFeatureOn } from '../config/clubFeatures';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, Lock, Image, Filter } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
 
@@ -75,6 +78,7 @@ export const Club = () => {
   const [showClubMenu, setShowClubMenu] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showWrapped, setShowWrapped] = useState(false);
   useModalHistory(showClubMenu, () => setShowClubMenu(false));
   useModalHistory(showInviteModal, () => setShowInviteModal(false));
   const [challengeMenuOpen, setChallengeMenuOpen] = useState(false);
@@ -97,14 +101,6 @@ export const Club = () => {
   type TabType = 'ranking' | 'feed' | 'events';
   const [activeTab, setActiveTab] = useState<TabType>((location.state as { tab?: TabType } | null)?.tab ?? 'feed');
 
-  // 클럽달력이 opt-in 이라 꺼진 클럽에서 activeTab 이 'events' 로 남아있으면(딥링크 등) 안 보이는 탭에 갇히므로 되돌림
-  useEffect(() => {
-    if (activeTab === 'events' && selectedClub && !(selectedClub.enabled_features ?? []).includes('calendar')) {
-      setActiveTab('feed');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClub]);
-
   // 마일리지 표현 state
   const [mileageExpressions, setMileageExpressions] = useState(() => getExpressions(0, 1));
 
@@ -122,6 +118,11 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [rankingTab, setRankingTab] = useState<RankingTab>('myrank');
   const [showHof, setShowHof] = useState(false);
   const [hideHof, setHideHof] = useState(false);
+  // 운영진 제외 — 운영진(방장/부방장)만 켤 수 있는 필터.
+  // 권한 없는 클럽으로 전환해도 잔류 state 가 몰래 적용되지 않도록,
+  // 아래 canFilterStaff 로 "적용" 시점에도 한 번 더 막는다.
+  const [hideStaff, setHideStaff] = useState(false);
+  const canFilterStaff = selectedClub?.role === 'manager' || selectedClub?.role === 'vice-manager';
   const [rookieOnly, setRookieOnly] = useState(false);
   const rankingRequestId = useRef(0);
 
@@ -524,53 +525,18 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     }
   };
 
-  // 카카오톡으로 클럽 초대 공유
-  const handleKakaoInviteShare = () => {
+  // 클럽 초대 공유 — 환경별 4단 폴백 (네이티브 공유시트 → Web Share → 카카오 SDK → 클립보드).
+  // 앱 웹뷰 안에서는 카카오 SDK 가 kakaolink:// 스킴을 못 띄워 무반응이 되므로 직접 부르지 않는다.
+  const handleKakaoInviteShare = async () => {
     if (!selectedClub) return;
-
-    if (!window.Kakao || !window.Kakao.isInitialized()) {
-      alert('카카오톡 공유 기능을 사용할 수 없습니다.');
-      return;
-    }
-
-    const inviteUrl = `${window.location.origin}/join/${selectedClub.invite_code}`;
-
-    console.log('🔗 생성된 초대 URL:', inviteUrl);
-    console.log('📋 초대 코드:', selectedClub.invite_code);
-
     try {
-      const shareData: any = {
-        objectType: 'feed',
-        content: {
-          title: `🏃 ${selectedClub.name} 클럽 초대`,
-          description: `${selectedClub.name} 클럽에 초대합니다!\n함께 운동하며 건강한 습관을 만들어봐요 💪`,
-          link: {
-            mobileWebUrl: inviteUrl,
-            webUrl: inviteUrl,
-          },
-        },
-        buttons: [
-          {
-            title: '클럽 가입하기',
-            link: {
-              mobileWebUrl: inviteUrl,
-              webUrl: inviteUrl,
-            },
-          },
-        ],
-      };
-
-      // imageUrl은 존재할 때만 추가
-      if (selectedClub.logo_url) {
-        shareData.content.imageUrl = selectedClub.logo_url;
-      }
-
-      console.log('카카오 클럽 초대 공유 데이터:', shareData);
-      window.Kakao.Share.sendDefault(shareData);
+      const result = await shareClubInvite(selectedClub);
+      // OS/카톡이 자기 UI 를 띄우는 경우엔 우리가 덧붙이면 중복이다
+      if (result === 'clipboard') alert('초대 메시지가 복사되었습니다! 📋');
       setShowInviteModal(false);
-    } catch (error) {
-      console.error('카카오톡 공유 실패:', error);
-      alert('카카오톡 공유에 실패했습니다.');
+    } catch (err: any) {
+      console.error('[클럽초대] 공유 실패 상세:', JSON.stringify(err), err);
+      alert(`공유에 실패했습니다: ${err?.message || err?.error_description || JSON.stringify(err)}`);
     }
   };
 
@@ -578,7 +544,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const handleCopyInviteLink = () => {
     if (!selectedClub) return;
 
-    const inviteUrl = `${window.location.origin}/join/${selectedClub.invite_code}`;
+    const inviteUrl = buildInviteUrl(selectedClub.invite_code);
     const copyText = `${selectedClub.name} 클럽으로 초대합니다.\n${inviteUrl}`;
 
     if (navigator.clipboard && window.isSecureContext) {
@@ -599,6 +565,12 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
       setShowInviteModal(false);
     }
   };
+
+  // 카디오 랩드 노출 연도: 11~12월 = 올해, 1월 = 작년, 그 외 숨김
+  const nowForWrapped = new Date();
+  const wrappedYear = nowForWrapped.getMonth() >= 10
+    ? nowForWrapped.getFullYear()
+    : nowForWrapped.getMonth() === 0 ? nowForWrapped.getFullYear() - 1 : null;
 
   return (
     <div className="container">
@@ -693,6 +665,18 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         </div>
       )}
 
+      {/* 카디오 랩드 — 11~12월엔 올해, 1월엔 작년 결산 */}
+      {selectedClub && user && !user.isGuest && wrappedYear !== null && (
+        <button className="cw-entry" type="button" onClick={() => setShowWrapped(true)}>
+          <span className="cw-entry-emoji" aria-hidden>🎁</span>
+          <span className="cw-entry-text">
+            <strong>나의 {wrappedYear} 카디오 랩드</strong>
+            <small>올해 내 기록을 한 장씩 넘겨보세요</small>
+          </span>
+          <ChevronRight size={18} />
+        </button>
+      )}
+
       {/* 챌린지 섹션 */}
       {selectedClub && user && (
         <ClubChallengeSection
@@ -716,7 +700,9 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         const activePeriods = periods.filter(p => today >= p.from && today <= p.to);
         const isLockPeriod = activePeriods.length > 0; // 잠금 기간 여부 (역할 무관)
         const isMileageBlocked = isLockPeriod && !isAdmin; // 일반회원만 실제 차단
-        const showCalendarTab = (selectedClub.enabled_features ?? []).includes('calendar'); // opt-in — docs/plans/클럽-탭-optin.md
+        // 클럽달력 탭은 항상 노출 — 날짜별 운동 갯수는 모든 클럽에 의미가 있다.
+        // 행사 기능만 opt-out 대상이고 탭 안에서 가린다 (docs/plans/club-workout-calendar.md)
+        const showCalendarTab = true;
         const tabCount = showCalendarTab ? 3 : 2;
         return (
           <>
@@ -1011,6 +997,9 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             // 필터 체크박스 적용
             let filtered = withRecord;
             if (hideHof) filtered = filtered.filter(m => !m.is_hall_of_fame);
+            if (hideStaff && canFilterStaff) {
+              filtered = filtered.filter(m => m.role !== 'manager' && m.role !== 'vice-manager');
+            }
             if (rookieOnly) filtered = filtered.filter(m => m.is_rookie);
 
             // 필터 적용 후 순위 재계산
@@ -1091,6 +1080,12 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                       <input type="checkbox" checked={hideHof} onChange={e => setHideHof(e.target.checked)} />
                       <span>명전 제외</span>
                     </label>
+                    {canFilterStaff && (
+                      <label className="filter-check-label">
+                        <input type="checkbox" checked={hideStaff} onChange={e => setHideStaff(e.target.checked)} />
+                        <span>운영진 제외</span>
+                      </label>
+                    )}
                     {selectedClub?.rookie_league_enabled !== false && (
                       <label className="filter-check-label">
                         <input type="checkbox" checked={rookieOnly} onChange={e => setRookieOnly(e.target.checked)} />
@@ -1140,6 +1135,12 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                     <input type="checkbox" checked={hideHof} onChange={e => { setHideHof(e.target.checked); setShowFullList(false); }} />
                     <span>명전 제외</span>
                   </label>
+                  {canFilterStaff && (
+                    <label className="filter-check-label">
+                      <input type="checkbox" checked={hideStaff} onChange={e => { setHideStaff(e.target.checked); setShowFullList(false); }} />
+                      <span>운영진 제외</span>
+                    </label>
+                  )}
                   {selectedClub?.rookie_league_enabled !== false && (
                     <label className="filter-check-label">
                       <input type="checkbox" checked={rookieOnly} onChange={e => { setRookieOnly(e.target.checked); setShowFullList(false); }} />
@@ -1325,8 +1326,13 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
       {activeTab === 'events' && selectedClub && user && (
         <ClubCalendarTab
           clubId={selectedClub.id}
+          clubName={selectedClub.name}
           userId={user.id}
           isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
+          eventsEnabled={isClubFeatureOn(selectedClub, 'calendar')}
+          categoryOptions={mileageCategoryOptions}
+          enabledCategorySet={enabledCategorySet}
+          onMemberClick={(userId, userName) => openMemberDetail(userId, userName)}
         />
       )}
 
@@ -1799,6 +1805,23 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           </div>
         </div>
       )}
+
+      {showWrapped && selectedClub && user && wrappedYear !== null && (() => {
+        const isAdmin = selectedClub.role === 'manager' || selectedClub.role === 'vice-manager';
+        const day = new Date().getDate();
+        const locked = (selectedClub.mileage_hide_periods || []).some(p => day >= p.from && day <= p.to);
+        return (
+          <CardioWrapped
+            clubId={selectedClub.id}
+            clubName={selectedClub.name}
+            userId={user.id}
+            fallbackName={user.display_name}
+            year={wrappedYear}
+            hideRank={locked && !isAdmin}
+            onClose={() => setShowWrapped(false)}
+          />
+        );
+      })()}
 
       {ConfirmDialog}
     </div>

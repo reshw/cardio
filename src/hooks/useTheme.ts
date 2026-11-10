@@ -85,7 +85,8 @@ const setThemeGlobal = (next: Theme) => {
 
 // 네이티브 → 웹 인바운드 채널 등록. 모듈 로드 시점에 열어 둬야
 // 네이티브가 React 마운트를 기다리지 않고 바로 밀어넣을 수 있다.
-window.CardioWeb = { setTheme: setThemeGlobal };
+// 다른 모듈(useHealthSync 등)이 먼저 등록한 CardioWeb 키를 덮지 않도록 병합한다.
+window.CardioWeb = { ...window.CardioWeb, setTheme: setThemeGlobal };
 
 // 부팅 직후 1회 통지. DOM 적용 자체는 index.html 스크립트가 이미 했으므로 재적용은 무해하고,
 // 실제 목적은 네이티브에 현재 테마를 알리는 것이다.

@@ -25,10 +25,12 @@ export const JoinClub = () => {
   // 비로그인 사용자 처리
   useEffect(() => {
     if (!authLoading && !user) {
-      // 현재 경로를 저장하고 로그인 페이지로 리디렉트
       const currentPath = code ? `/join/${code}` : '/join';
       sessionStorage.setItem('redirect_after_login', currentPath);
-      navigate('/');
+      // 코드가 있으면 초대 게이트웨이로 — 로그인 화면에 바로 던지면 어떤 클럽인지도 모른 채
+      // 로그인부터 요구받게 된다. 게이트웨이가 클럽을 보여주고 환경별 경로를 안내한다.
+      // (예전에 뿌려진 /join/:code 링크도 이 경로로 새 경험에 수렴한다)
+      navigate(code ? `/i/${code}` : '/', { replace: true });
     }
   }, [user, authLoading, code, navigate]);
 

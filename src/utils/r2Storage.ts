@@ -120,17 +120,22 @@ const compressImageForUpload = async (file: File, maxWidth: number, quality: num
       }
       ctx.drawImage(img, 0, 0, width, height);
 
+      // 서버(api/upload-to-r2)가 어차피 sharp로 webp 재인코딩하므로 클라이언트
+      // 출력 포맷은 "업로드 전 용량을 확실히 줄이는" 역할만 하면 된다. webp는
+      // iOS WKWebView(Safari 엔진)에서 canvas.toBlob 인코딩 지원이 불안정해서
+      // 디코딩 실패 시 무압축 PNG로 폴백 → 오히려 용량이 커져 413(Payload Too
+      // Large)이 났다. jpeg는 모든 브라우저/WebView에서 인코딩이 보장된다.
       canvas.toBlob(
         (blob) => {
           if (blob) {
-            const out = new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), { type: 'image/webp' });
+            const out = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
             console.log(`🗜️ 압축: ${(file.size / 1024 / 1024).toFixed(1)}MB → ${(out.size / 1024 / 1024).toFixed(1)}MB (orientation: ${orientation})`);
-            resolve(out);
+            resolve(out.size > 0 && out.size < file.size ? out : file);
           } else {
             resolve(file);
           }
         },
-        'image/webp',
+        'image/jpeg',
         quality / 100,
       );
     };
@@ -165,6 +170,9 @@ export const uploadToR2 = async (file: File, profile: ImageUploadProfile = 'proo
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ 업로드 실패 응답:', errorText);
+      if (response.status === 413) {
+        throw new Error('이미지 용량이 너무 큽니다. 압축 후에도 서버 업로드 한도를 넘었습니다 — 다른 사진으로 시도해주세요. (413)');
+      }
       throw new Error(`이미지 업로드에 실패했습니다. (${response.status})`);
     }
 

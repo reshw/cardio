@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { uploadToR2 } from '../utils/r2Storage';
+import { sendDebugLog } from '../utils/sendDebugLog';
 
 /**
  * 가벼운 사진 업로드 전용 페이지.
@@ -13,22 +14,40 @@ const LOG_KEY = 'photo_upload_log';
 
 export default function PhotoUpload() {
   const navigate = useNavigate();
-  const isDebug = window.location.hash.includes('debug=1') || new URLSearchParams(window.location.search).get('debug') === '1';
+  const isDebug = window.location.hash.includes('debug=1')
+    || new URLSearchParams(window.location.search).get('debug') === '1'
+    || (() => { try { return localStorage.getItem('diag-enabled') === '1'; } catch { return false; } })();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 로그는 항상 기록한다(인앱에서 콘솔이 안 보이므로) — isDebug 는 패널 표시 여부만 결정
   const [logs, setLogs] = useState<{ t: string; msg: string; color: string }[]>(() => {
-    if (!isDebug) return [];
     try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch { return []; }
   });
+  const [mailStatus, setMailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [mailError, setMailError] = useState<string | null>(null);
 
   const log = (msg: string, color = '#fff') => {
-    if (!isDebug) return;
     const t = new Date().toISOString().slice(11, 23);
     setLogs(prev => {
       const next = [...prev.slice(-49), { t, msg, color }];
       try { localStorage.setItem(LOG_KEY, JSON.stringify(next)); } catch {}
       return next;
     });
+  };
+
+  const mailLogs = async () => {
+    setMailStatus('sending');
+    setMailError(null);
+    try {
+      log('디버그 로그 메일 전송 시도', '#ff8');
+      const lines = JSON.parse(localStorage.getItem(LOG_KEY) || '[]')
+        .map((l: { t: string; msg: string }) => `${l.t} ${l.msg}`);
+      await sendDebugLog('photo-upload', lines, { hasError: error, uploading });
+      setMailStatus('sent');
+    } catch (err) {
+      setMailStatus('error');
+      setMailError(err instanceof Error ? err.message : String(err));
+    }
   };
 
   useEffect(() => {
@@ -71,7 +90,7 @@ export default function PhotoUpload() {
         <h1>사진 첨부</h1>
       </div>
 
-      <div style={{ padding: '24px 20px', minHeight: 'calc(100vh - 56px)', background: 'var(--bg-color, #fff)' }}>
+      <div style={{ padding: '24px 20px', background: 'var(--bg-color, #fff)' }}>
         {uploading ? (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <div className="spinner" style={{ margin: '0 auto 16px' }} />
@@ -84,9 +103,13 @@ export default function PhotoUpload() {
               운동 기록 화면으로 돌아갑니다.
             </p>
 
+            {/* 안드로이드 WebView는 pointer-events:none + 1x1 로 숨긴 file input 을
+                label 로 포워딩해도 갤러리(onShowFileChooser)를 안 여는 기기가 있다.
+                실제 <input type=file> 를 버튼 위에 풀사이즈로 얹어 사용자가 직접 탭하게 한다. */}
             <label
-              htmlFor="photo-upload-input"
+              onClick={() => log('label tap', '#ff8')}
               style={{
+                position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -100,17 +123,26 @@ export default function PhotoUpload() {
                 userSelect: 'none',
                 WebkitTapHighlightColor: 'transparent',
                 boxShadow: '0 4px 14px rgba(79, 195, 247, 0.3)',
+                overflow: 'hidden',
               }}
             >
               📷 갤러리에서 사진 선택
+              <input
+                id="photo-upload-input"
+                type="file"
+                accept="image/*"
+                onChange={onChange}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  opacity: 0,
+                  cursor: 'pointer',
+                  fontSize: 100, // iOS: 탭 타깃을 요소 전체로 키움
+                }}
+              />
             </label>
-            <input
-              id="photo-upload-input"
-              type="file"
-              accept="image/*"
-              onChange={onChange}
-              style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
-            />
 
             {error && (
               <div style={{
@@ -159,6 +191,7 @@ export default function PhotoUpload() {
             overflowY: 'auto',
           }}>
             <div style={{ marginBottom: 6 }}>🐛 로그</div>
+            <div style={{ color: '#8cf', padding: '2px 0', borderBottom: '1px solid #222', wordBreak: 'break-all' }}>UA: {navigator.userAgent}</div>
             {logs.length === 0 && <div style={{ color: '#888' }}>이벤트 없음</div>}
             {logs.map((l, i) => (
               <div key={i} style={{ color: l.color, padding: '2px 0', borderBottom: '1px solid #222' }}>
@@ -168,6 +201,25 @@ export default function PhotoUpload() {
           </div>
         )}
       </div>
+
+      {/* 임시 디버그: 인앱에서 콘솔이 안 보이므로 로그를 메일로 전송 (좌하단 고정) */}
+      <button
+        type="button"
+        onClick={mailLogs}
+        disabled={mailStatus === 'sending'}
+        style={{
+          position: 'fixed', left: 8, bottom: 16, zIndex: 9998,
+          padding: '6px 10px', borderRadius: 8, border: 'none',
+          fontSize: 11, fontFamily: 'monospace',
+          background: mailStatus === 'sent' ? '#2e7d32' : mailStatus === 'error' ? '#c62828' : 'rgba(0,0,0,0.55)',
+          color: '#fff',
+        }}
+      >
+        {mailStatus === 'sending' ? '전송중…'
+          : mailStatus === 'sent' ? '✅ 로그전송됨'
+          : mailStatus === 'error' ? `실패:${mailError?.slice(0, 20)}`
+          : '🐛 로그 메일'}
+      </button>
     </div>
   );
 }

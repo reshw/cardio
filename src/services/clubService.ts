@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase';
-import userService from './userService';
 import { sendClubRequestEmail } from '../utils/email';
 import workoutTypeService from './workoutTypeService';
 
@@ -23,7 +22,7 @@ export interface Club {
   rookie_league_enabled?: boolean; // 루키리그 기능 활성화 여부
   mileage_hide_periods?: { from: number; to: number }[]; // 마일리지 탭 숨김 기간 목록
   mileage_filter_categories?: string[] | null; // 마일리지 탭 종목별 필터 칩 화이트리스트 (null = 활성화 종목 전체 노출)
-  enabled_features?: string[]; // opt-in 기능 키 목록 (예: 'calendar') — docs/plans/클럽-탭-optin.md
+  disabled_features?: string[]; // 운영진이 끈 기능 키 목록 (opt-out, 비면 전부 켜짐) — docs/plans/club-workout-calendar.md
 }
 
 // 동적 마일리지 설정 (모든 운동 종목 지원)
@@ -114,6 +113,7 @@ export interface ClubRanking {
   is_hall_of_fame?: boolean;  // 명예의 전당 여부
   hof_reason?: string;  // 명예의 전당 사유
   is_rookie?: boolean;  // 루키리그 여부 (한 번도 월 100점 미달성)
+  role?: 'manager' | 'vice-manager' | 'member';  // 클럽 내 직책 (운영진 제외 필터용)
 }
 
 export interface ClubWorkoutMileage {
@@ -467,16 +467,48 @@ class ClubService {
     }
   }
 
-  async updateEnabledFeatures(clubId: string, enabledFeatures: string[]): Promise<void> {
+  async updateDisabledFeatures(clubId: string, disabledFeatures: string[]): Promise<void> {
     const { error } = await supabase
       .from('clubs')
-      .update({ enabled_features: enabledFeatures })
+      .update({ disabled_features: disabledFeatures })
       .eq('id', clubId);
 
     if (error) {
-      console.error('[클럽 탭 관리] opt-in 기능 변경 실패:', JSON.stringify(error), error);
+      console.error('[클럽 기능 관리] 기능 on/off 변경 실패:', JSON.stringify(error), error);
       throw error;
     }
+  }
+
+  // 날짜별 운동 갯수 (클럽달력). 오늘운동 피드와 같은 규칙으로 센다 — 달력 숫자를 누르면
+  // 그 날짜 피드가 열리므로 두 수가 반드시 일치해야 한다. 규칙은 RPC 주석 참고.
+  async getWorkoutDayCounts(
+    clubId: string,
+    year: number,
+    month: number, // 1-12
+    filters: { userId?: string | null; category?: string | null } = {}
+  ): Promise<Record<string, number>> {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const lastDay = new Date(year, month, 0).getDate();
+    const { data, error } = await supabase.rpc('get_club_workout_day_counts', {
+      p_club_id: clubId,
+      p_start_date: `${year}-${pad(month)}-01`,
+      p_end_date: `${year}-${pad(month)}-${pad(lastDay)}`,
+      p_user_id: filters.userId ?? null,
+      p_category: filters.category ?? null,
+    });
+
+    if (error) {
+      console.error('[클럽달력] 날짜별 운동 갯수 조회 실패 상세:', JSON.stringify(error), error);
+      const msg = error.message || error.details || error.hint || JSON.stringify(error);
+      throw new Error(`운동 갯수 조회 실패: ${msg}`);
+    }
+
+    // 'YYYY-MM-DD' → 건수
+    const map: Record<string, number> = {};
+    (data || []).forEach((r: { workout_date: string; workout_count: number }) => {
+      map[r.workout_date] = Number(r.workout_count) || 0;
+    });
+    return map;
   }
 
   // 클럽 삭제
@@ -671,7 +703,7 @@ class ClubService {
   async getClubMembers(clubId: string): Promise<ClubMember[]> {
     const { data: members, error } = await supabase
       .from('club_members')
-      .select('id, club_id, user_id, role, joined_at, display_order, club_nickname, club_profile_image')
+      .select('id, club_id, user_id, role, joined_at, display_order, club_nickname, club_profile_image, show_in_feed')
       .eq('club_id', clubId);
 
     if (error) {
@@ -883,7 +915,7 @@ class ClubService {
     // 클럽 멤버 조회 (show_mileage=true만)
     const { data: members, error: membersError } = await supabase
       .from('club_members')
-      .select('user_id, club_nickname, club_profile_image, rookie_graduated_at')
+      .select('user_id, club_nickname, club_profile_image, rookie_graduated_at, role')
       .eq('club_id', clubId)
       .eq('show_mileage', true);
 
@@ -896,10 +928,12 @@ class ClubService {
     const nicknameMap: Record<string, string> = {};
     const clubProfileImageMap: Record<string, string> = {};
     const rookieMap: Record<string, boolean> = {};
+    const roleMap: Record<string, 'manager' | 'vice-manager' | 'member'> = {};
     members.forEach((m) => {
       if (m.club_nickname) nicknameMap[m.user_id] = m.club_nickname;
       if (m.club_profile_image) clubProfileImageMap[m.user_id] = m.club_profile_image;
       rookieMap[m.user_id] = !m.rookie_graduated_at;
+      roleMap[m.user_id] = m.role ?? 'member';
     });
 
     const targetMonth = month || {
@@ -978,6 +1012,7 @@ class ClubService {
         is_hall_of_fame: hofSet.has(user.id),
         hof_reason: hofReasonMap[user.id] || undefined,
         is_rookie: rookieMap[user.id] ?? true,
+        role: roleMap[user.id] ?? 'member',
       }))
       .sort((a, b) => b.total_mileage - a.total_mileage)
       .map((item, index) => ({ ...item, rank: index + 1 }));
@@ -1466,37 +1501,23 @@ class ClubService {
     try {
       console.log('📧 클럽 생성 이메일 발송 시작:', club.name);
 
-      // 어드민 이메일 목록 조회
-      const adminEmails = await userService.getAdminEmails();
-      console.log('👥 조회된 어드민 이메일:', adminEmails);
-
-      if (adminEmails.length === 0) {
-        console.warn('⚠️  어드민 이메일이 없어 알림을 보낼 수 없습니다.');
-        return;
-      }
-
       // 생성자 정보 조회
       const { data: creator } = await supabase
         .from('users')
         .select('display_name')
         .eq('id', creatorId)
-        .single();
+        .maybeSingle();
 
       const creatorName = creator?.display_name || '알 수 없음';
 
-      // 각 어드민에게 이메일 발송
-      await Promise.all(
-        adminEmails.map((adminEmail) =>
-          sendClubRequestEmail({
-            adminEmail,
-            clubName: club.name,
-            clubDescription: club.description,
-            creatorName,
-          })
-        )
-      );
+      // 수신자(어드민 이메일)는 서버가 결정한다 — 클라이언트는 지정하지 않는다.
+      await sendClubRequestEmail({
+        clubName: club.name,
+        clubDescription: club.description,
+        creatorName,
+      });
 
-      console.log(`✅ ${adminEmails.length}명의 어드민에게 이메일 발송 완료`);
+      console.log('✅ 어드민 클럽 신청 알림 요청 완료');
     } catch (error) {
       console.error('❌ 어드민 이메일 발송 실패:', error);
       // 에러를 throw하지 않아 클럽 생성은 계속 진행됨

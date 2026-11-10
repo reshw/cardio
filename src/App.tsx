@@ -24,10 +24,12 @@ import { ClubGrowthDashboard } from './components/ClubGrowthDashboard';
 import { ClubMySettings } from './pages/ClubMySettings';
 import { ClubTransferOwnership } from './pages/ClubTransferOwnership';
 import { ClubMembers } from './pages/ClubMembers';
+import { ClubAwards } from './pages/ClubAwards';
 import { ClubGallery } from './pages/ClubGallery';
 import { ProtectedClubRoute } from './components/ProtectedClubRoute';
 import { More } from './pages/More';
 import { BlockedMembers } from './pages/BlockedMembers';
+import { DebugMergeRequests } from './pages/DebugMergeRequests';
 import { AdminPage } from './pages/AdminPage';
 import { AdminClubApproval } from './pages/AdminClubApproval';
 import { AdminUserManagement } from './pages/AdminUserManagement';
@@ -42,6 +44,7 @@ import { TermsOfService } from './pages/TermsOfService';
 import { Download } from './pages/Download';
 import { Support } from './pages/Support';
 import { JoinClub } from './pages/JoinClub';
+import { InviteLanding } from './pages/InviteLanding';
 import { AppGuide } from './pages/AppGuide';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
@@ -151,6 +154,11 @@ function ProtectedRoutes() {
               <ClubSocialSettings />
             </ProtectedClubRoute>
           } />
+          <Route path="/club/settings/:clubId/awards" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubAwards />
+            </ProtectedClubRoute>
+          } />
           <Route path="/club/settings/:clubId/permissions" element={
             <ProtectedClubRoute requireAdmin>
               <ClubPermissions />
@@ -175,6 +183,7 @@ function ProtectedRoutes() {
           <Route path="/join/:code" element={<JoinClub />} />
           <Route path="/more" element={<More />} />
           <Route path="/blocked-members" element={<BlockedMembers />} />
+          <Route path="/debug/merge-requests" element={<DebugMergeRequests />} />
           <Route path="/guide" element={<AppGuide />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/club-approval" element={<AdminClubApproval />} />
@@ -210,6 +219,8 @@ function App() {
           {/* App Store Connect 지원 URL — 심사자는 비로그인이라 반드시 public 이어야 한다 */}
           <Route path="/support" element={<Support />} />
           <Route path="/download" element={<Download />} />
+          {/* 클럽 초대 게이트웨이 — 카카오 공유 링크의 착지점. 비로그인 외부인이 보므로 public */}
+          <Route path="/i/:code" element={<InviteLanding />} />
           <Route path="/photo-upload" element={<PhotoUpload />} />
 
           {/* Android 앱 세션 브릿지 */}
