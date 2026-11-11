@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { sendClubRequestEmail } from '../utils/email';
 import workoutTypeService from './workoutTypeService';
+import type { WrappedPeriod } from '../utils/wrappedPeriod';
 
 export interface Club {
   id: string;
@@ -22,6 +23,7 @@ export interface Club {
   rookie_league_enabled?: boolean; // 루키리그 기능 활성화 여부
   mileage_hide_periods?: { from: number; to: number }[]; // 마일리지 탭 숨김 기간 목록
   mileage_filter_categories?: string[] | null; // 마일리지 탭 종목별 필터 칩 화이트리스트 (null = 활성화 종목 전체 노출)
+  wrapped_period?: WrappedPeriod | null; // 카디오 랩드 노출 기간 (null = 기본 11/1~1/31) — utils/wrappedPeriod.ts
   disabled_features?: string[]; // 운영진이 끈 기능 키 목록 (opt-out, 비면 전부 켜짐) — docs/plans/club-workout-calendar.md
 }
 
@@ -429,7 +431,7 @@ class ClubService {
   // 클럽 정보 수정
   async updateClub(
     clubId: string,
-    data: { name?: string; description?: string; mileage_config?: MileageConfig; logo_url?: string; enabled_categories?: string[]; mileage_hide_periods?: { from: number; to: number }[]; mileage_filter_categories?: string[] | null }
+    data: { name?: string; description?: string; mileage_config?: MileageConfig; logo_url?: string; enabled_categories?: string[]; mileage_hide_periods?: { from: number; to: number }[]; mileage_filter_categories?: string[] | null; wrapped_period?: WrappedPeriod | null }
   ): Promise<Club> {
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
@@ -439,6 +441,7 @@ class ClubService {
     if (data.enabled_categories !== undefined) updateData.enabled_categories = data.enabled_categories;
     if (data.mileage_hide_periods !== undefined) updateData.mileage_hide_periods = data.mileage_hide_periods;
     if (data.mileage_filter_categories !== undefined) updateData.mileage_filter_categories = data.mileage_filter_categories;
+    if (data.wrapped_period !== undefined) updateData.wrapped_period = data.wrapped_period;
 
     const { data: club, error } = await supabase
       .from('clubs')

@@ -14,6 +14,7 @@ import { ClubMemberDetailModal } from '../components/ClubMemberDetailModal';
 import type { MyClubWithOrder, ClubRanking, ClubDetailedStats } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
+import { RelayEntryCard } from '../components/RelayEntryCard';
 import { CardioWrapped } from '../components/CardioWrapped';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { TeamAssignModal } from '../components/TeamAssignModal';
@@ -22,6 +23,7 @@ import { useModalHistory } from '../hooks/useModalHistory';
 import { useConfirm } from '../hooks/useConfirm';
 import { shareClubInvite, buildInviteUrl } from '../utils/shareInvite';
 import { isClubFeatureOn } from '../config/clubFeatures';
+import { activeWrappedYear } from '../utils/wrappedPeriod';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Table, Users, User, RefreshCw, UserRoundPlus, Settings, Search, X, Trophy, Clock, Plus, Lock, Image, Filter } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
 
@@ -579,11 +581,8 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     }
   };
 
-  // 카디오 랩드 노출 연도: 11~12월 = 올해, 1월 = 작년, 그 외 숨김
-  const nowForWrapped = new Date();
-  const wrappedYear = nowForWrapped.getMonth() >= 10
-    ? nowForWrapped.getFullYear()
-    : nowForWrapped.getMonth() === 0 ? nowForWrapped.getFullYear() - 1 : null;
+  // 카디오 랩드 노출 연도 — 클럽 설정(wrapped_period) 기준, 미설정이면 11/1~1/31. 기간 밖이면 null
+  const wrappedYear = selectedClub ? activeWrappedYear(selectedClub.wrapped_period) : null;
 
   return (
     <div className="container">
@@ -678,7 +677,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         </div>
       )}
 
-      {/* 카디오 랩드 — 11~12월엔 올해, 1월엔 작년 결산 */}
+      {/* 카디오 랩드 — 노출 기간은 클럽 설정 > 카디오 랩드 */}
       {selectedClub && user && !user.isGuest && wrappedYear !== null && (
         <button className="cw-entry" type="button" onClick={() => setShowWrapped(true)}>
           <span className="cw-entry-emoji" aria-hidden>🎁</span>
@@ -688,6 +687,15 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           </span>
           <ChevronRight size={18} />
         </button>
+      )}
+
+      {/* 이어달리기 — 진행 중이면 모두, 아직 없으면 운영진에게만 */}
+      {selectedClub && user && !user.isGuest && (
+        <RelayEntryCard
+          key={selectedClub.id}
+          clubId={selectedClub.id}
+          isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
+        />
       )}
 
       {/* 챌린지 섹션 */}
