@@ -677,13 +677,13 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
         </div>
       )}
 
-      {/* 카디오 랩드 — 노출 기간은 클럽 설정 > 카디오 랩드 */}
+      {/* 연말 결산(구 카디오 랩드) — 노출 기간은 클럽 설정 > 연말 결산 */}
       {selectedClub && user && !user.isGuest && wrappedYear !== null && (
         <button className="cw-entry" type="button" onClick={() => setShowWrapped(true)}>
           <span className="cw-entry-emoji" aria-hidden>🎁</span>
           <span className="cw-entry-text">
-            <strong>나의 {wrappedYear} 카디오 랩드</strong>
-            <small>올해 내 기록을 한 장씩 넘겨보세요</small>
+            <strong>나의 {wrappedYear} 연말 결산</strong>
+            <small>한 해의 기록을 한 장씩 넘겨보세요</small>
           </span>
           <ChevronRight size={18} />
         </button>

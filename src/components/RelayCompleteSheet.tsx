@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Camera } from 'lucide-react';
+import { uploadToR2 } from '../utils/r2Storage';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useModalHistory } from '../hooks/useModalHistory';
@@ -32,6 +34,17 @@ export const RelayCompleteSheet = ({ relayId, course, totalKm, doneKm, startName
   const [kmText, setKmText] = useState('');
   const [endName, setEndName] = useState('');
   const [note, setNote] = useState('');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const onPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoFile(f);
+    setPhotoPreview(URL.createObjectURL(f));
+  };
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -56,11 +69,18 @@ export const RelayCompleteSheet = ({ relayId, course, totalKm, doneKm, startName
   const finishing = kmValid && doneKm + km >= totalKm;
 
   const submit = async () => {
-    if (!selected || !kmValid || !endName.trim()) return;
+    if (!selected || !kmValid || !endName.trim() || !photoFile) return;
     setSaving(true);
     setError('');
     try {
-      await relayService.completeLeg(relayId, km, endName.trim(), selected, note.trim());
+      let photoUrl: string;
+      try {
+        photoUrl = await uploadToR2(photoFile);
+      } catch (err: any) {
+        console.error('[이어달리기] 멈춘 곳 사진 업로드 실패:', JSON.stringify(err), err);
+        throw new Error(`사진 업로드 실패 — ${err?.message || JSON.stringify(err)}`);
+      }
+      await relayService.completeLeg(relayId, km, endName.trim(), photoUrl, selected, note.trim());
       onDone();
     } catch (err: any) {
       setError(`인증 실패: ${err?.message || JSON.stringify(err)}`);
@@ -129,6 +149,21 @@ export const RelayCompleteSheet = ({ relayId, course, totalKm, doneKm, startName
             onChange={(e) => setEndName(e.target.value)}
           />
         </label>
+        <div className="relay-field">
+          <span>멈춘 곳 사진 <em className="relay-required">필수</em> — 표지판·다리·인증센터처럼 알아볼 수 있게</span>
+          <input ref={fileRef} type="file" accept="image/*" onChange={onPhoto} style={{ display: 'none' }} />
+          {photoPreview ? (
+            <button type="button" className="relay-photo-preview" onClick={() => fileRef.current?.click()}>
+              <img src={photoPreview} alt="멈춘 곳 사진 미리보기" />
+              <span>바꾸기</span>
+            </button>
+          ) : (
+            <button type="button" className="relay-photo-pick" onClick={() => fileRef.current?.click()}>
+              <Camera size={18} /> 사진 올리기
+            </button>
+          )}
+        </div>
+
         {kmValid && (
           <div className="relay-sheet-hint">
             {finishing
@@ -150,10 +185,10 @@ export const RelayCompleteSheet = ({ relayId, course, totalKm, doneKm, startName
         <button
           type="button"
           className="relay-primary-btn"
-          disabled={!selected || !kmValid || !endName.trim() || saving}
+          disabled={!selected || !kmValid || !endName.trim() || !photoFile || saving}
           onClick={submit}
         >
-          {saving ? '저장하는 중…' : '여기서 바통 넘기기'}
+          {saving ? '사진 올리고 저장하는 중…' : !photoFile ? '멈춘 곳 사진을 올려 주세요' : '여기서 바통 넘기기'}
         </button>
       </div>
     </div>,

@@ -276,7 +276,7 @@ export function CardioWrapped({ clubId, clubName, userId, fallbackName, year, hi
       .catch((err: any) => {
         console.error('[카디오랩드] 불러오기 실패 상세:', JSON.stringify(err), err);
         const msg = err?.message || err?.error_description || err?.hint || JSON.stringify(err);
-        if (alive) setError(`카디오 랩드를 불러오지 못했어요: ${msg}`);
+        if (alive) setError(`연말 결산을 불러오지 못했어요: ${msg}`);
       });
     return () => { alive = false; };
   }, [clubId, clubName, userId, fallbackName, year]);
@@ -310,7 +310,7 @@ export function CardioWrapped({ clubId, clubName, userId, fallbackName, year, hi
       const file = new File([blob], `cardio-wrapped-${year}.png`, { type: 'image/png' });
       const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
       if (nav.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: `나의 ${year} 카디오 랩드` });
+        await navigator.share({ files: [file], title: `나의 ${year} 연말 결산` });
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -334,7 +334,7 @@ export function CardioWrapped({ clubId, clubName, userId, fallbackName, year, hi
   const bestSport = data?.sports[0];
 
   return createPortal(
-    <div className="cw-overlay" role="dialog" aria-label={`나의 ${year} 카디오 랩드`}>
+    <div className="cw-overlay" role="dialog" aria-label={`나의 ${year} 연말 결산`}>
       {data && (
         <div className="cw-progress" aria-hidden>
           {Array.from({ length: total }, (_, i) => <span key={i} className={i <= current ? 'on' : ''} />)}
@@ -352,7 +352,7 @@ export function CardioWrapped({ clubId, clubName, userId, fallbackName, year, hi
       {data && data.workoutCount === 0 && (
         <div className="cw-loading">
           <p className="cw-lead">{year}년 {clubName}에 올린 기록이 아직 없어요.</p>
-          <p className="cw-note">첫 기록을 올리면 나만의 랩드가 시작돼요.</p>
+          <p className="cw-note">첫 기록을 올리면 나만의 연말 결산이 채워져요.</p>
           <button className="cw-btn" type="button" onClick={onClose}>닫기</button>
         </div>
       )}
