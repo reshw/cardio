@@ -14,7 +14,6 @@ import { ClubMemberDetailModal } from '../components/ClubMemberDetailModal';
 import type { MyClubWithOrder, ClubRanking, ClubDetailedStats } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
-import { RelayEntryCard } from '../components/RelayEntryCard';
 import { CardioWrapped } from '../components/CardioWrapped';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { TeamAssignModal } from '../components/TeamAssignModal';
@@ -687,15 +686,6 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           </span>
           <ChevronRight size={18} />
         </button>
-      )}
-
-      {/* 이어달리기 — 진행 중이면 모두, 아직 없으면 운영진에게만 */}
-      {selectedClub && user && !user.isGuest && (
-        <RelayEntryCard
-          key={selectedClub.id}
-          clubId={selectedClub.id}
-          isManager={selectedClub.role === 'manager' || selectedClub.role === 'vice-manager'}
-        />
       )}
 
       {/* 챌린지 섹션 */}
