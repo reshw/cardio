@@ -58,11 +58,25 @@
 }
 .relay-primary-btn:disabled { opacity: 0.5; cursor: default; }
 
+.relay-next-photo {
+  position: relative; padding: 0; border: none; border-radius: 12px; overflow: hidden; cursor: pointer;
+  width: 100%; aspect-ratio: 4 / 3; background: var(--input-bg);
+}
+.relay-next-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* 사진 위 라벨 — 이미지 위 요소라 양 테마 공통 흰 글자 */
+.relay-next-photo span {
+  position: absolute; left: 10px; bottom: 10px; padding: 4px 10px; border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 12px; font-weight: 600;
+}
+
 /* 바통 기록 (최신순) */
 .relay-log { display: flex; flex-direction: column; gap: 8px; }
 .relay-log-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
 .relay-log-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.relay-log-item { position: relative; padding: 10px 0 10px 18px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 3px; }
+.relay-log-item { position: relative; padding: 10px 0 10px 18px; border-bottom: 1px solid var(--border-color); display: flex; gap: 10px; align-items: flex-start; }
+.relay-log-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.relay-log-thumb { flex: none; width: 56px; height: 56px; padding: 0; border: none; border-radius: 10px; overflow: hidden; cursor: pointer; background: var(--input-bg); }
+.relay-log-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .relay-log-item::before {
   content: ''; position: absolute; left: 3px; top: 16px; width: 7px; height: 7px; border-radius: 50%; background: var(--primary-color);
 }
@@ -109,6 +123,18 @@
   background: var(--input-bg); color: var(--text-primary); font: inherit; font-size: 15px; font-weight: 500;
 }
 .relay-field input:focus { outline: none; border-color: var(--primary-color); background: var(--card-bg); }
+
+.relay-required { font-style: normal; font-size: 11px; font-weight: 700; color: var(--secondary-color); margin-left: 2px; }
+.relay-photo-pick {
+  display: flex; align-items: center; justify-content: center; gap: 8px; padding: 18px; border-radius: 12px; cursor: pointer;
+  border: 1.5px dashed var(--border-color); background: var(--input-bg); color: var(--text-secondary); font-size: 14px; font-weight: 600;
+}
+.relay-photo-preview { position: relative; padding: 0; border: none; border-radius: 12px; overflow: hidden; cursor: pointer; height: 160px; background: var(--input-bg); }
+.relay-photo-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.relay-photo-preview span {
+  position: absolute; right: 8px; bottom: 8px; padding: 4px 10px; border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 12px; font-weight: 600;
+}
 
 /* 클럽 화면 진입 카드 */
 .relay-entry {

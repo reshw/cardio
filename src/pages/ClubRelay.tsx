@@ -10,6 +10,8 @@ import clubService from '../services/clubService';
 import { RELAY_COURSES, DEFAULT_RELAY_COURSE, cumulativeKm, courseTotalKm, pointAtKm, describeKm } from '../data/relayCourses';
 import type { RelayCourse } from '../data/relayCourses';
 import { RelayCompleteSheet } from '../components/RelayCompleteSheet';
+import { PhotoLightbox } from '../components/PhotoLightbox';
+import { getR2Thumbnail } from '../utils/r2Storage';
 import './ClubRelay.css';
 
 const fmtDay = (iso: string) => {
@@ -88,6 +90,7 @@ export const ClubRelay = () => {
   const [isMember, setIsMember] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const course = RELAY_COURSES[relay?.course_key ?? DEFAULT_RELAY_COURSE] ?? RELAY_COURSES[DEFAULT_RELAY_COURSE];
 
@@ -138,6 +141,14 @@ export const ClubRelay = () => {
   const batonName = lastRecord?.end_name || relay?.start_name || course.startName;
   const canCancelLast = !!lastRecord && (isManager || lastRecord.user_id === user?.id);
   const finished = relay?.status === 'finished';
+  // 멈춘 곳 사진 앨범 — 서울 → 부산 순서
+  const photos = records
+    .filter((r) => r.end_photo_url)
+    .map((r) => ({ id: r.id, url: r.end_photo_url as string, caption: `${r.end_name} · ${r.runnerName} · ${fmtDay(r.created_at)}` }));
+  const openPhoto = (recId: string) => {
+    const i = photos.findIndex((p) => p.id === recId);
+    if (i >= 0) setLightboxIdx(i);
+  };
 
   const handleStart = async () => {
     if (!clubId || !user) return;
@@ -228,6 +239,12 @@ export const ClubRelay = () => {
                 {lastRecord ? <>{lastRecord.runnerName}님이 {fmtDay(lastRecord.created_at)}에 멈춘 곳</> : '출발점'}
               </div>
               <div className="relay-next-leg">📍 {batonName}</div>
+              {lastRecord?.end_photo_url && (
+                <button type="button" className="relay-next-photo" onClick={() => openPhoto(lastRecord.id)}>
+                  <img src={lastRecord.end_photo_url} alt={`${batonName} 출발 지점 사진`} loading="lazy" />
+                  <span>여기서 출발하세요</span>
+                </button>
+              )}
               <div className="relay-next-sub">기준선으로는 {describeKm(course, doneKm, totalKm)}</div>
               {isMember ? (
                 <button type="button" className="relay-primary-btn" onClick={() => setShowSheet(true)}>
@@ -245,12 +262,20 @@ export const ClubRelay = () => {
               <ol className="relay-log-list">
                 {[...records].reverse().map((rec) => (
                   <li key={rec.id} className="relay-log-item">
-                    <div className="relay-log-head">
-                      <b>{rec.runnerName}</b>
-                      <span>{fmtDay(rec.created_at)} · {fmtKm(rec.km)}km</span>
+                    <div className="relay-log-text">
+                      <div className="relay-log-head">
+                        <b>{rec.runnerName}</b>
+                        <span>{fmtDay(rec.created_at)} · {fmtKm(rec.km)}km</span>
+                      </div>
+                      <div className="relay-log-route">{rec.start_name} → {rec.end_name}</div>
+                      {rec.note && <div className="relay-log-note">“{rec.note}”</div>}
                     </div>
-                    <div className="relay-log-route">{rec.start_name} → {rec.end_name}</div>
-                    {rec.note && <div className="relay-log-note">“{rec.note}”</div>}
+                    {rec.end_photo_url && (
+                      <button type="button" className="relay-log-thumb" onClick={() => openPhoto(rec.id)} aria-label={`${rec.end_name} 사진 보기`}>
+                        <img src={getR2Thumbnail(rec.end_photo_url)} alt="" loading="lazy"
+                          onError={(e) => { const img = e.currentTarget; if (img.src !== rec.end_photo_url) img.src = rec.end_photo_url as string; }} />
+                      </button>
+                    )}
                   </li>
                 ))}
               </ol>
@@ -291,6 +316,9 @@ export const ClubRelay = () => {
           onClose={() => setShowSheet(false)}
           onDone={() => { setShowSheet(false); load(); }}
         />
+      )}
+      {lightboxIdx !== null && photos.length > 0 && (
+        <PhotoLightbox photos={photos} index={lightboxIdx} onIndexChange={setLightboxIdx} onClose={() => setLightboxIdx(null)} />
       )}
       {ConfirmDialog}
     </div>

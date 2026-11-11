@@ -28,6 +28,7 @@ export interface RelayLegRecord {
   km: number;
   start_name: string;
   end_name: string;
+  end_photo_url: string | null;
   created_at: string;
   // 조회 시 채움
   runnerName?: string;
@@ -140,11 +141,12 @@ class RelayService {
     }
   }
 
-  async completeLeg(relayId: string, km: number, endName: string, workoutId: string | null, note: string): Promise<void> {
+  async completeLeg(relayId: string, km: number, endName: string, endPhotoUrl: string, workoutId: string | null, note: string): Promise<void> {
     const { error } = await supabase.rpc('relay_complete_leg', {
       p_relay_id: relayId,
       p_km: km,
       p_end_name: endName,
+      p_end_photo: endPhotoUrl,
       p_workout_id: workoutId,
       p_note: note || null,
     });
