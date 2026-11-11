@@ -13,6 +13,8 @@
     }
   },
   "rewrites": [
+    { "source": "/api/send-login-diagnostic", "destination": "/api/send-email?kind=login-diagnostic" },
+    { "source": "/api/naver-cafe-callback", "destination": "/api/naver-cafe" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "crons": [

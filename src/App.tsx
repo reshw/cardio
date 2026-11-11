@@ -13,6 +13,7 @@ import { ClubMileageHub } from './pages/ClubMileageHub';
 import { ClubMileageSettings } from './pages/ClubMileageSettings';
 import { ClubMileageHideSettings } from './pages/ClubMileageHideSettings';
 import { ClubWrappedSettings } from './pages/ClubWrappedSettings';
+import { ClubNaverCafeSettings } from './pages/ClubNaverCafeSettings';
 import { ClubMileageFilterSettings } from './pages/ClubMileageFilterSettings';
 import { ClubMileageExclusionSettings } from './pages/ClubMileageExclusionSettings';
 import { ClubMileageRetroactive } from './pages/ClubMileageRetroactive';
@@ -124,6 +125,11 @@ function ProtectedRoutes() {
           <Route path="/club/settings/:clubId/wrapped" element={
             <ProtectedClubRoute requireAdmin>
               <ClubWrappedSettings />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId/naver-cafe" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubNaverCafeSettings />
             </ProtectedClubRoute>
           } />
           <Route path="/club/settings/:clubId/mileage-filter" element={

@@ -65,6 +65,8 @@ export interface ClubEvent {
   created_by: string;
   created_at: string;
   updated_at: string;
+  naver_cafe_article_url?: string | null; // 네이버 카페 자동 발행된 글 (api/naver-cafe.ts)
+  naver_cafe_error?: string | null;
   checkins: EventCheckin[];
 }
 
@@ -80,6 +82,8 @@ interface ClubEventRow {
   created_by: string;
   created_at: string;
   updated_at: string;
+  naver_cafe_article_url: string | null;
+  naver_cafe_error: string | null;
 }
 
 interface CheckinRow {
@@ -142,7 +146,7 @@ const clubEventService = {
   async listEvents(clubId: string, fromISO?: string, toISO?: string): Promise<ClubEvent[]> {
     let query = supabase
       .from('club_events')
-      .select('id, club_id, title, event_type, category_text, starts_at, gpx_url, description, created_by, created_at, updated_at')
+      .select('id, club_id, title, event_type, category_text, starts_at, gpx_url, description, created_by, created_at, updated_at, naver_cafe_article_url, naver_cafe_error')
       .eq('club_id', clubId)
       .order('starts_at', { ascending: true });
 
@@ -183,7 +187,7 @@ const clubEventService = {
   async getEvent(eventId: string): Promise<ClubEvent | null> {
     const { data: event, error } = await supabase
       .from('club_events')
-      .select('id, club_id, title, event_type, category_text, starts_at, gpx_url, description, created_by, created_at, updated_at')
+      .select('id, club_id, title, event_type, category_text, starts_at, gpx_url, description, created_by, created_at, updated_at, naver_cafe_article_url, naver_cafe_error')
       .eq('id', eventId)
       .maybeSingle();
 

@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useClubName } from '../hooks/useClubName';
-import { ChevronLeft, ChevronRight, Info, TrendingUp, UserCog, Users, BarChart2, ShieldCheck, Award, Gift } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, TrendingUp, UserCog, Users, BarChart2, ShieldCheck, Award, Gift, Coffee } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
@@ -127,6 +127,17 @@ export const ClubSettings = () => {
               <div className="menu-item-left">
                 <Gift size={20} />
                 <span>연말 결산</span>
+              </div>
+              <ChevronRight size={20} />
+            </button>
+
+            <button
+              className="settings-menu-item"
+              onClick={() => navigate(`/club/settings/${clubId}/naver-cafe`)}
+            >
+              <div className="menu-item-left">
+                <Coffee size={20} />
+                <span>네이버 카페 연동</span>
               </div>
               <ChevronRight size={20} />
             </button>

@@ -4,6 +4,7 @@ import { useConfirm } from '../hooks/useConfirm';
 import clubEventService, { type ClubEvent, type EventPhoto, EVENT_TYPE_ICONS, EVENT_TYPE_LABELS } from '../services/clubEventService';
 import { uploadToR2 } from '../utils/r2Storage';
 import { CreateEventSheet } from './CreateEventSheet';
+import naverCafeService from '../services/naverCafeService';
 import { CheckinApprovalSheet } from './CheckinApprovalSheet';
 import { PhotoLightbox } from './PhotoLightbox';
 
@@ -55,6 +56,22 @@ export const EventDetailContent = ({ eventId, userId, isManager, onChanged, onDe
       console.error('[클럽달력] 행사 사진 조회 실패:', JSON.stringify(err), err);
     } finally {
       setPhotosLoading(false);
+    }
+  };
+
+  const [republishing, setRepublishing] = useState(false);
+  const handleRepublish = async () => {
+    if (!event) return;
+    setRepublishing(true);
+    try {
+      const r = await naverCafeService.publishEvent(event.id);
+      if (r.skipped && r.reason !== 'already_published') alert(`카페에 올리지 않았습니다: ${r.reason}`);
+    } catch (err: any) {
+      console.error('[클럽달력] 카페 재발행 실패:', JSON.stringify(err), err);
+      alert(`카페 발행 실패: ${err?.message || JSON.stringify(err)}`);
+    } finally {
+      setRepublishing(false);
+      load();
     }
   };
 
@@ -200,6 +217,11 @@ export const EventDetailContent = ({ eventId, userId, isManager, onChanged, onDe
                 🧭 <a href={event.gpx_url} target="_blank" rel="noreferrer">GPX 보기</a>
               </div>
             )}
+            {event.naver_cafe_article_url && (
+              <div className="event-detail-meta-row">
+                ☕ <a href={event.naver_cafe_article_url} target="_blank" rel="noreferrer">네이버 카페 글 보기</a>
+              </div>
+            )}
           </div>
 
           {event.description && (
@@ -296,6 +318,17 @@ export const EventDetailContent = ({ eventId, userId, isManager, onChanged, onDe
               </div>
             )}
           </div>
+
+          {isManager && !event.naver_cafe_article_url && event.naver_cafe_error && (
+            <div style={{ marginBottom: '12px' }}>
+              <p style={{ fontSize: '13px', color: '#ef4444', marginBottom: '8px', wordBreak: 'break-all' }}>
+                네이버 카페 발행 실패: {event.naver_cafe_error}
+              </p>
+              <button type="button" className="event-detail-action-btn" disabled={republishing} onClick={handleRepublish}>
+                {republishing ? '카페에 올리는 중...' : '카페에 다시 올리기'}
+              </button>
+            </div>
+          )}
 
           {isManager && (
             <div className="event-detail-manager-actions">
