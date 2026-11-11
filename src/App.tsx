@@ -27,6 +27,7 @@ import { ClubTransferOwnership } from './pages/ClubTransferOwnership';
 import { ClubMembers } from './pages/ClubMembers';
 import { ClubAwards } from './pages/ClubAwards';
 import { ClubGallery } from './pages/ClubGallery';
+import { ClubRelay } from './pages/ClubRelay';
 import { ProtectedClubRoute } from './components/ProtectedClubRoute';
 import { More } from './pages/More';
 import { BlockedMembers } from './pages/BlockedMembers';
@@ -183,6 +184,11 @@ function ProtectedRoutes() {
           <Route path="/club/gallery/:clubId" element={
             <ProtectedClubRoute>
               <ClubGallery />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/relay/:clubId" element={
+            <ProtectedClubRoute>
+              <ClubRelay />
             </ProtectedClubRoute>
           } />
           <Route path="/join" element={<JoinClub />} />

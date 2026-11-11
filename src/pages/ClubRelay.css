@@ -1,0 +1,133 @@
+/* 이어달리기 — 구조색은 전부 테마 토큰 (docs/design-guide_color-system.md). vh/dvh 금지. */
+
+.settings-page.relay-page { padding: 16px 16px 32px; display: flex; flex-direction: column; gap: 16px; }
+
+.relay-error {
+  padding: 12px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5;
+  background: var(--danger-tint); color: #dc2626;
+}
+
+.relay-muted { margin: 0; font-size: 13px; color: var(--text-secondary); }
+
+/* 시작 전 */
+.relay-empty { text-align: center; padding: 40px 16px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.relay-empty-emoji { font-size: 40px; }
+.relay-empty h2 { margin: 0; font-size: 20px; color: var(--text-primary); }
+.relay-empty p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--text-secondary); }
+
+/* 상단 진행 */
+.relay-hero {
+  padding: 18px; border-radius: 16px; background: var(--card-bg); border: 1px solid var(--border-color);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.relay-hero-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.relay-hero-big { font-size: 22px; font-weight: 700; color: var(--text-primary); }
+.relay-hero-big b { font-size: 30px; color: var(--primary-color); font-variant-numeric: tabular-nums; }
+.relay-progress { height: 8px; border-radius: 4px; background: var(--border-color); overflow: hidden; }
+.relay-progress span { display: block; height: 100%; border-radius: 4px; background: var(--primary-color); transition: width 0.6s ease; }
+.relay-hero-meta { font-size: 13px; color: var(--text-secondary); }
+
+/* 지도 */
+.relay-map {
+  width: 100%; max-width: 420px; height: auto; align-self: center;
+  border-radius: 16px; background: var(--card-bg); border: 1px solid var(--border-color);
+}
+.relay-map-rest { fill: none; stroke: var(--border-color); stroke-width: 3; stroke-dasharray: 2 5; stroke-linecap: round; stroke-linejoin: round; }
+.relay-map-done { fill: none; stroke: var(--primary-color); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.relay-map-dot { fill: var(--card-bg); stroke: var(--text-secondary); stroke-width: 1.5; }
+.relay-map-dot.done { fill: var(--primary-color); stroke: var(--primary-color); }
+.relay-map-label { font-size: 11px; fill: var(--text-secondary); }
+.relay-map-label.current { font-weight: 700; fill: var(--text-primary); font-size: 12px; }
+.relay-map-baton { fill: var(--secondary-color); stroke: var(--card-bg); stroke-width: 2.5; }
+.relay-map-baton-pulse { fill: var(--secondary-color); opacity: 0.35; transform-box: fill-box; transform-origin: center; animation: relay-pulse 1.8s ease-out infinite; }
+.relay-map-finish { font-size: 14px; font-weight: 700; fill: var(--text-primary); }
+@keyframes relay-pulse { from { transform: scale(1); opacity: 0.45; } to { transform: scale(2.6); opacity: 0; } }
+
+/* 다음 구간 */
+.relay-next {
+  padding: 16px; border-radius: 16px; background: var(--card-bg); border: 1.5px solid var(--primary-color);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.relay-next-kicker { font-size: 13px; color: var(--text-secondary); }
+.relay-next-kicker b { color: var(--text-primary); }
+.relay-next-leg { font-size: 17px; font-weight: 700; color: var(--text-primary); }
+.relay-next-leg span { font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-left: 4px; }
+
+.relay-primary-btn {
+  width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer;
+  background: var(--primary-color); color: var(--on-accent); font-size: 15px; font-weight: 700;
+}
+.relay-primary-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* 구간 목록 — 노선도 */
+.relay-legs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.relay-leg { position: relative; display: flex; gap: 12px; padding: 10px 0 10px 2px; }
+.relay-leg::before {
+  content: ''; position: absolute; left: 12px; top: 0; bottom: 0; width: 2px; background: var(--border-color);
+}
+.relay-leg:first-child::before { top: 18px; }
+.relay-leg:last-child::before { bottom: calc(100% - 18px); }
+.relay-leg.done::before { background: var(--primary-color); }
+.relay-leg-icon {
+  position: relative; z-index: 1; flex: none; width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--card-bg); border: 2px solid var(--border-color); color: var(--text-secondary);
+}
+.relay-leg.done .relay-leg-icon { background: var(--primary-color); border-color: var(--primary-color); color: var(--on-accent); }
+.relay-leg.current .relay-leg-icon { border-color: var(--secondary-color); color: var(--secondary-color); }
+.relay-leg-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.relay-leg-title { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--text-primary); }
+.relay-leg.locked .relay-leg-title { color: var(--text-secondary); }
+.relay-leg.current .relay-leg-title { font-weight: 700; }
+.relay-leg-km { flex: none; font-size: 12px; color: var(--text-secondary); }
+.relay-leg-runner { font-size: 13px; color: var(--text-secondary); }
+.relay-leg-runner b { color: var(--text-primary); }
+.relay-leg-note { margin-top: 2px; font-size: 13px; color: var(--text-primary); }
+
+/* 관리 */
+.relay-admin { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding-top: 8px; border-top: 1px solid var(--border-color); }
+.relay-ghost-btn {
+  padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-color); cursor: pointer;
+  background: var(--card-bg); color: var(--text-secondary); font-size: 13px;
+}
+.relay-ghost-btn.danger { color: #dc2626; }
+.relay-ghost-btn:disabled { opacity: 0.5; }
+
+/* 인증 시트 */
+.relay-sheet-leg { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 14px; border-radius: 12px; background: var(--input-bg); }
+.relay-sheet-leg strong { font-size: 16px; color: var(--text-primary); }
+.relay-sheet-leg span { font-size: 13px; color: var(--text-secondary); }
+.relay-sheet-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.relay-sheet-empty { font-size: 14px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.relay-link-btn { padding: 0; border: none; background: none; color: var(--primary-color); font-size: 14px; font-weight: 600; cursor: pointer; }
+.relay-run-list { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
+.relay-run {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--border-color); cursor: pointer; color: var(--text-primary);
+}
+.relay-run.selected { border-color: var(--primary-color); background: var(--card-hover-bg); }
+.relay-run input { accent-color: var(--primary-color); }
+.relay-run-km { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 64px; }
+.relay-run-meta { font-size: 13px; color: var(--text-secondary); }
+.relay-sheet-hint { font-size: 13px; padding: 8px 10px; border-radius: 8px; background: var(--warning-tint); color: var(--text-primary); }
+.relay-note {
+  width: 100%; min-height: 64px; padding: 10px 12px; border-radius: 10px; box-sizing: border-box; resize: none;
+  border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary); font: inherit; font-size: 14px;
+}
+
+/* 클럽 화면 진입 카드 */
+.relay-entry {
+  display: flex; align-items: center; gap: 12px; width: calc(100% - 32px); margin: 8px 16px 4px; padding: 12px 14px;
+  border-radius: 14px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary);
+  cursor: pointer; text-align: left;
+}
+.relay-entry-emoji { font-size: 22px; }
+.relay-entry-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.relay-entry-text strong { font-size: 14px; }
+.relay-entry-text small { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.relay-entry .relay-progress { height: 5px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .relay-map-baton-pulse { animation: none; }
+  .relay-progress span { transition: none; }
+}
