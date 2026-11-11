@@ -23,7 +23,7 @@ export interface Club {
   rookie_league_enabled?: boolean; // 루키리그 기능 활성화 여부
   mileage_hide_periods?: { from: number; to: number }[]; // 마일리지 탭 숨김 기간 목록
   mileage_filter_categories?: string[] | null; // 마일리지 탭 종목별 필터 칩 화이트리스트 (null = 활성화 종목 전체 노출)
-  wrapped_period?: WrappedPeriod | null; // 카디오 랩드 노출 기간 (null = 기본 11/1~1/31) — utils/wrappedPeriod.ts
+  wrapped_period?: WrappedPeriod | null; // 카디오 랩드 노출 기간 (null = 기본 12/10 18:00~1/31 KST) — utils/wrappedPeriod.ts
   disabled_features?: string[]; // 운영진이 끈 기능 키 목록 (opt-out, 비면 전부 켜짐) — docs/plans/club-workout-calendar.md
 }
 
