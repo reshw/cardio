@@ -3,14 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import relayService from '../services/relayService';
 import type { RelayChallenge } from '../services/relayService';
-import { RELAY_COURSES, getRelayLegs } from '../data/relayCourses';
+import { RELAY_COURSES } from '../data/relayCourses';
+import type { RelayLegRecord } from '../services/relayService';
 import '../pages/ClubRelay.css';
 
 // 클럽 화면의 이어달리기 진입 카드. 진행 중이면 모두에게, 아직 없으면 운영진에게만 보인다.
 export const RelayEntryCard = ({ clubId, isManager }: { clubId: string; isManager: boolean }) => {
   const navigate = useNavigate();
   const [relay, setRelay] = useState<RelayChallenge | null | undefined>(undefined);
-  const [doneCount, setDoneCount] = useState(0);
+  const [legs, setLegs] = useState<RelayLegRecord[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -20,7 +21,7 @@ export const RelayEntryCard = ({ clubId, isManager }: { clubId: string; isManage
         const legs = r ? await relayService.getLegs(r) : [];
         if (!alive) return;
         setRelay(r);
-        setDoneCount(legs.length);
+        setLegs(legs);
       } catch (err: any) {
         // 카드는 부가 요소라 실패해도 클럽 화면을 막지 않는다 (원인은 서비스에서 로그)
         console.error('[이어달리기] 진입 카드 로드 실패:', err?.message || JSON.stringify(err));
@@ -51,13 +52,12 @@ export const RelayEntryCard = ({ clubId, isManager }: { clubId: string; isManage
 
   const course = RELAY_COURSES[relay.course_key];
   if (!course) return null;
-  const legs = getRelayLegs(course);
-  const total = legs.reduce((s, l) => s + l.km, 0);
-  const done = legs.slice(0, doneCount).reduce((s, l) => s + l.km, 0);
-  const next = legs[doneCount];
+  const total = relay.total_km;
+  const done = Math.min(total, legs.reduce((s, l) => s + l.km, 0));
+  const baton = legs.length ? legs[legs.length - 1].end_name : relay.start_name;
   const sub = relay.status === 'finished'
     ? '🏁 부산 도착! 완주 기록 보기'
-    : `바통 위치: ${next?.from.name ?? ''} · 부산까지 ${total - done}km`;
+    : `📍 ${baton} · 부산까지 ${Math.round(total - done)}km`;
 
   return (
     <button type="button" className="relay-entry" onClick={go}>

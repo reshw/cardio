@@ -4,11 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { useModalHistory } from '../hooks/useModalHistory';
 import relayService from '../services/relayService';
 import type { MyRunCandidate } from '../services/relayService';
-import type { RelayLeg } from '../data/relayCourses';
+import { describeKm } from '../data/relayCourses';
+import type { RelayCourse } from '../data/relayCourses';
 
 interface Props {
   relayId: string;
-  leg: RelayLeg;
+  course: RelayCourse;
+  totalKm: number;
+  doneKm: number;
+  startName: string; // 앞사람이 멈춘 곳
   userId: string;
   usedWorkoutIds: string[];
   onClose: () => void;
@@ -20,31 +24,43 @@ const fmtDate = (iso: string) => {
   return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
 
-export const RelayCompleteSheet = ({ relayId, leg, userId, usedWorkoutIds, onClose, onDone }: Props) => {
+export const RelayCompleteSheet = ({ relayId, course, totalKm, doneKm, startName, userId, usedWorkoutIds, onClose, onDone }: Props) => {
   const navigate = useNavigate();
   useModalHistory(true, onClose);
   const [runs, setRuns] = useState<MyRunCandidate[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [kmText, setKmText] = useState('');
+  const [endName, setEndName] = useState('');
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const pick = (r: MyRunCandidate) => {
+    setSelected(r.id);
+    if (r.unit === 'km') setKmText(String(Math.round(Number(r.value) * 100) / 100));
+  };
 
   useEffect(() => {
     relayService
       .getMyRecentRuns(userId, usedWorkoutIds)
       .then((r) => {
         setRuns(r);
-        if (r.length > 0) setSelected(r[0].id);
+        if (r.length > 0) pick(r[0]);
       })
       .catch((err: any) => setError(`내 달리기 기록을 못 불러왔어요: ${err?.message || JSON.stringify(err)}`));
   }, [userId]);
 
+  const km = Number(kmText);
+  const kmValid = kmText !== '' && km > 0 && km <= 300;
+  const after = Math.min(totalKm, doneKm + (kmValid ? km : 0));
+  const finishing = kmValid && doneKm + km >= totalKm;
+
   const submit = async () => {
-    if (!selected) return;
+    if (!selected || !kmValid || !endName.trim()) return;
     setSaving(true);
     setError('');
     try {
-      await relayService.completeLeg(relayId, leg.no, selected, note.trim());
+      await relayService.completeLeg(relayId, km, endName.trim(), selected, note.trim());
       onDone();
     } catch (err: any) {
       setError(`인증 실패: ${err?.message || JSON.stringify(err)}`);
@@ -53,25 +69,22 @@ export const RelayCompleteSheet = ({ relayId, leg, userId, usedWorkoutIds, onClo
     }
   };
 
-  const picked = runs?.find((r) => r.id === selected);
-  const short = picked && picked.unit === 'km' && picked.value < leg.km * 0.6;
-
   return createPortal(
     <div className="feedback-overlay" onClick={(e) => { e.stopPropagation(); onClose(); }}>
       <div className="feedback-sheet relay-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="feedback-handle" />
         <div className="race-modal-header">
           <div style={{ width: 32 }} />
-          <span className="date-picker-title">{leg.no + 1}구간 완주 인증</span>
+          <span className="date-picker-title">이어 달렸어요</span>
           <button className="race-modal-close" type="button" onClick={onClose}>✕</button>
         </div>
 
         <div className="relay-sheet-leg">
-          <strong>{leg.from.name} → {leg.to.name}</strong>
-          <span>약 {leg.km}km</span>
+          <span>출발</span>
+          <strong>{startName}</strong>
         </div>
 
-        <div className="relay-sheet-label">이 구간을 뛴 기록을 골라 주세요</div>
+        <div className="relay-sheet-label">달린 기록</div>
         {runs === null && !error && <div className="relay-sheet-empty">불러오는 중…</div>}
         {runs && runs.length === 0 && (
           <div className="relay-sheet-empty">
@@ -85,25 +98,48 @@ export const RelayCompleteSheet = ({ relayId, leg, userId, usedWorkoutIds, onClo
           <div className="relay-run-list">
             {runs.map((r) => (
               <label key={r.id} className={`relay-run${selected === r.id ? ' selected' : ''}`}>
-                <input
-                  type="radio"
-                  name="relay-run"
-                  checked={selected === r.id}
-                  onChange={() => setSelected(r.id)}
-                />
+                <input type="radio" name="relay-run" checked={selected === r.id} onChange={() => pick(r)} />
                 <span className="relay-run-km">{Number(r.value)}{r.unit}</span>
                 <span className="relay-run-meta">{r.sub_type || '달리기'} · {fmtDate(r.workout_time)}</span>
               </label>
             ))}
           </div>
         )}
-        {short && (
-          <div className="relay-sheet-hint">구간 거리(약 {leg.km}km)보다 꽤 짧은 기록이에요. 맞는지 한 번 더 확인해 주세요.</div>
+
+        <label className="relay-field">
+          <span>이어 달린 거리 (km)</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0.1}
+            max={300}
+            step={0.1}
+            value={kmText}
+            onChange={(e) => setKmText(e.target.value)}
+          />
+        </label>
+
+        <label className="relay-field">
+          <span>멈춘 곳 — 다음 사람이 여기서 출발해요</span>
+          <input
+            type="text"
+            maxLength={60}
+            placeholder="예: 팔당역 2번 출구, 양평 물소리길 입구"
+            value={endName}
+            onChange={(e) => setEndName(e.target.value)}
+          />
+        </label>
+        {kmValid && (
+          <div className="relay-sheet-hint">
+            {finishing
+              ? `🏁 이 기록으로 ${course.finishName}에 도착해요!`
+              : `기준선으로는 ${describeKm(course, after, totalKm)} · 부산까지 ${Math.round(totalKm - after)}km 남아요`}
+          </div>
         )}
 
         <textarea
           className="relay-note"
-          placeholder="한 줄 소감 (선택) — 예: 한강 바람 미쳤다"
+          placeholder="한 줄 소감 (선택)"
           maxLength={200}
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -111,8 +147,13 @@ export const RelayCompleteSheet = ({ relayId, leg, userId, usedWorkoutIds, onClo
 
         {error && <div className="relay-error">{error}</div>}
 
-        <button type="button" className="relay-primary-btn" disabled={!selected || saving} onClick={submit}>
-          {saving ? '인증하는 중…' : `바통 넘기기 → ${leg.to.name}`}
+        <button
+          type="button"
+          className="relay-primary-btn"
+          disabled={!selected || !kmValid || !endName.trim() || saving}
+          onClick={submit}
+        >
+          {saving ? '저장하는 중…' : '여기서 바통 넘기기'}
         </button>
       </div>
     </div>,
