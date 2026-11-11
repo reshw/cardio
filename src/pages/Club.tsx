@@ -14,6 +14,7 @@ import { ClubMemberDetailModal } from '../components/ClubMemberDetailModal';
 import type { MyClubWithOrder, ClubRanking, ClubDetailedStats } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
+import { CardioWrapped } from '../components/CardioWrapped';
 import { ChallengeCreateModal } from '../components/ChallengeCreateModal';
 import { TeamAssignModal } from '../components/TeamAssignModal';
 import { ChallengeArchiveModal } from '../components/ChallengeArchiveModal';
@@ -78,6 +79,7 @@ export const Club = () => {
   const [showClubMenu, setShowClubMenu] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showWrapped, setShowWrapped] = useState(false);
   useModalHistory(showClubMenu, () => setShowClubMenu(false));
   useModalHistory(showInviteModal, () => setShowInviteModal(false));
   const [challengeMenuOpen, setChallengeMenuOpen] = useState(false);
@@ -577,6 +579,12 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     }
   };
 
+  // 카디오 랩드 노출 연도: 11~12월 = 올해, 1월 = 작년, 그 외 숨김
+  const nowForWrapped = new Date();
+  const wrappedYear = nowForWrapped.getMonth() >= 10
+    ? nowForWrapped.getFullYear()
+    : nowForWrapped.getMonth() === 0 ? nowForWrapped.getFullYear() - 1 : null;
+
   return (
     <div className="container">
       {/* 클럽이 없을 때 안내 */}
@@ -668,6 +676,18 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
             </div>
           )}
         </div>
+      )}
+
+      {/* 카디오 랩드 — 11~12월엔 올해, 1월엔 작년 결산 */}
+      {selectedClub && user && !user.isGuest && wrappedYear !== null && (
+        <button className="cw-entry" type="button" onClick={() => setShowWrapped(true)}>
+          <span className="cw-entry-emoji" aria-hidden>🎁</span>
+          <span className="cw-entry-text">
+            <strong>나의 {wrappedYear} 카디오 랩드</strong>
+            <small>올해 내 기록을 한 장씩 넘겨보세요</small>
+          </span>
+          <ChevronRight size={18} />
+        </button>
       )}
 
       {/* 챌린지 섹션 */}
@@ -1798,6 +1818,23 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
           </div>
         </div>
       )}
+
+      {showWrapped && selectedClub && user && wrappedYear !== null && (() => {
+        const isAdmin = selectedClub.role === 'manager' || selectedClub.role === 'vice-manager';
+        const day = new Date().getDate();
+        const locked = (selectedClub.mileage_hide_periods || []).some(p => day >= p.from && day <= p.to);
+        return (
+          <CardioWrapped
+            clubId={selectedClub.id}
+            clubName={selectedClub.name}
+            userId={user.id}
+            fallbackName={user.display_name}
+            year={wrappedYear}
+            hideRank={locked && !isAdmin}
+            onClose={() => setShowWrapped(false)}
+          />
+        );
+      })()}
 
       {ConfirmDialog}
     </div>
