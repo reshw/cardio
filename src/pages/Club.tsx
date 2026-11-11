@@ -581,7 +581,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     }
   };
 
-  // 카디오 랩드 노출 연도 — 클럽 설정(wrapped_period) 기준, 미설정이면 11/1~1/31. 기간 밖이면 null
+  // 카디오 랩드 노출 연도 — 클럽 설정(wrapped_period) 기준, 미설정이면 12/10 18:00~1/31 KST. 기간 밖이면 null
   const wrappedYear = selectedClub ? activeWrappedYear(selectedClub.wrapped_period) : null;
 
   return (
