@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
+import loginDiagnosticHandler from './_send-login-diagnostic.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -38,6 +39,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // /api/send-login-diagnostic 은 vercel.json rewrite 로 여기 ?kind=login-diagnostic 으로 들어온다
+  // (Hobby 함수 12개 제한 — 별도 함수로 두지 않음)
+  if (req.query.kind === 'login-diagnostic') return loginDiagnosticHandler(req, res);
 
   try {
     const { type, ...body } = req.body as Record<string, string>;

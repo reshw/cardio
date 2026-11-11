@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalHistory } from '../hooks/useModalHistory';
 import CalendarPickerSheet from './CalendarPickerSheet';
+import naverCafeService from '../services/naverCafeService';
 import clubEventService, { type ClubEvent, type ClubEventType, EVENT_TYPE_ICONS } from '../services/clubEventService';
 
 const EVENT_TYPES: ClubEventType[] = ['trail', 'lsd', 'interval', 'swim', 'gathering', 'race', 'etc'];
@@ -72,7 +73,7 @@ export const CreateEventSheet = ({ clubId, userId, existingEvent, initialDate, o
           description: memo.trim(),
         });
       } else {
-        await clubEventService.createEvent({
+        const newEventId = await clubEventService.createEvent({
           clubId,
           createdBy: userId,
           title: title.trim(),
@@ -82,6 +83,15 @@ export const CreateEventSheet = ({ clubId, userId, existingEvent, initialDate, o
           gpxUrl: resolvedGpxUrl || undefined,
           description: memo.trim() || undefined,
         });
+        // 네이버 카페 자동 발행 — 연동 안 된 클럽은 서버가 skipped 로 바로 응답.
+        // 실패해도 행사 등록은 이미 끝났으므로 알리기만 하고 진행 (행사 상세에서 재시도 가능).
+        try {
+          const r = await naverCafeService.publishEvent(newEventId);
+          if (r.published) console.log('[클럽달력] 네이버 카페 발행 완료:', r.articleUrl);
+        } catch (pubErr: any) {
+          console.error('[클럽달력] 네이버 카페 발행 실패:', JSON.stringify(pubErr), pubErr);
+          alert(`행사는 등록됐지만 네이버 카페 발행에 실패했습니다: ${pubErr?.message || JSON.stringify(pubErr)}`);
+        }
       }
       onCreated();
     } catch (err: any) {
