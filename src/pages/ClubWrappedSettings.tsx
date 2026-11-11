@@ -8,7 +8,7 @@ import CalendarPickerSheet from '../components/CalendarPickerSheet';
 import { CardioWrapped } from '../components/CardioWrapped';
 import {
   type WrappedPeriod, type WrappedWindow,
-  defaultWindow, resolveWindow, isWithin, wrappedYearFor, toYmd,
+  defaultWindow, resolveWindow, isWithin, wrappedYearFor, toYmd, kstStamp, startStamp,
 } from '../utils/wrappedPeriod';
 
 // 카디오 랩드 노출 기간 설정 (운영진 전용) — 규칙은 utils/wrappedPeriod.ts
@@ -21,9 +21,9 @@ const shortLabel = (s: string) => `${+s.slice(5, 7)}월 ${+s.slice(8, 10)}일`;
 
 function statusText(w: WrappedWindow | null) {
   if (!w) return '클럽 화면에 랩드 배너가 표시되지 않아요.';
-  const today = toYmd(new Date());
+  const now = kstStamp();
   if (isWithin(w)) return `지금 표시 중 — ${w.year}년 결산, ${shortLabel(w.to)}까지`;
-  if (today < w.from) return `${label(w.from)}부터 ${w.year}년 결산이 표시돼요.`;
+  if (now < startStamp(w)) return `${label(w.from)}${w.fromTime ? ` ${w.fromTime}` : ''}부터 ${w.year}년 결산이 표시돼요.`;
   return `표시 기간이 끝났어요 (${label(w.to)}).`;
 }
 
@@ -123,7 +123,7 @@ export const ClubWrappedSettings = () => {
   };
 
   const options: { key: Mode; title: string; desc: string }[] = [
-    { key: 'default', title: '기본', desc: '11월 1일 ~ 1월 31일 (11~12월은 올해, 1월은 작년 결산)' },
+    { key: 'default', title: '기본', desc: '12월 10일 18:00 ~ 1월 31일 (12월은 올해, 1월은 작년 결산)' },
     { key: 'custom', title: '기간 직접 정하기', desc: '배너를 띄울 시작일과 종료일을 고릅니다' },
     { key: 'off', title: '표시 안 함', desc: '이 클럽에서는 랩드 배너를 띄우지 않습니다' },
   ];
