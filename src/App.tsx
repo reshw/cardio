@@ -12,6 +12,7 @@ import { ClubGeneralSettings } from './pages/ClubGeneralSettings';
 import { ClubMileageHub } from './pages/ClubMileageHub';
 import { ClubMileageSettings } from './pages/ClubMileageSettings';
 import { ClubMileageHideSettings } from './pages/ClubMileageHideSettings';
+import { ClubWrappedSettings } from './pages/ClubWrappedSettings';
 import { ClubMileageFilterSettings } from './pages/ClubMileageFilterSettings';
 import { ClubMileageExclusionSettings } from './pages/ClubMileageExclusionSettings';
 import { ClubMileageRetroactive } from './pages/ClubMileageRetroactive';
@@ -26,6 +27,7 @@ import { ClubTransferOwnership } from './pages/ClubTransferOwnership';
 import { ClubMembers } from './pages/ClubMembers';
 import { ClubAwards } from './pages/ClubAwards';
 import { ClubGallery } from './pages/ClubGallery';
+import { ClubRelay } from './pages/ClubRelay';
 import { ProtectedClubRoute } from './components/ProtectedClubRoute';
 import { More } from './pages/More';
 import { BlockedMembers } from './pages/BlockedMembers';
@@ -119,6 +121,11 @@ function ProtectedRoutes() {
               <ClubMileageHideSettings />
             </ProtectedClubRoute>
           } />
+          <Route path="/club/settings/:clubId/wrapped" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubWrappedSettings />
+            </ProtectedClubRoute>
+          } />
           <Route path="/club/settings/:clubId/mileage-filter" element={
             <ProtectedClubRoute requireAdmin>
               <ClubMileageFilterSettings />
@@ -177,6 +184,11 @@ function ProtectedRoutes() {
           <Route path="/club/gallery/:clubId" element={
             <ProtectedClubRoute>
               <ClubGallery />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/relay/:clubId" element={
+            <ProtectedClubRoute>
+              <ClubRelay />
             </ProtectedClubRoute>
           } />
           <Route path="/join" element={<JoinClub />} />
