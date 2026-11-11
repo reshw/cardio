@@ -1,33 +1,27 @@
-// 이어달리기 코스 정의 — 코스는 코드에 고정(마이그레이션 없이 수정 가능)하고,
-// DB(relay_challenges)에는 course_key 와 구간 수(leg_count)만 저장한다.
-// 정밀한 경로 검증은 하지 않는다(클럽 재미용, 자율 인증). 거리는 "약" 값이다.
+// 이어달리기 코스 — 정해진 구간은 없다. 기준선(경유지 좌표)만 있고,
+// 각 주자가 앞사람이 멈춘 곳에서 출발해 원하는 곳에서 멈추며 km 를 쌓는다.
+// 지도 위 위치는 "누적 km 를 기준선 위에 보간"해서 그린다 (GPS 아님, 대략치).
 
 export interface RelayPoint {
   name: string;
   lat: number;
   lng: number;
-  /** 지도에 이름을 항상 표시할 큰 도시 */
-  major?: boolean;
-  /** 지도 이름표 위치 (없으면 경로에 수직으로 자동 배치) */
-  label?: 'left' | 'right' | 'below' | 'below-left';
+  /** 지도에 지역 이름으로 표시할 지점 */
+  region?: string;
+  /** 지도 이름표 위치 */
+  label?: 'left' | 'right' | 'below' | 'above';
 }
 
 export interface RelayCourse {
   key: string;
   title: string;
-  points: RelayPoint[]; // 구간 = 인접한 두 점 (points.length - 1 개)
+  subtitle: string;
+  startName: string;
+  finishName: string;
+  points: RelayPoint[];
+  /** 직선거리 합 → 실제 길 거리 보정 배수 */
+  pathFactor: number;
 }
-
-export interface RelayLeg {
-  no: number; // 0부터
-  from: RelayPoint;
-  to: RelayPoint;
-  km: number; // 도로 기준 대략치
-  startKm: number; // 출발점까지 누적
-}
-
-// 직선거리 × 1.2 ≈ 도로 거리 (경부 축 국도 기준 대략치)
-const ROAD_FACTOR = 1.2;
 
 function haversineKm(a: RelayPoint, b: RelayPoint): number {
   const R = 6371;
@@ -42,47 +36,83 @@ export const RELAY_COURSES: Record<string, RelayCourse> = {
   'seoul-busan': {
     key: 'seoul-busan',
     title: '서울 → 부산 이어달리기',
+    subtitle: '국토종주 자전거길(한강·남한강·새재·낙동강) 따라',
+    startName: '서울시청',
+    finishName: '부산 낙동강하굿둑',
+    // 강변 자전거길은 굽이가 많아 직선 대비 약 1.45배 (공식 인천~부산 633km 중 서울 이후 ≈ 565km)
+    pathFactor: 1.45,
     points: [
-      { name: '서울시청', lat: 37.5663, lng: 126.9779, major: true, label: 'right' },
-      { name: '강남역', lat: 37.4979, lng: 127.0276 },
-      { name: '판교역', lat: 37.3948, lng: 127.1112 },
-      { name: '수원역', lat: 37.2656, lng: 127.0001, major: true, label: 'right' },
-      { name: '오산역', lat: 37.1452, lng: 127.0669 },
-      { name: '평택역', lat: 36.991, lng: 127.0856 },
-      { name: '천안역', lat: 36.8101, lng: 127.1464, major: true, label: 'right' },
-      { name: '전의역', lat: 36.6835, lng: 127.2011 },
-      { name: '조치원역', lat: 36.601, lng: 127.2961 },
-      { name: '신탄진역', lat: 36.4511, lng: 127.4291 },
-      { name: '대전역', lat: 36.3324, lng: 127.4343, major: true, label: 'below-left' },
-      { name: '옥천역', lat: 36.3063, lng: 127.5714 },
-      { name: '심천역', lat: 36.2439, lng: 127.7113 },
-      { name: '영동역', lat: 36.1747, lng: 127.7835 },
-      { name: '추풍령역', lat: 36.2194, lng: 127.9953 },
-      { name: '김천역', lat: 36.124, lng: 128.1137, major: true, label: 'below' },
-      { name: '구미역', lat: 36.1283, lng: 128.331 },
-      { name: '왜관역', lat: 35.9922, lng: 128.3976 },
-      { name: '서대구역', lat: 35.882, lng: 128.5409 },
-      { name: '동대구역', lat: 35.8793, lng: 128.6284, major: true, label: 'below-left' },
-      { name: '경산역', lat: 35.8221, lng: 128.738 },
-      { name: '청도역', lat: 35.6474, lng: 128.7362 },
-      { name: '밀양역', lat: 35.4744, lng: 128.7714 },
-      { name: '삼랑진역', lat: 35.415, lng: 128.835 },
-      { name: '물금역', lat: 35.3132, lng: 128.9886 },
-      { name: '구포역', lat: 35.2056, lng: 128.9966 },
-      { name: '부산역', lat: 35.1152, lng: 129.0422, major: true, label: 'left' },
+      { name: '서울시청', lat: 37.5663, lng: 126.9779, region: '서울', label: 'left' },
+      { name: '반포한강공원', lat: 37.51, lng: 126.996 },
+      { name: '뚝섬', lat: 37.5294, lng: 127.0669 },
+      { name: '광나루', lat: 37.5463, lng: 127.1205 },
+      { name: '팔당', lat: 37.547, lng: 127.244 },
+      { name: '능내', lat: 37.5577, lng: 127.3027 },
+      { name: '양평', lat: 37.4917, lng: 127.4877, region: '양평', label: 'right' },
+      { name: '이포보', lat: 37.4012, lng: 127.5426 },
+      { name: '여주보', lat: 37.3245, lng: 127.6017, region: '여주', label: 'left' },
+      { name: '강천보', lat: 37.3164, lng: 127.6857 },
+      { name: '비내섬', lat: 37.1048, lng: 127.818 },
+      { name: '충주 탄금대', lat: 36.9887, lng: 127.9123, region: '충주', label: 'left' },
+      { name: '수안보', lat: 36.8455, lng: 127.9928 },
+      { name: '이화령', lat: 36.7462, lng: 128.0566, region: '이화령', label: 'right' },
+      { name: '문경', lat: 36.5877, lng: 128.1868 },
+      { name: '상주 상풍교', lat: 36.5375, lng: 128.2711, region: '상주', label: 'right' },
+      { name: '상주보', lat: 36.4359, lng: 128.2513 },
+      { name: '낙단보', lat: 36.357, lng: 128.2914 },
+      { name: '구미보', lat: 36.264, lng: 128.338, region: '구미', label: 'right' },
+      { name: '칠곡보', lat: 35.9988, lng: 128.4014 },
+      { name: '강정고령보', lat: 35.8445, lng: 128.463, region: '대구', label: 'right' },
+      { name: '달성보', lat: 35.7307, lng: 128.43 },
+      { name: '합천창녕보', lat: 35.5866, lng: 128.3672, region: '합천', label: 'left' },
+      { name: '창녕함안보', lat: 35.3814, lng: 128.4416 },
+      { name: '양산 물금', lat: 35.3132, lng: 128.9886, region: '양산', label: 'right' },
+      { name: '낙동강하굿둑', lat: 35.1065, lng: 128.944, region: '부산', label: 'left' },
     ],
   },
 };
 
 export const DEFAULT_RELAY_COURSE = 'seoul-busan';
 
-export function getRelayLegs(course: RelayCourse): RelayLeg[] {
-  const legs: RelayLeg[] = [];
-  let acc = 0;
+/** 각 경유지까지의 누적 km (보정 배수 적용) */
+export function cumulativeKm(course: RelayCourse): number[] {
+  const acc = [0];
   for (let i = 1; i < course.points.length; i++) {
-    const km = Math.round(haversineKm(course.points[i - 1], course.points[i]) * ROAD_FACTOR);
-    legs.push({ no: i - 1, from: course.points[i - 1], to: course.points[i], km, startKm: acc });
-    acc += km;
+    acc.push(acc[i - 1] + haversineKm(course.points[i - 1], course.points[i]) * course.pathFactor);
   }
-  return legs;
+  return acc;
+}
+
+export function courseTotalKm(course: RelayCourse): number {
+  const acc = cumulativeKm(course);
+  return Math.round(acc[acc.length - 1]);
+}
+
+/** 누적 km → 기준선 위 좌표 (총거리 비율로 보간해서 total_km 가 달라도 끝이 맞게) */
+export function pointAtKm(course: RelayCourse, km: number, totalKm?: number): { lat: number; lng: number } {
+  const acc = cumulativeKm(course);
+  const full = acc[acc.length - 1];
+  const target = Math.max(0, Math.min(full, (km / (totalKm || full)) * full));
+  let i = 1;
+  while (i < acc.length - 1 && acc[i] < target) i++;
+  const a = course.points[i - 1], b = course.points[i];
+  const t = acc[i] === acc[i - 1] ? 0 : (target - acc[i - 1]) / (acc[i] - acc[i - 1]);
+  return { lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t };
+}
+
+/** 누적 km 가 기준선상 어디쯤인지 한 줄 설명 — 예: "팔당 지나 3km" */
+export function describeKm(course: RelayCourse, km: number, totalKm?: number): string {
+  const acc = cumulativeKm(course);
+  const full = acc[acc.length - 1];
+  const target = Math.max(0, Math.min(full, (km / (totalKm || full)) * full));
+  let i = 0;
+  while (i < acc.length - 1 && acc[i + 1] <= target) i++;
+  if (i >= acc.length - 1) return course.points[acc.length - 1].name;
+  const past = target - acc[i];
+  const toNext = acc[i + 1] - target;
+  if (past < 1) return `${course.points[i].name} 부근`;
+  if (toNext < 1) return `${course.points[i + 1].name} 부근`;
+  return toNext < past
+    ? `${course.points[i + 1].name} 전 ${Math.round(toNext)}km`
+    : `${course.points[i].name} 지나 ${Math.round(past)}km`;
 }

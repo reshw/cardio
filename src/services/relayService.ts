@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import clubService from './clubService';
-import { RELAY_COURSES, getRelayLegs } from '../data/relayCourses';
+import { RELAY_COURSES, courseTotalKm } from '../data/relayCourses';
 
 // 클럽 이어달리기 (서울 → 부산 등) — 바통 방식, 자율 인증.
 // 테이블/RPC: supabase/migrations/20261111000000_club_relay.sql
@@ -10,7 +10,8 @@ export interface RelayChallenge {
   club_id: string;
   course_key: string;
   title: string;
-  leg_count: number;
+  total_km: number;
+  start_name: string;
   status: 'active' | 'finished' | 'cancelled';
   started_by: string | null;
   started_at: string;
@@ -24,6 +25,9 @@ export interface RelayLegRecord {
   user_id: string;
   workout_id: string | null;
   note: string | null;
+  km: number;
+  start_name: string;
+  end_name: string;
   created_at: string;
   // 조회 시 채움
   runnerName?: string;
@@ -55,7 +59,7 @@ class RelayService {
       console.error('[이어달리기] 조회 실패:', JSON.stringify(error), error);
       throw error;
     }
-    const rows = (data || []) as RelayChallenge[];
+    const rows = ((data || []) as RelayChallenge[]).map((r) => ({ ...r, total_km: Number(r.total_km) }));
     return rows.find((r) => r.status === 'active') ?? rows[0] ?? null;
   }
 
@@ -69,7 +73,7 @@ class RelayService {
       console.error('[이어달리기] 구간 기록 조회 실패:', JSON.stringify(error), error);
       throw error;
     }
-    const legs = (data || []) as RelayLegRecord[];
+    const legs = ((data || []) as RelayLegRecord[]).map((l) => ({ ...l, km: Number(l.km) }));
     if (legs.length === 0) return legs;
 
     // 이름(클럽 닉네임 우선) + 연결된 운동 km — 부가 정보라 실패해도 목록은 보여준다
@@ -111,7 +115,8 @@ class RelayService {
         club_id: clubId,
         course_key: course.key,
         title: course.title,
-        leg_count: getRelayLegs(course).length,
+        total_km: courseTotalKm(course),
+        start_name: course.startName,
         started_by: startedBy,
       })
       .select()
@@ -135,10 +140,11 @@ class RelayService {
     }
   }
 
-  async completeLeg(relayId: string, legNo: number, workoutId: string | null, note: string): Promise<void> {
+  async completeLeg(relayId: string, km: number, endName: string, workoutId: string | null, note: string): Promise<void> {
     const { error } = await supabase.rpc('relay_complete_leg', {
       p_relay_id: relayId,
-      p_leg_no: legNo,
+      p_km: km,
+      p_end_name: endName,
       p_workout_id: workoutId,
       p_note: note || null,
     });
@@ -146,7 +152,7 @@ class RelayService {
       console.error('[이어달리기] 구간 인증 실패:', JSON.stringify(error), error);
       throw new Error(errText(error));
     }
-    console.log('[이어달리기] 구간 인증 성공:', { relayId, legNo, workoutId });
+    console.log('[이어달리기] 인증 성공:', { relayId, km, endName, workoutId });
   }
 
   async cancelLastLeg(relayId: string): Promise<void> {
