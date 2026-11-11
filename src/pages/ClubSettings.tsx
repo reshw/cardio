@@ -126,7 +126,7 @@ export const ClubSettings = () => {
             >
               <div className="menu-item-left">
                 <Gift size={20} />
-                <span>카디오 랩드</span>
+                <span>연말 결산</span>
               </div>
               <ChevronRight size={20} />
             </button>

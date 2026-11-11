@@ -20,7 +20,7 @@ const label = (s: string) => `${+s.slice(0, 4)}년 ${+s.slice(5, 7)}월 ${+s.sli
 const shortLabel = (s: string) => `${+s.slice(5, 7)}월 ${+s.slice(8, 10)}일`;
 
 function statusText(w: WrappedWindow | null) {
-  if (!w) return '클럽 화면에 랩드 배너가 표시되지 않아요.';
+  if (!w) return '클럽 화면에 연말 결산 배너가 표시되지 않아요.';
   const now = kstStamp();
   if (isWithin(w)) return `지금 표시 중 — ${w.year}년 결산, ${shortLabel(w.to)}까지`;
   if (now < startStamp(w)) return `${label(w.from)}${w.fromTime ? ` ${w.fromTime}` : ''}부터 ${w.year}년 결산이 표시돼요.`;
@@ -125,7 +125,7 @@ export const ClubWrappedSettings = () => {
   const options: { key: Mode; title: string; desc: string }[] = [
     { key: 'default', title: '기본', desc: '12월 10일 18:00 ~ 1월 31일 (12월은 올해, 1월은 작년 결산)' },
     { key: 'custom', title: '기간 직접 정하기', desc: '배너를 띄울 시작일과 종료일을 고릅니다' },
-    { key: 'off', title: '표시 안 함', desc: '이 클럽에서는 랩드 배너를 띄우지 않습니다' },
+    { key: 'off', title: '표시 안 함', desc: '이 클럽에서는 연말 결산 배너를 띄우지 않습니다' },
   ];
 
   return (
@@ -136,7 +136,7 @@ export const ClubWrappedSettings = () => {
         </button>
         <div className="settings-header-title-group">
           {clubName && <span className="settings-header-club-name">{clubName}</span>}
-          <h1>카디오 랩드</h1>
+          <h1>연말 결산</h1>
         </div>
       </div>
 
@@ -144,7 +144,7 @@ export const ClubWrappedSettings = () => {
         <div className="settings-section">
           <h3>표시 기간</h3>
           <p className="form-hint" style={{ marginBottom: '16px' }}>
-            클럽 화면에 🎁 &lsquo;나의 카디오 랩드&rsquo; 배너가 보이는 기간이에요.<br />
+            클럽 화면에 🎁 &lsquo;나의 연말 결산&rsquo; 배너가 보이는 기간이에요.<br />
             회원마다 자기 기록으로 한 해를 돌아봅니다.
           </p>
 
@@ -194,7 +194,7 @@ export const ClubWrappedSettings = () => {
             onClick={() => setPreview(true)}
             style={{ width: '100%', marginTop: '16px', padding: '12px', borderRadius: '12px', background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '14px', cursor: 'pointer' }}
           >
-            🎁 내 {previewYear} 랩드 미리보기
+            🎁 내 {previewYear} 연말 결산 미리보기
           </button>
         )}
 
