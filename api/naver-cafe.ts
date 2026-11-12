@@ -148,10 +148,16 @@ async function getValidAccessToken(row: any, clubId: string): Promise<string> {
 
 // ---------- 글 본문 ----------
 
-// ⚠️ 카페 API 는 <p>, <a href="..."> 가 들어가면 999 "오류가 발생하였습니다" 로 거부한다
-// (2026-11-12 orangelnilw 카페 실측: 텍스트·이모지·\n·<br> 은 성공, <p>+<a> 는 999).
-// 그래서 줄바꿈은 <br> 만 쓰고 링크는 태그 없이 URL 그대로 둔다. < > 는 사용자 입력에서 무력화.
-const clean = (s: string) => s.replace(/</g, '＜').replace(/>/g, '＞');
+// ⚠️ 카페 API 는 본문(제목 포함)에 큰따옴표(")가 하나라도 있으면 999 "오류가 발생하였습니다" 로 거부한다.
+// 2026-11-12 orangelnilw 카페 실측:
+//   성공 — 텍스트, 이모지, \n, <br>, <b>, <h3>, <font color=#..>, <a href=URL>,
+//          <span style='color:..'> (속성은 따옴표 없이 또는 작은따옴표)
+//   실패 — <span style="...">, <a href="..."> (큰따옴표)
+// 그래서 태그 속성엔 작은따옴표만 쓰고, 사용자 입력의 " 는 전각 ＂ 로 바꾼다. < > 도 무력화.
+// 글씨체: font-family 는 지워지지 않지만 폰트 파일은 안 따라간다 → 보는 사람 PC에 있는 폰트로만 나옴.
+// 없을 때 브라우저 기본 고딕(본고딕 계열)으로 깨지는 게 카페 기본(맑은 고딕)보다 나아서 본고딕 계열을 지정.
+const FONT_STACK = 'Noto Sans KR,Noto Sans CJK KR,Source Han Sans KR,Pretendard,sans-serif';
+const clean = (s: string) => s.replace(/"/g, '＂').replace(/</g, '＜').replace(/>/g, '＞');
 const nl2br = (s: string) => clean(s).replace(/\r?\n/g, '<br>');
 
 function buildContent(ev: any): string {
@@ -162,7 +168,7 @@ function buildContent(ev: any): string {
   if (ev.description) lines.push('', nl2br(ev.description));
   if (ev.gpx_url) lines.push('', `🗺 GPX: ${clean(ev.gpx_url)}`);
   lines.push('', '— 카디오 클럽달력에 등록된 행사입니다. 참가 체크인은 카디오 앱에서 해주세요.', 'https://cardio.scnd.kr');
-  return lines.join('<br>');
+  return `<span style='font-family:${FONT_STACK}'>${lines.join('<br>')}</span>`;
 }
 
 async function postArticle(accessToken: string, cafeId: string, menuId: string, subject: string, content: string) {
@@ -265,7 +271,7 @@ async function publish(eventId: string, token: string) {
 
   try {
     const accessToken = await getValidAccessToken(row, ev.club_id);
-    const articleUrl = await postArticle(accessToken, row.cafe_id, row.menu_id, ev.title, buildContent(ev));
+    const articleUrl = await postArticle(accessToken, row.cafe_id, row.menu_id, clean(ev.title), buildContent(ev));
     await sb.from('club_events').update({
       naver_cafe_article_url: articleUrl, naver_cafe_published_at: new Date().toISOString(), naver_cafe_error: null,
     }).eq('id', eventId);
