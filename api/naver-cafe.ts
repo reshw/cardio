@@ -151,7 +151,8 @@ async function getValidAccessToken(row: any, clubId: string): Promise<string> {
 // ⚠️ 카페 API 는 본문(제목 포함)에 큰따옴표(")가 하나라도 있으면 999 "오류가 발생하였습니다" 로 거부한다.
 // 2026-11-12 orangelnilw 카페 실측:
 //   성공 — 텍스트, 이모지, \n, <br>, <b>, <h3>, <font color=#..>, <a href=URL>,
-//          <span style='color:..'> (속성은 따옴표 없이 또는 작은따옴표)
+//          <span style='color:..;background-color:..'> (속성은 따옴표 없이 또는 작은따옴표)
+//   실제 행사 포맷도 테스트14 로 발행 확인 (배지+h3+색 라벨+링크).
 //   실패 — <span style="...">, <a href="..."> (큰따옴표)
 // 그래서 태그 속성엔 작은따옴표만 쓰고, 사용자 입력의 " 는 전각 ＂ 로 바꾼다. < > 도 무력화.
 // 글씨체: font-family 는 지워지지 않지만 폰트 파일은 안 따라간다 → 보는 사람 PC에 있는 폰트로만 나옴.
@@ -159,16 +160,36 @@ async function getValidAccessToken(row: any, clubId: string): Promise<string> {
 const FONT_STACK = 'Noto Sans KR,Noto Sans CJK KR,Source Han Sans KR,Pretendard,sans-serif';
 const clean = (s: string) => s.replace(/"/g, '＂').replace(/</g, '＜').replace(/>/g, '＞');
 const nl2br = (s: string) => clean(s).replace(/\r?\n/g, '<br>');
+// href 값은 따옴표 없이 넣으므로 공백·따옴표·꺾쇠가 있으면 속성이 깨진다 → http(s) 만 허용 + 인코딩
+const safeUrl = (u: string): string | null => {
+  const s = String(u || '').trim();
+  if (!/^https?:\/\//i.test(s)) return null;
+  return s.replace(/[\s"'<>]/g, (c) => encodeURIComponent(c));
+};
+
+const ACCENT = '#1a73e8';   // 라벨·링크 (카페 기본 링크색 계열)
+const MUTED = '#868e96';    // 하단 안내문
+const label = (icon: string, text: string) => `${icon} <b><font color=${ACCENT}>${text}</font></b>`;
+const badge = (text: string) => `<span style='background-color:#e8f0fe;color:${ACCENT};padding:1px 6px;border-radius:4px'><b>${text}</b></span>`;
 
 function buildContent(ev: any): string {
   const d = new Date(ev.starts_at);
-  const date = d.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
-  const lines: string[] = [`📅 날짜: ${clean(date)}`];
-  if (ev.category_text) lines.push(`🏃 종목: ${clean(ev.category_text)}`);
-  if (ev.description) lines.push('', nl2br(ev.description));
-  if (ev.gpx_url) lines.push('', `🗺 GPX: ${clean(ev.gpx_url)}`);
-  lines.push('', '— 카디오 클럽달력에 등록된 행사입니다. 참가 체크인은 카디오 앱에서 해주세요.', 'https://cardio.scnd.kr');
-  return `<span style='font-family:${FONT_STACK}'>${lines.join('<br>')}</span>`;
+  const ymd = d.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric' });
+  const wd = d.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', weekday: 'short' });
+  const date = `${ymd} (${wd})`;
+  // h3 는 블록이라 뒤에 <br> 을 붙이면 빈 줄이 생김 → 헤더는 따로 이어붙임
+  const header = `${badge('클럽 행사')}<h3>${clean(ev.title || '')}</h3>`;
+  const parts: string[] = [`${label('📅', '날짜')}  ${clean(date)}`];
+  if (ev.category_text) parts.push(`${label('🏃', '종목')}  ${clean(ev.category_text)}`);
+  if (ev.description) parts.push('', nl2br(ev.description));
+  const gpx = ev.gpx_url ? safeUrl(ev.gpx_url) : null;
+  if (gpx) parts.push('', `${label('🗺', '코스')}  <a href=${gpx}><font color=${ACCENT}>GPX 파일 받기</font></a>`);
+  parts.push(
+    '',
+    `<font color=${MUTED}>카디오 클럽달력에 등록된 행사입니다. 참가 체크인은 카디오 앱에서 해주세요.</font>`,
+    `👉 <a href=https://cardio.scnd.kr><b><font color=${ACCENT}>카디오에서 보기</font></b></a>`,
+  );
+  return `<span style='font-family:${FONT_STACK}'>${header}${parts.join('<br>')}</span>`;
 }
 
 async function postArticle(accessToken: string, cafeId: string, menuId: string, subject: string, content: string) {
