@@ -159,7 +159,7 @@ async function getValidAccessToken(row: any, clubId: string): Promise<string> {
 // 없을 때 브라우저 기본 고딕(본고딕 계열)으로 깨지는 게 카페 기본(맑은 고딕)보다 나아서 본고딕 계열을 지정.
 const FONT_STACK = 'Noto Sans KR,Noto Sans CJK KR,Source Han Sans KR,Pretendard,sans-serif';
 const clean = (s: string) => s.replace(/"/g, '＂').replace(/</g, '＜').replace(/>/g, '＞');
-const nl2br = (s: string) => clean(s).replace(/\r?\n/g, '<br>');
+const ff = (inner: string) => `<span style='font-family:${FONT_STACK}'>${inner}</span>`;
 // href 값은 따옴표 없이 넣으므로 공백·따옴표·꺾쇠가 있으면 속성이 깨진다 → http(s) 만 허용 + 인코딩
 const safeUrl = (u: string): string | null => {
   const s = String(u || '').trim();
@@ -178,10 +178,12 @@ function buildContent(ev: any): string {
   const wd = d.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', weekday: 'short' });
   const date = `${ymd} (${wd})`;
   // h3 는 블록이라 뒤에 <br> 을 붙이면 빈 줄이 생김 → 헤더는 따로 이어붙임
-  const header = `${badge('클럽 행사')}<h3>${clean(ev.title || '')}</h3>`;
+  // ⚠️ 글씨체 span 을 바깥에 한 번만 두르면 카페 에디터가 블록(h3) 에서 span 을 끊어버려
+  //    첫 조각(배지)만 본고딕이 되고 나머지는 맑은 고딕이 됨 (테스트14 실측) → 줄마다 따로 두른다.
+  const header = `${ff(badge('클럽 행사'))}<h3>${ff(clean(ev.title || ''))}</h3>`;
   const parts: string[] = [`${label('📅', '날짜')}  ${clean(date)}`];
   if (ev.category_text) parts.push(`${label('🏃', '종목')}  ${clean(ev.category_text)}`);
-  if (ev.description) parts.push('', nl2br(ev.description));
+  if (ev.description) parts.push('', ...String(ev.description).split(/\r?\n/).map(clean));
   const gpx = ev.gpx_url ? safeUrl(ev.gpx_url) : null;
   if (gpx) parts.push('', `${label('🗺', '코스')}  <a href=${gpx}><font color=${ACCENT}>GPX 파일 받기</font></a>`);
   parts.push(
@@ -189,7 +191,7 @@ function buildContent(ev: any): string {
     `<font color=${MUTED}>카디오 클럽달력에 등록된 행사입니다. 참가 체크인은 카디오 앱에서 해주세요.</font>`,
     `👉 <a href=https://cardio.scnd.kr><b><font color=${ACCENT}>카디오에서 보기</font></b></a>`,
   );
-  return `<span style='font-family:${FONT_STACK}'>${header}${parts.join('<br>')}</span>`;
+  return header + parts.map((p) => (p ? ff(p) : '')).join('<br>');
 }
 
 async function postArticle(accessToken: string, cafeId: string, menuId: string, subject: string, content: string) {
