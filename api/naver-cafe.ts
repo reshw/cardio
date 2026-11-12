@@ -179,7 +179,10 @@ async function postArticle(accessToken: string, cafeId: string, menuId: string, 
   if (!r.ok || !result?.articleUrl && !result?.articleId) {
     const msg = j?.message?.error?.msg || j?.errorMessage || j?.message?.error?.message || text.slice(0, 400);
     const code = j?.message?.error?.code || j?.errorCode || r.status;
-    throw new Error(`카페 글 등록 실패 [${code}]: ${msg}`);
+    const hint = String(code) === '024'
+      ? ' → 네이버 계정이 카페 글쓰기 권한에 동의하지 않은 상태입니다. 클럽 설정 > 네이버 카페 연동에서 "다시 연동"하고 동의 화면에서 카페 권한을 허용해주세요.'
+      : '';
+    throw new Error(`카페 글 등록 실패 [${code}]: ${msg}${hint}`);
   }
   return (result.articleUrl as string) || `https://cafe.naver.com/ca-fe/cafes/${cafeId}/articles/${result.articleId}`;
 }
@@ -294,6 +297,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const state = signState({ c: clubId, u: userId, o: safeOrigin(origin), e: Date.now() + STATE_TTL_MS });
       const qs = new URLSearchParams({
         response_type: 'code', client_id: NAVER_CLIENT_ID, redirect_uri: callbackUrl(req), state,
+        // 이미 동의한 계정도 동의 화면을 다시 띄움 — 앱에 카페 권한을 나중에 추가한 경우 기존 동의엔 빠져 있어
+        // 024 Scope Status Invalid 가 난다 (2026-11-12 실측)
+        auth_type: 'reprompt',
       });
       return res.status(200).json({ authorizeUrl: `https://nid.naver.com/oauth2.0/authorize?${qs}` });
     }
