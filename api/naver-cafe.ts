@@ -180,7 +180,7 @@ async function postArticle(accessToken: string, cafeId: string, menuId: string, 
     const msg = j?.message?.error?.msg || j?.errorMessage || j?.message?.error?.message || text.slice(0, 400);
     const code = j?.message?.error?.code || j?.errorCode || r.status;
     const hint = String(code) === '024'
-      ? ' → 네이버 계정이 카페 글쓰기 권한에 동의하지 않은 상태입니다. 클럽 설정 > 네이버 카페 연동에서 "다시 연동"하고 동의 화면에서 카페 권한을 허용해주세요.'
+      ? ' → 네이버 계정이 카페 글쓰기 권한에 동의하지 않은 상태입니다. 클럽 설정 > 네이버 카페 연동에서 "다시 연동"을 누르고, 동의 화면에서 [선택] 카페가입, 글쓰기를 체크해주세요.'
       : '';
     throw new Error(`카페 글 등록 실패 [${code}]: ${msg}${hint}`);
   }
