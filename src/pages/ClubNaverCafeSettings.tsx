@@ -78,6 +78,16 @@ export const ClubNaverCafeSettings = () => {
     border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '14px', cursor: 'pointer',
   };
 
+  const consentNotice = (
+    <div style={{
+      padding: '12px 14px', borderRadius: '10px', marginBottom: '12px', fontSize: '13px', lineHeight: 1.55,
+      background: 'var(--warning-tint)', color: 'var(--text-primary)', border: '1px solid var(--border-color)',
+    }}>
+      ⚠️ 네이버 동의 화면에서 <b>[선택] 카페가입, 글쓰기</b> 를 반드시 체크하세요 (또는 &lsquo;전체 동의하기&rsquo;).
+      체크하지 않으면 연동은 되지만 카페에 글이 올라가지 않습니다.
+    </div>
+  );
+
   return (
     <div className="settings-page">
       <div className="settings-header">
@@ -115,10 +125,11 @@ export const ClubNaverCafeSettings = () => {
               <p className="form-hint" style={{ marginBottom: '12px' }}>
                 카페 글은 연동한 네이버 계정 이름으로 올라갑니다. 그 계정이 게시판에 글쓰기 권한이 있어야 해요.
               </p>
+              {consentNotice}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button type="button" style={outlineBtn} disabled={busy}
                   onClick={() => run(() => naverCafeService.startConnect(clubId))}>
-                  다른 계정으로 다시 연동
+                  다시 연동 (권한 다시 동의)
                 </button>
                 <button type="button" style={outlineBtn} disabled={busy}
                   onClick={() => { if (confirm('네이버 카페 연동을 해제할까요? 이후 행사는 카페에 올라가지 않습니다.')) run(() => naverCafeService.disconnect(clubId), '연동을 해제했습니다.'); }}>
@@ -131,6 +142,7 @@ export const ClubNaverCafeSettings = () => {
               <p className="form-hint" style={{ marginBottom: '12px' }}>
                 카페에 글을 올릴 네이버 계정으로 로그인해주세요. (클럽장 계정 권장)
               </p>
+              {consentNotice}
               <button type="button" className="primary-button-full" disabled={busy}
                 onClick={() => run(() => naverCafeService.startConnect(clubId))}>
                 {busy ? '이동 중...' : '네이버 로그인으로 연동하기'}
