@@ -148,18 +148,21 @@ async function getValidAccessToken(row: any, clubId: string): Promise<string> {
 
 // ---------- 글 본문 ----------
 
-const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const nl2br = (s: string) => esc(s).replace(/\r?\n/g, '<br>');
+// ⚠️ 카페 API 는 <p>, <a href="..."> 가 들어가면 999 "오류가 발생하였습니다" 로 거부한다
+// (2026-11-12 orangelnilw 카페 실측: 텍스트·이모지·\n·<br> 은 성공, <p>+<a> 는 999).
+// 그래서 줄바꿈은 <br> 만 쓰고 링크는 태그 없이 URL 그대로 둔다. < > 는 사용자 입력에서 무력화.
+const clean = (s: string) => s.replace(/</g, '＜').replace(/>/g, '＞');
+const nl2br = (s: string) => clean(s).replace(/\r?\n/g, '<br>');
 
 function buildContent(ev: any): string {
   const d = new Date(ev.starts_at);
   const date = d.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
-  const parts: string[] = [`<p>📅 날짜: ${esc(date)}</p>`];
-  if (ev.category_text) parts.push(`<p>🏃 종목: ${esc(ev.category_text)}</p>`);
-  if (ev.description) parts.push(`<p><br>${nl2br(ev.description)}</p>`);
-  if (ev.gpx_url) parts.push(`<p><br>🗺 GPX: <a href="${esc(ev.gpx_url)}">${esc(ev.gpx_url)}</a></p>`);
-  parts.push(`<p><br>— 카디오 클럽달력에 등록된 행사입니다. 참가 체크인은 카디오 앱에서 해주세요.<br><a href="https://cardio.scnd.kr">https://cardio.scnd.kr</a></p>`);
-  return parts.join('');
+  const lines: string[] = [`📅 날짜: ${clean(date)}`];
+  if (ev.category_text) lines.push(`🏃 종목: ${clean(ev.category_text)}`);
+  if (ev.description) lines.push('', nl2br(ev.description));
+  if (ev.gpx_url) lines.push('', `🗺 GPX: ${clean(ev.gpx_url)}`);
+  lines.push('', '— 카디오 클럽달력에 등록된 행사입니다. 참가 체크인은 카디오 앱에서 해주세요.', 'https://cardio.scnd.kr');
+  return lines.join('<br>');
 }
 
 async function postArticle(accessToken: string, cafeId: string, menuId: string, subject: string, content: string) {
