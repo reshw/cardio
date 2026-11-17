@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
 import clubService from '../services/clubService';
 import type { Club } from '../services/clubService';
 import { detectInApp, getPlatform, isNativeApp } from '../utils/browserEnv';
@@ -38,7 +37,7 @@ export const InviteLanding = () => {
   const [ownerName, setOwnerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [storeUrl, setStoreUrl] = useState(STORE_FALLBACK[platform] ?? '');
+  const storeUrl = STORE_FALLBACK[platform] ?? '';
   const [copied, setCopied] = useState(false);
   // ?to=install 로 들어오면(카카오 "앱 설치하기" 버튼) 절차 안내를 펼친 채로 시작
   const [showSteps, setShowSteps] = useState(searchParams.get('to') === 'install');
@@ -78,24 +77,7 @@ export const InviteLanding = () => {
     return () => { alive = false; };
   }, [code]);
 
-  // 스토어 링크는 app_releases 에서 (없으면 상수 폴백)
-  useEffect(() => {
-    if (platform !== 'ios' && platform !== 'android') return;
-    supabase
-      .from('app_releases')
-      .select('url')
-      .eq('platform', platform)
-      .order('released_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error) {
-          console.error(`[초대] ${platform} 릴리스 조회 실패, 기본 링크 사용:`, JSON.stringify(error), error);
-          return;
-        }
-        if (data?.url) setStoreUrl(data.url);
-      });
-  }, [platform]);
+  // 스토어 링크는 고정값만 쓴다 — app_releases.url(android) 은 구 APK 라 Play 대신 APK 로 보내게 된다
 
   const handleCopyCode = async () => {
     if (!code) return;
