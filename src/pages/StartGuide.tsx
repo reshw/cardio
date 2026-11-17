@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Check, Globe, LogIn } from 'lucide-react';
+import { AlertTriangle, Check, Download, Globe, LogIn } from 'lucide-react';
 import { detectInApp, getPlatform, isNativeApp } from '../utils/browserEnv';
 import { STORE_URLS } from '../utils/storeLinks';
 
@@ -216,6 +217,32 @@ export const StartGuide = () => {
           <a href="/support" style={S.footLink}>문의하기</a>
         </footer>
       </div>
+
+      {/* 하단 고정 설치 바 — 어디까지 읽었든 바로 설치로 갈 수 있게.
+          fixed 요소라 부모 stacking context 에 갇히지 않도록 body 로 포털 (CLAUDE.md WebView 규칙) */}
+      {createPortal(
+        <div style={S.dock}>
+          <div style={S.dockInner}>
+            {isMobile ? (
+              <>
+                <div style={S.dockText}>
+                  <div style={S.dockTitle}>카디오x클럽 앱</div>
+                  <div style={S.dockSub}>설치하고 클럽에 합류하세요</div>
+                </div>
+                <a href={primaryStore.url} target="_blank" rel="noopener noreferrer" style={S.dockBtn}>
+                  <Download size={16} /> 설치하기
+                </a>
+              </>
+            ) : (
+              <>
+                <a href={stores.android} target="_blank" rel="noopener noreferrer" style={{ ...S.dockBtn, flex: 1 }}>Google Play</a>
+                <a href={stores.ios} target="_blank" rel="noopener noreferrer" style={{ ...S.dockBtn, flex: 1 }}>App Store</a>
+              </>
+            )}
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 };
@@ -223,7 +250,28 @@ export const StartGuide = () => {
 // 앱 셸 밖 독립 랜딩이라 이 파일 안에서 스타일을 갖는다 (InviteLanding 과 같은 방식).
 // 구조색은 전부 테마 토큰. 상태색(경고·에러)·카카오 브랜드색만 고정값.
 const S: Record<string, React.CSSProperties> = {
-  page: { minHeight: '100%', background: 'var(--body-bg)', padding: '28px 16px 48px', color: 'var(--text-primary)' },
+  // 아래쪽 여백 = 하단 고정 설치 바 높이만큼 (마지막 링크가 바에 가리지 않게)
+  page: {
+    minHeight: '100%', background: 'var(--body-bg)', color: 'var(--text-primary)',
+    padding: '28px 16px calc(112px + env(safe-area-inset-bottom))',
+  },
+
+  // 하단 고정 설치 바 — inset 만 쓰고 높이는 내용으로 (CLAUDE.md: fixed + height 중복 금지)
+  dock: {
+    position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50,
+    background: 'var(--surface-translucent)', backdropFilter: 'blur(10px)',
+    borderTop: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)',
+    padding: '10px 16px calc(10px + env(safe-area-inset-bottom))',
+  },
+  dockInner: { maxWidth: 480, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 12 },
+  dockText: { flex: 1, minWidth: 0 },
+  dockTitle: { fontSize: 15, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  dockSub: { fontSize: 12.5, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  dockBtn: {
+    flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+    minHeight: 46, padding: '0 20px', borderRadius: 12, textDecoration: 'none',
+    background: 'var(--primary-color)', color: 'var(--on-accent)', fontSize: 15, fontWeight: 800,
+  },
   wrap: { maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 },
 
   hero: { padding: '8px 4px 0' },
