@@ -4,7 +4,7 @@ import {
   AlertTriangle, Check, ChevronLeft, ChevronRight, Download, Globe, LogIn, Users,
 } from 'lucide-react';
 import { detectInApp, getPlatform, isNativeApp } from '../utils/browserEnv';
-import { useStoreUrls } from '../utils/storeLinks';
+import { STORE_URLS } from '../utils/storeLinks';
 
 /**
  * 시작 가이드 (/start) — 카카오톡으로 링크 하나만 보내면 읽으면서 바로 설치·로그인·클럽 가입까지
@@ -41,7 +41,7 @@ export const StartGuide = () => {
   const navigate = useNavigate();
   const platform = getPlatform();
   const inApp = detectInApp();
-  const stores = useStoreUrls('시작가이드');
+  const stores = STORE_URLS;
 
   const stepperRef = useRef<HTMLElement>(null);
   const touchRef = useRef<{ x: number; y: number } | null>(null);
