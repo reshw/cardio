@@ -22,12 +22,18 @@ export interface CustomRoleMember {
   profile_image?: string;
 }
 
+/** 배지 표시 — 'title' 이면 이름 옆에 직책 배지 (docs/design-guide_member-grade.md) */
+export type BadgeStyle = 'none' | 'title';
+export type BadgeIcon = 'run' | 'bike' | 'swim' | 'hike';
+
 export interface CustomRole {
   id: string;
   club_id: string;
   name: string;
   sort_order: number;
   permissions: PermissionKey[];
+  badge_style: BadgeStyle;
+  badge_icon: BadgeIcon | null;
   created_at: string;
   members: CustomRoleMember[];
 }
@@ -38,6 +44,8 @@ interface CustomRoleRow {
   name: string;
   sort_order: number;
   permissions: string[];
+  badge_style: BadgeStyle | null;
+  badge_icon: BadgeIcon | null;
   created_at: string;
 }
 
@@ -72,9 +80,10 @@ const clubPermissionService = {
   async listCustomRoles(clubId: string): Promise<CustomRole[]> {
     const { data: roles, error } = await supabase
       .from('club_custom_roles')
-      .select('id, club_id, name, sort_order, permissions, created_at')
+      .select('id, club_id, name, sort_order, permissions, badge_style, badge_icon, created_at')
       .eq('club_id', clubId)
-      .order('sort_order', { ascending: true });
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true });
 
     if (error) {
       console.error('[권한관리] 커스텀 등급 조회 실패:', JSON.stringify(error), error);
@@ -108,6 +117,8 @@ const clubPermissionService = {
     return (roles as CustomRoleRow[]).map((r) => ({
       ...r,
       permissions: (r.permissions ?? []) as PermissionKey[],
+      badge_style: r.badge_style ?? 'none',
+      badge_icon: r.badge_icon ?? null,
       members: membersByRole.get(r.id) ?? [],
     }));
   },
@@ -138,16 +149,33 @@ const clubPermissionService = {
     return data.id;
   },
 
-  async updateCustomRole(roleId: string, params: { name?: string; permissions?: PermissionKey[]; sortOrder?: number }): Promise<void> {
+  async updateCustomRole(
+    roleId: string,
+    params: { name?: string; permissions?: PermissionKey[]; sortOrder?: number; badgeStyle?: BadgeStyle; badgeIcon?: BadgeIcon | null }
+  ): Promise<void> {
     const patch: Record<string, unknown> = {};
     if (params.name !== undefined) patch.name = params.name;
     if (params.permissions !== undefined) patch.permissions = params.permissions;
     if (params.sortOrder !== undefined) patch.sort_order = params.sortOrder;
+    if (params.badgeStyle !== undefined) patch.badge_style = params.badgeStyle;
+    if (params.badgeIcon !== undefined) patch.badge_icon = params.badgeIcon;
 
     const { error } = await supabase.from('club_custom_roles').update(patch).eq('id', roleId);
     if (error) {
       console.error('[권한관리] 커스텀 등급 수정 실패:', JSON.stringify(error), error);
       throw error;
+    }
+  },
+
+  /** 순서 저장 — 0..n-1 로 다시 매긴다 (생성 시 length 를 쓰던 탓에 삭제 후 추가하면 값이 겹쳤다) */
+  async reorderCustomRoles(orderedIds: string[]): Promise<void> {
+    const results = await Promise.all(
+      orderedIds.map((id, i) => supabase.from('club_custom_roles').update({ sort_order: i }).eq('id', id))
+    );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) {
+      console.error('[권한관리] 등급 순서 저장 실패:', JSON.stringify(failed.error), failed.error);
+      throw failed.error;
     }
   },
 

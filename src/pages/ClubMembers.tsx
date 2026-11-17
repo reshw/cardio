@@ -6,10 +6,13 @@ import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
 import type { ClubMember } from '../services/clubService';
 import { useConfirm } from '../hooks/useConfirm';
+import { GradeBadge } from '../components/GradeBadge';
+import { useClubGrades } from '../hooks/useClubGrades';
 
 export const ClubMembers = () => {
   const { clubId } = useParams<{ clubId: string }>();
   const clubName = useClubName(clubId);
+  const { gradeOf } = useClubGrades(clubId);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -235,8 +238,8 @@ export const ClubMembers = () => {
 
               return (
                 <div key={member.id} className="member-card" style={{
-                  background: member.is_hall_of_fame ? 'linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%)' : undefined,
-                  borderColor: member.is_hall_of_fame ? '#FFD700' : undefined,
+                  background: member.is_hall_of_fame ? 'var(--row-hof-bg)' : undefined,
+                  borderColor: member.is_hall_of_fame ? 'var(--row-hof-border)' : undefined,
                   borderWidth: member.is_hall_of_fame ? '2px' : undefined,
                 }}>
                   <div className="member-info">
@@ -244,12 +247,7 @@ export const ClubMembers = () => {
                     <div className="member-details">
                       <div className="member-name">
                         {displayName}
-                        {isClubOwner && (
-                          <span className="owner-badge">방장</span>
-                        )}
-                        {member.role === 'vice-manager' && (
-                          <span className="admin-badge">부매니저</span>
-                        )}
+                        <GradeBadge grade={gradeOf(member.user_id)} size="full" />
                         {member.is_hall_of_fame && (
                           <span className="hof-badge">🏆 명예의 전당</span>
                         )}

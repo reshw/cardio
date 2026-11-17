@@ -1,6 +1,7 @@
 import { WorkoutFeedCard } from './WorkoutFeedCard';
 import { FeedDateNav } from './FeedDateNav';
 import { useAuth } from '../contexts/AuthContext';
+import { useClubGrades } from '../hooks/useClubGrades';
 import type { WorkoutFeedItem } from '../services/feedService';
 
 interface Props {
@@ -37,6 +38,7 @@ export const WorkoutFeed = ({
   onMemberClick,
 }: Props) => {
   const { user } = useAuth();
+  const { gradeOf } = useClubGrades(clubId);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -78,6 +80,7 @@ export const WorkoutFeed = ({
                     onOptimisticCommentDelete={onOptimisticCommentDelete}
                     onBlock={onBlock}
                     onMemberClick={onMemberClick}
+                    grade={gradeOf(item.workout.user_id)}
                   />
                 ))}
 
@@ -100,6 +103,7 @@ export const WorkoutFeed = ({
                     onOptimisticCommentDelete={onOptimisticCommentDelete}
                     onBlock={onBlock}
                     onMemberClick={onMemberClick}
+                    grade={gradeOf(item.workout.user_id)}
                   />
                 ))}
               </>

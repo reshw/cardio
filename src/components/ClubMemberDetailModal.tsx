@@ -11,6 +11,8 @@ import { WorkoutDetail } from '../pages/WorkoutDetail';
 import { useAuth } from '../contexts/AuthContext';
 import { getWorkoutStatusLabel } from '../utils/workoutStatusLabel';
 import { useModalHistory } from '../hooks/useModalHistory';
+import { GradeBadge, GradeTagline } from './GradeBadge';
+import { useClubGrades } from '../hooks/useClubGrades';
 
 interface Props {
   clubId: string;
@@ -22,6 +24,8 @@ interface Props {
 }
 
 export const ClubMemberDetailModal = ({ clubId, userId, userName, initialYear, initialMonth, onClose }: Props) => {
+  const { gradeOf } = useClubGrades(clubId);
+  const grade = gradeOf(userId);
   useModalHistory(true, onClose);
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
@@ -254,7 +258,15 @@ export const ClubMemberDetailModal = ({ clubId, userId, userName, initialYear, i
           <button className="back-button" onClick={onClose}>
             <ChevronLeft size={24} />
           </button>
-          <h2>{isBlocked ? userName : `${userName}님의 운동 기록`}</h2>
+          <div className="member-detail-sheet-title">
+            <h2>{isBlocked ? userName : `${userName}님의 운동 기록`}</h2>
+            {!isBlocked && grade && (
+              <div className="member-detail-sheet-grade">
+                <GradeBadge grade={grade} size="full" />
+                <GradeTagline grade={grade} />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 시트 본문 */}

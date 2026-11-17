@@ -9,11 +9,12 @@ interface AppRelease {
   released_at: string;
 }
 
-// 스토어 링크는 app_releases 에서 받아 쓰고, 행이 없거나 조회가 실패해도
-// 출시된 앱을 "준비 중"으로 보여주지 않도록 상수로 폴백한다.
-// (InviteLanding.tsx 와 같은 패턴 — 링크가 바뀌면 두 곳을 함께 고칠 것)
-const ANDROID_STORE_FALLBACK = 'https://play.google.com/store/apps/details?id=com.reshw.cardio';
-const IOS_STORE_FALLBACK = 'https://apps.apple.com/kr/app/cardioxclub/id6779019606';
+// 스토어 버튼은 utils/storeLinks 고정값만 쓴다. app_releases 는 버전 표시용
+// (android 행 url 은 Play 이전 자체 배포 APK 라 버튼 링크로 쓰면 APK 다운로드로 간다)
+import {
+  ANDROID_STORE_URL as ANDROID_STORE_FALLBACK,
+  IOS_STORE_URL as IOS_STORE_FALLBACK,
+} from '../utils/storeLinks';
 
 export const Download = () => {
   const [android, setAndroid] = useState<AppRelease | null>(null);
@@ -51,6 +52,29 @@ export const Download = () => {
           </h1>
           <p style={{ color: '#666', fontSize: 15 }}>운동과 함께하는 건강한 삶</p>
         </div>
+
+        {/* 처음 온 사람은 설치→로그인→클럽 가입 가이드로 */}
+        <a
+          href="/start"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            background: '#fff',
+            border: '1px solid #cdeefe',
+            borderRadius: 14,
+            padding: '14px 18px',
+            marginBottom: 16,
+            textDecoration: 'none',
+            color: '#1a1a1a',
+            fontSize: 15,
+            fontWeight: 600,
+          }}
+        >
+          <span>처음이세요? 3단계 시작 가이드 보기</span>
+          <span style={{ color: '#0b87b8', fontWeight: 700 }}>→</span>
+        </a>
 
         {error && (
           <div style={{
@@ -97,7 +121,7 @@ export const Download = () => {
               </div>
 
               <a
-                href={android?.url || ANDROID_STORE_FALLBACK}
+                href={ANDROID_STORE_FALLBACK /* app_releases.url 은 구 APK — 스토어 링크로 쓰지 않음 */}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -157,7 +181,7 @@ export const Download = () => {
               </div>
 
               <a
-                href={ios?.url || IOS_STORE_FALLBACK}
+                href={IOS_STORE_FALLBACK}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{

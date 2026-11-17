@@ -11,6 +11,8 @@ import { ClubDetailedStatsModal } from '../components/ClubDetailedStatsModal';
 import { WorkoutFeed } from '../components/WorkoutFeed';
 import { ClubCalendarTab } from '../components/ClubCalendarTab';
 import { ClubMemberDetailModal } from '../components/ClubMemberDetailModal';
+import { GradeBadge } from '../components/GradeBadge';
+import { useClubGrades } from '../hooks/useClubGrades';
 import type { MyClubWithOrder, ClubRanking, ClubDetailedStats } from '../services/clubService';
 import type { WorkoutFeedItem } from '../services/feedService';
 import { ClubChallengeSection } from '../components/ClubChallengeSection';
@@ -70,6 +72,7 @@ export const Club = () => {
   const location = useLocation();
   const [myClubs, setMyClubs] = useState<MyClubWithOrder[]>([]);
   const [selectedClub, setSelectedClub] = useState<MyClubWithOrder | null>(null);
+  const { gradeOf } = useClubGrades(selectedClub?.id);
   const [ranking, setRanking] = useState<ClubRanking[]>([]);
   const [loading, setLoading] = useState(true); // 초기 로딩 true로 설정
   const [rankingLoading, setRankingLoading] = useState(false); // 랭킹 로딩 별도 관리
@@ -1078,9 +1081,13 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                           <span className="my-rank-context-rank">{m.rank}위</span>
                           {renderProfileImage(m)}
                           <span className="my-rank-context-name">
-                            {m.display_name}
+                            <span className="member-name-text">{m.display_name}</span>
+                            <GradeBadge grade={gradeOf(m.user_id)} />
                             {isMe && <span className="my-rank-badge">나</span>}
                             {m.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
+                            {selectedClub?.rookie_league_enabled !== false && m.is_rookie && (
+                              <span className="rookie-badge">루키</span>
+                            )}
                           </span>
                           <span className="my-rank-context-mileage">{m.total_mileage.toFixed(1)}</span>
                         </div>
@@ -1188,18 +1195,14 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                           </div>
                         )}
                         <div
-                          className={`ranking-item clickable ${member.is_hall_of_fame ? 'hof-highlight' : ''} ${isMyRank ? 'my-rank' : ''}`}
-                          style={{
-                            background: member.user_id === highlightedUserId
-                              ? 'var(--row-found-bg)'
-                              : member.is_hall_of_fame
-                              ? 'var(--row-hof-bg)'
-                              : isMyRank
-                              ? 'var(--row-me-bg)'
-                              : undefined,
-                            borderColor: member.user_id === highlightedUserId ? 'var(--row-found-border)' : member.is_hall_of_fame ? 'var(--row-hof-border)' : isMyRank ? 'var(--row-me-border)' : undefined,
-                            borderWidth: member.user_id === highlightedUserId || member.is_hall_of_fame || isMyRank ? '2px' : undefined,
-                          }}
+                          className={`ranking-item clickable${(() => {
+                            // 행 강조는 상태 하나만 — 검색결과 > 나 > 명전 (member-grade 가이드 6절)
+                            const rowState = member.user_id === highlightedUserId ? 'found'
+                              : isMyRank ? 'me'
+                              : member.is_hall_of_fame ? 'hof'
+                              : null;
+                            return rowState ? ` ranking-item--${rowState}` : '';
+                          })()}`}
                           onClick={() => openMemberDetail(member.user_id, member.display_name)}
                         >
                           <div className="ranking-left">
@@ -1219,7 +1222,8 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                                     }}
                                   />
                                 )}
-                                {member.display_name}
+                                <span className="member-name-text">{member.display_name}</span>
+                                <GradeBadge grade={gradeOf(member.user_id)} />
                                 {isMyRank && <span className="my-rank-badge">나</span>}
                                 {member.is_hall_of_fame && <span className="hof-badge-inline">🏆</span>}
                                 {selectedClub?.rookie_league_enabled !== false && member.is_rookie && (
@@ -1475,6 +1479,7 @@ const [selectedDate, setSelectedDate] = useState<Date>(new Date());
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: '15px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {m.display_name}
+                            <GradeBadge grade={gradeOf(m.user_id)} />
                             {m.is_hall_of_fame && <span style={{ fontSize: '13px' }}>🏆</span>}
                           </div>
                           <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
