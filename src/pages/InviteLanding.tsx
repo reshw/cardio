@@ -19,9 +19,11 @@ import { detectInApp, getPlatform, isNativeApp } from '../utils/browserEnv';
  * 설계: docs/plans/kakao-invite-app-onboarding.md
  */
 
-// 링크가 바뀌면 Download.tsx 의 같은 상수도 함께 고칠 것
-const IOS_STORE_FALLBACK = 'https://apps.apple.com/kr/app/cardioxclub/id6779019606';
-const ANDROID_STORE_FALLBACK = 'https://play.google.com/store/apps/details?id=com.reshw.cardio';
+// 스토어 링크 상수는 utils/storeLinks 한 곳에서 관리
+import {
+  ANDROID_STORE_URL as ANDROID_STORE_FALLBACK,
+  IOS_STORE_URL as IOS_STORE_FALLBACK,
+} from '../utils/storeLinks';
 const STORE_FALLBACK: Record<string, string> = { ios: IOS_STORE_FALLBACK, android: ANDROID_STORE_FALLBACK };
 
 export const InviteLanding = () => {

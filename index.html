@@ -11,6 +11,18 @@
     <meta name="theme-color" content="#FFFFFF" />
     <title>Cardio App</title>
 
+    <!-- 카카오톡/SNS 링크 미리보기. SPA 라 경로별로 못 바꾸고 전 경로 공통이다.
+         카톡으로 주로 /start(시작 가이드) 를 보내므로 그 기준 문구·이미지.
+         카카오는 미리보기를 캐시한다 — 바꾼 뒤엔 developers.kakao.com 의 "공유 디버거"로 캐시 초기화. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="카디오x클럽" />
+    <meta property="og:title" content="카디오 클럽 시작 가이드" />
+    <meta property="og:description" content="앱 설치 → 카카오 로그인 → 클럽 가입. 링크 하나로 3단계면 끝나요." />
+    <meta property="og:image" content="https://cardio.scnd.kr/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="description" content="카디오x클럽 — 운동 기록을 모아 클럽 멤버들과 마일리지·랭킹을 함께 보는 앱" />
+
     <!-- 테마 선적용: React 부팅 전에 실행돼야 새로고침 시 흰 화면 번쩍임(FOUC)이 없다.
          키 이름은 src/hooks/useTheme.ts 의 THEME_KEY 와 반드시 같아야 함. -->
     <script>
