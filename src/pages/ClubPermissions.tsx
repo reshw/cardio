@@ -1,17 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Plus, Trash2, UserPlus, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronUp, Plus, Trash2, UserPlus, X } from 'lucide-react';
 import { useClubName } from '../hooks/useClubName';
 import { useAuth } from '../contexts/AuthContext';
 import clubService, { type ClubMember } from '../services/clubService';
 import { MemberPickerSheet } from '../components/MemberPickerSheet';
 import clubPermissionService, {
+  type BadgeIcon,
+  type BadgeStyle,
   type CustomRole,
   type PermissionKey,
   type RoleLabels,
   DEFAULT_ROLE_LABELS,
   PERMISSION_LABELS,
 } from '../services/clubPermissionService';
+import clubGradeService, { GRADE_ICON_LABELS } from '../services/clubGradeService';
+import { GradeBadge } from '../components/GradeBadge';
+
+const BADGE_ICONS: BadgeIcon[] = ['run', 'bike', 'swim', 'hike'];
 
 const PERMISSION_KEYS: PermissionKey[] = ['manage_events'];
 
@@ -54,6 +60,8 @@ export const ClubPermissions = () => {
       setMembers(memberList);
       setClubOwnerId(club.created_by);
       setErrorMsg(null);
+      // 등급·호칭이 바뀌었을 수 있으니 열려 있는 랭킹/피드 배지도 다시 불러오게 한다
+      clubGradeService.invalidate(clubId);
     } catch (err: any) {
       console.error('[권한관리] 초기 로드 실패:', JSON.stringify(err), err);
       setErrorMsg(err?.message || err?.error_description || err?.hint || JSON.stringify(err));
@@ -142,6 +150,30 @@ export const ClubPermissions = () => {
     } catch (err: any) {
       console.error('[권한관리] 권한 변경 실패:', JSON.stringify(err), err);
       alert(`변경 실패: ${err?.message || err?.error_description || err?.hint || JSON.stringify(err)}`);
+    }
+  };
+
+  const handleBadgeChange = async (role: CustomRole, badgeStyle: BadgeStyle, badgeIcon: BadgeIcon | null) => {
+    try {
+      await clubPermissionService.updateCustomRole(role.id, { badgeStyle, badgeIcon });
+      load();
+    } catch (err: any) {
+      console.error('[권한관리] 배지 설정 실패:', JSON.stringify(err), err);
+      alert(`배지 설정 실패: ${err?.message || err?.error_description || err?.hint || JSON.stringify(err)}`);
+    }
+  };
+
+  const handleMoveRole = async (index: number, dir: -1 | 1) => {
+    const target = index + dir;
+    if (target < 0 || target >= customRoles.length) return;
+    const ids = customRoles.map((r) => r.id);
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    try {
+      await clubPermissionService.reorderCustomRoles(ids);
+      load();
+    } catch (err: any) {
+      console.error('[권한관리] 등급 순서 변경 실패:', JSON.stringify(err), err);
+      alert(`순서 변경 실패: ${err?.message || err?.error_description || err?.hint || JSON.stringify(err)}`);
     }
   };
 
@@ -265,11 +297,15 @@ export const ClubPermissions = () => {
         )}
 
         <div className="permission-custom-role-list">
-          {customRoles.map((role) => (
+          {customRoles.map((role, index) => (
             <CustomRoleCard
               key={role.id}
               role={role}
               members={members}
+              isFirst={index === 0}
+              isLast={index === customRoles.length - 1}
+              onMove={(dir) => handleMoveRole(index, dir)}
+              onBadgeChange={(style, icon) => handleBadgeChange(role, style, icon)}
               onRename={(name) => handleRenameRole(role, name)}
               onTogglePermission={(key) => handleTogglePermission(role, key)}
               onAddMember={(userId) => handleAddMember(role, userId)}
@@ -327,6 +363,10 @@ export const ClubPermissions = () => {
 function CustomRoleCard({
   role,
   members,
+  isFirst,
+  isLast,
+  onMove,
+  onBadgeChange,
   onRename,
   onTogglePermission,
   onAddMember,
@@ -335,6 +375,10 @@ function CustomRoleCard({
 }: {
   role: CustomRole;
   members: ClubMember[];
+  isFirst: boolean;
+  isLast: boolean;
+  onMove: (dir: -1 | 1) => void;
+  onBadgeChange: (style: BadgeStyle, icon: BadgeIcon | null) => void;
   onRename: (name: string) => void;
   onTogglePermission: (key: PermissionKey) => void;
   onAddMember: (userId: string) => void;
@@ -354,6 +398,12 @@ function CustomRoleCard({
           onBlur={() => onRename(name)}
           maxLength={20}
         />
+        <button type="button" className="permission-role-icon-btn" onClick={() => onMove(-1)} disabled={isFirst} title="위로">
+          <ChevronUp size={16} />
+        </button>
+        <button type="button" className="permission-role-icon-btn" onClick={() => onMove(1)} disabled={isLast} title="아래로">
+          <ChevronDown size={16} />
+        </button>
         <button type="button" className="permission-role-icon-btn" onClick={() => setShowPicker(true)} title="멤버 추가">
           <UserPlus size={16} />
         </button>
@@ -373,6 +423,37 @@ function CustomRoleCard({
             {PERMISSION_LABELS[key]}
           </label>
         ))}
+      </div>
+
+      <div className="permission-badge-row">
+        <span className="permission-badge-row-label">배지</span>
+        <div className="permission-badge-options">
+          <button
+            type="button"
+            className={`permission-badge-option${role.badge_style === 'none' ? ' is-active' : ''}`}
+            onClick={() => onBadgeChange('none', role.badge_icon)}
+          >
+            표시 안 함
+          </button>
+          <button
+            type="button"
+            className={`permission-badge-option${role.badge_style === 'title' && !role.badge_icon ? ' is-active' : ''}`}
+            onClick={() => onBadgeChange('title', null)}
+          >
+            <GradeBadge grade={{ kind: 'title', label: role.name }} size="full" />
+          </button>
+          {BADGE_ICONS.map((icon) => (
+            <button
+              key={icon}
+              type="button"
+              className={`permission-badge-option${role.badge_style === 'title' && role.badge_icon === icon ? ' is-active' : ''}`}
+              onClick={() => onBadgeChange('title', icon)}
+              title={GRADE_ICON_LABELS[icon]}
+            >
+              <GradeBadge grade={{ kind: 'title', label: role.name, icon }} size="full" />
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="permission-member-chip-row">

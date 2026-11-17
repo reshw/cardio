@@ -75,6 +75,17 @@
   --row-me-border: #2196F3;
   --row-found-bg: linear-gradient(135deg, #FFE4EE 0%, #FFB6C1 100%);
   --row-found-border: #FF6B9D;
+
+  /* 회원 등급 배지 — docs/design-guide_member-grade.md 5-4
+     회비 등급(대회원/정회원): 금색(명전)과 겹치지 않게 바이올렛. 행 배경 위 대비까지 검증한 값 */
+  --grade-tier-strong-bg: #6D3FE0;
+  --grade-tier-strong-fg: #FFFFFF;
+  --grade-tier-soft-bg: #EFE9FF;
+  --grade-tier-soft-fg: #5B34D6;
+  /* 운영진 왕관 — 두 테마 공통. 흰 왕관과 3:1 이상 나오도록 브랜드 하늘/핑크보다 진하게 */
+  --grade-manager-bg: #1E88E5;
+  --grade-vice-bg: #F0407A;
+  --grade-crown: #FFFFFF;
 }
 
 /* ── 다크 테마 ────────────────────────────────────────────────
@@ -123,6 +134,11 @@
   --row-me-border: rgba(93, 214, 255, 0.65);
   --row-found-bg: linear-gradient(135deg, rgba(255, 127, 176, 0.2) 0%, rgba(255, 127, 176, 0.07) 100%);
   --row-found-border: rgba(255, 127, 176, 0.7);
+
+  --grade-tier-strong-bg: #B39DFF;
+  --grade-tier-strong-fg: #0F1115;
+  --grade-tier-soft-bg: #36344D;
+  --grade-tier-soft-fg: #CFC2FF;
 }
 
 * {
@@ -2319,13 +2335,29 @@ body.search-modal-open .bottom-nav {
   overflow: hidden;
 }
 
+/* 이름 줄 — 잘리는 건 이름(.member-name-text)이지 뒤에 붙은 배지가 아니다 (member-grade 가이드 8절) */
 .ranking-name {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ranking-name > :not(.member-name-text),
+.my-rank-context-name > :not(.member-name-text) {
+  flex-shrink: 0;
+  margin-left: 0;
+}
+
+.member-name-text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ranking-count {
@@ -2857,6 +2889,30 @@ body.search-modal-open .bottom-nav {
   margin: 0;
   text-align: center;
   padding-right: 36px; /* back-button 너비만큼 보정해서 타이틀 진짜 가운데 정렬 */
+}
+
+/* 타이틀 + 등급 배지 · 한 줄 소개 묶음 — h2 의 가운데 정렬 보정을 묶음 전체로 옮긴다 */
+.member-detail-sheet-title {
+  flex: 1;
+  min-width: 0;
+  padding-right: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.member-detail-sheet-title h2 {
+  flex: none;
+  padding-right: 0;
+  max-width: 100%;
+}
+
+.member-detail-sheet-grade {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
 .member-month-nav {
@@ -10070,17 +10126,27 @@ body.workout-detail-open .bottom-nav {
   background: rgba(79, 195, 247, 0.08);
 }
 
-/* 명예의 전당 하이라이트 (랭킹 아이템) */
-.ranking-item.hof-highlight {
-  background: var(--row-hof-bg) !important;
-  border: 2px solid var(--row-hof-border) !important;
-  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+/* 랭킹 행 강조 — 상태 하나, 클래스 하나 (검색결과 > 나 > 명전).
+   docs/design-guide_member-grade.md 6절. 예전엔 .hof-highlight / .my-rank 가 !important 로
+   인라인 스타일과 겹쳐서 명전·본인 행을 검색해도 핑크 강조가 안 보였다. */
+.ranking-item--found,
+.ranking-item--found:hover {
+  background: var(--row-found-bg);
+  border: 2px solid var(--row-found-border);
 }
 
-.ranking-item.hof-highlight:hover {
-  background: var(--row-hof-bg) !important;
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
-  transform: translateY(-4px);
+.ranking-item--me,
+.ranking-item--me:hover {
+  background: var(--row-me-bg);
+  border: 2px solid var(--row-me-border);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+}
+
+.ranking-item--hof,
+.ranking-item--hof:hover {
+  background: var(--row-hof-bg);
+  border: 2px solid var(--row-hof-border);
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
 }
 
 /* 관리 페이지 HOF 액션 버튼 */
@@ -10156,25 +10222,14 @@ body.workout-detail-open .bottom-nav {
   white-space: nowrap;
 }
 
-/* 본인 순위 하이라이트 — 내 순위 탭(.my-rank-context-row--me)과 동일 토큰 사용 */
-.ranking-item.my-rank {
-  background: var(--row-me-bg) !important;
-  border: 2px solid var(--row-me-border) !important;
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
-}
-
-.ranking-item.my-rank:hover {
-  background: var(--row-me-bg) !important;
-  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.3);
-}
-
-/* 본인 표시 배지 */
+/* 본인 표시 배지 — 파란 채움은 방장 왕관이 가져갔다 (member-grade 가이드 5-7).
+   "나" 의 파랑은 행 강조(.ranking-item--me)가 맡는다. */
 .my-rank-badge {
   display: inline-block;
   margin-left: 8px;
   padding: 2px 8px;
-  background: #2196F3;
-  color: white;
+  background: var(--text-primary);
+  color: var(--card-bg);
   border-radius: 12px;
   font-size: 11px;
   font-weight: 700;
@@ -10965,7 +11020,7 @@ body.workout-detail-open .bottom-nav {
 
 /* 나 라벨 위치 조정 (이름 뒤) */
 .ranking-name .my-rank-badge {
-  margin-left: 6px;
+  margin-left: 0;
   padding: 2px 6px;
   font-size: 10px;
 }
@@ -14523,4 +14578,486 @@ body.workout-detail-open .bottom-nav {
 .member-picker-realname {
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+/* ============================================
+   회원 등급 배지 — docs/design-guide_member-grade.md 5절
+   방장 파랑/부방장 핑크 + 흰 왕관 · 파트장 종목 로고 · 대회원/정회원 바이올렛 씰
+   외곽선은 inset box-shadow — 스타일마다 크기가 달라지지 않게
+   ============================================ */
+.grade-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 999px;
+  padding: 0;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* compact — 아이콘 표식. 봉사 20, 회비 16 (봉사가 회비보다 커야 한다 — 원칙 1) */
+.grade-badge--mark {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.grade-badge--mark.grade-badge--tier_soft {
+  width: 16px;
+  height: 16px;
+}
+
+/* 대회원 — 씰 + "+" */
+.grade-badge--mark.grade-badge--tier_strong {
+  width: auto;
+  height: 16px;
+  padding: 0 5px 0 3px;
+  gap: 1px;
+}
+
+.grade-badge__plus {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* 표식이 작아서 누르는 영역만 넓힌다. 보이는 크기는 그대로 */
+.grade-badge--mark::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+/* compact — 종목 아이콘 없는 직책의 글자 알약 */
+.grade-badge--text {
+  height: 18px;
+  padding: 0 6px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.grade-badge--text .grade-badge__label {
+  max-width: 5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* full — 아이콘 + 등급 이름 */
+.grade-badge--full {
+  height: 22px;
+  padding: 0 8px;
+}
+
+.grade-badge__step {
+  font-weight: 800;
+}
+
+/* 스타일 */
+.grade-badge--manager {
+  background: var(--grade-manager-bg);
+  color: var(--grade-crown);
+}
+
+.grade-badge--vice {
+  background: var(--grade-vice-bg);
+  color: var(--grade-crown);
+}
+
+/* 운영진 full — 종이 바탕 + 배지 색 테두리 + 잉크 글자 (흰 글자 on 파랑/핑크는 11px 에서 3.7:1 로 미달) */
+.grade-badge--full.grade-badge--manager,
+.grade-badge--full.grade-badge--vice {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  padding-left: 1px;
+}
+
+.grade-badge--full.grade-badge--manager {
+  box-shadow: inset 0 0 0 1px var(--grade-manager-bg);
+}
+
+.grade-badge--full.grade-badge--vice {
+  box-shadow: inset 0 0 0 1px var(--grade-vice-bg);
+}
+
+.grade-badge--title {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--text-secondary);
+  color: var(--text-primary);
+}
+
+.grade-badge--tier_strong {
+  background: var(--grade-tier-strong-bg);
+  color: var(--grade-tier-strong-fg);
+}
+
+.grade-badge--tier_soft {
+  background: var(--grade-tier-soft-bg);
+  color: var(--grade-tier-soft-fg);
+  box-shadow: inset 0 0 0 1px var(--grade-tier-soft-fg);
+}
+
+/* 버블 — body 직하위 portal, 위치는 JS 실측 인라인 (vh 금지) */
+.grade-bubble {
+  position: fixed;
+  z-index: 10050;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--text-primary);
+  color: var(--card-bg);
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow-md);
+}
+
+.grade-bubble__big {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.grade-bubble__small {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.grade-bubble__tail {
+  position: absolute;
+  top: 100%;
+  width: 0;
+  height: 0;
+  margin-left: -6px;
+  border: 6px solid transparent;
+  border-top-color: var(--text-primary);
+}
+
+.grade-bubble--below .grade-bubble__tail {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: var(--text-primary);
+}
+
+/* 멤버 상세 한 줄 소개 */
+.grade-tagline {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* 권한관리 — 커스텀 등급 배지 선택 (member-grade 가이드 10-3) */
+.permission-badge-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.permission-badge-row-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.permission-badge-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.permission-badge-option {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.permission-badge-option.is-active {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 1px var(--primary-color);
+  color: var(--text-primary);
+}
+
+.permission-role-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ============================================
+   회비 관리 (운영진) — member-grade 가이드 10-4
+   ============================================ */
+.dues-page {
+  padding: 16px;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dues-year-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.dues-year-nav button {
+  display: flex;
+  padding: 6px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.dues-year-nav button:hover {
+  background: var(--hover-overlay);
+}
+
+.dues-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.6fr;
+  gap: 8px;
+}
+
+.dues-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  min-width: 0;
+}
+
+.dues-summary span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dues-summary strong {
+  font-size: 16px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dues-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--input-bg);
+}
+
+.dues-tabs button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dues-tabs button.is-active {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.dues-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.dues-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 4px;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dues-row:hover {
+  background: var(--card-hover-bg);
+}
+
+.dues-row.is-unpaid {
+  color: var(--text-secondary);
+}
+
+.dues-row-date {
+  flex-shrink: 0;
+  width: 44px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.dues-row-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.dues-row-memo {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dues-row-amount {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.dues-divider {
+  padding: 16px 4px 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dues-add-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 999px;
+  background: var(--primary-color);
+  color: var(--on-accent);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+}
+
+.dues-sheet {
+  --sheet-gap: 12px;
+}
+
+.dues-history-total {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.dues-history-year-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 4px 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.dues-history-year-head strong {
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.dues-member-select {
+  text-align: left;
+  cursor: pointer;
+}
+
+.dues-member-select:disabled {
+  cursor: default;
+  color: var(--text-secondary);
+}
+
+.dues-quick-amounts {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.dues-quick-amounts button {
+  flex: 1;
+  padding: 6px 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.dues-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: -6px;
+}
+
+.dues-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--input-bg);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.dues-error {
+  font-size: 13px;
+  color: #ef4444;
+}
+
+.dues-delete-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  color: #ef4444;
+  font-size: 14px;
+  cursor: pointer;
 }

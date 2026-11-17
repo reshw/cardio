@@ -20,6 +20,7 @@ import { ClubMileageRetroactive } from './pages/ClubMileageRetroactive';
 import { ClubStatsHub } from './pages/ClubStatsHub';
 import { ClubSocialSettings } from './pages/ClubSocialSettings';
 import { ClubPermissions } from './pages/ClubPermissions';
+import { ClubDues } from './pages/ClubDues';
 import { ClubRookieLeagueSettings } from './pages/ClubRookieLeagueSettings';
 import { ClubStatsPage } from './pages/ClubStatsPage';
 import { ClubGrowthDashboard } from './components/ClubGrowthDashboard';
@@ -176,6 +177,11 @@ function ProtectedRoutes() {
           <Route path="/club/settings/:clubId/permissions" element={
             <ProtectedClubRoute requireAdmin>
               <ClubPermissions />
+            </ProtectedClubRoute>
+          } />
+          <Route path="/club/settings/:clubId/dues" element={
+            <ProtectedClubRoute requireAdmin>
+              <ClubDues />
             </ProtectedClubRoute>
           } />
           <Route path="/club/my-settings/:clubId" element={

@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useClubName } from '../hooks/useClubName';
-import { ChevronLeft, ChevronRight, Info, TrendingUp, UserCog, Users, BarChart2, ShieldCheck, Award, Gift, Coffee } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, TrendingUp, UserCog, Users, BarChart2, ShieldCheck, Award, Gift, Coffee, Wallet } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../services/clubService';
@@ -149,6 +149,17 @@ export const ClubSettings = () => {
               <div className="menu-item-left">
                 <ShieldCheck size={20} />
                 <span>권한 및 호칭관리</span>
+              </div>
+              <ChevronRight size={20} />
+            </button>
+
+            <button
+              className="settings-menu-item"
+              onClick={() => navigate(`/club/settings/${clubId}/dues`)}
+            >
+              <div className="menu-item-left">
+                <Wallet size={20} />
+                <span>회비 관리</span>
               </div>
               <ChevronRight size={20} />
             </button>

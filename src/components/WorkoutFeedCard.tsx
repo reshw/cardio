@@ -7,6 +7,8 @@ import { WorkoutDetail } from '../pages/WorkoutDetail';
 import type { WorkoutFeedItem } from '../services/feedService';
 import { useModalHistory } from '../hooks/useModalHistory';
 import { shareWorkout } from '../utils/shareInvite';
+import { GradeBadge } from './GradeBadge';
+import type { MemberGrade } from '../services/clubGradeService';
 
 const REPORT_REASONS = ['스팸', '욕설/혐오발언', '부적절한 내용', '기타'];
 
@@ -26,6 +28,8 @@ interface Props {
   onOptimisticCommentDelete: (workoutId: string) => void;
   onBlock: (userId: string) => void;
   onMemberClick: (userId: string, userName: string) => void;
+  /** 작성자 등급 배지 (클럽 피드에서만 넘긴다) */
+  grade?: MemberGrade | null;
 }
 
 export const WorkoutFeedCard = ({
@@ -37,6 +41,7 @@ export const WorkoutFeedCard = ({
   onOptimisticCommentDelete,
   onBlock,
   onMemberClick,
+  grade,
 }: Props) => {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
@@ -314,6 +319,7 @@ export const WorkoutFeedCard = ({
             >
               {item.user_display_name}
             </span>
+            <GradeBadge grade={grade} />
             <span className="feed-time-v2">{formatTime(workout.workout_time)}</span>
             <span className="feed-workout-type-v2">
               {getWorkoutLabel()}
