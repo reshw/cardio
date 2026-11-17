@@ -1,28 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  AlertTriangle, Check, ChevronLeft, ChevronRight, Download, Globe, LogIn, Users,
-} from 'lucide-react';
+import { AlertTriangle, Check, Globe, LogIn } from 'lucide-react';
 import { detectInApp, getPlatform, isNativeApp } from '../utils/browserEnv';
 import { STORE_URLS } from '../utils/storeLinks';
 
 /**
- * 시작 가이드 (/start) — 카카오톡으로 링크 하나만 보내면 읽으면서 바로 설치·로그인·클럽 가입까지
- * 이어지는 공개 온보딩 페이지. 카드뉴스 "Cardio 시작 가이드" 의 웹 대화형 버전.
+ * 시작 가이드 (/start) — 카카오톡으로 링크 하나만 보내면 위에서 아래로 읽으면서 바로
+ * 설치·로그인·클럽 가입까지 이어지는 공개 온보딩 페이지. 카드뉴스 "Cardio 시작 가이드" 의 웹 버전.
  *
  *   1. 앱 설치   — 기기 판별해 해당 스토어 버튼을 앞에, "설치 없이 웹으로" 도 같이
  *   2. 카카오 로그인 — 카톡 인앱이면 외부 브라우저 탈출 안내 (카톡 안에선 카카오 로그인 차단)
  *   3. 클럽 가입 — 초대코드는 운영진이 따로 안내. 입력하면 초대 게이트웨이(/i/:code)로
  *
+ * 세 단계는 탭/스와이프로 숨기지 않고 세로로 전부 펼쳐 보인다 — 링크로 열어 스크롤하며 읽는 페이지라
+ * 숨겨진 단계는 안 읽힌다 (2026-11-17 탭형 스텝퍼 → 세로 흐름으로 교체).
+ *
  * 비로그인 외부인이 첫 화면으로 보므로 앱 셸 밖 public 라우트. 스타일은 InviteLanding 과 같은
  * 방식(파일 내 S 객체 + 테마 토큰)이라 다크모드에서도 그대로 동작한다.
  */
-
-const STEPS = [
-  { label: '앱 설치', Icon: Download },
-  { label: '카카오 로그인', Icon: LogIn },
-  { label: '클럽 가입', Icon: Users },
-] as const;
 
 const FAQ = [
   {
@@ -37,15 +32,20 @@ const FAQ = [
   { q: '앱 설치 없이도 되나요?', a: '네. 휴대폰·PC 브라우저에서 cardio.scnd.kr 로 들어와 같은 카카오 계정으로 쓰면 돼요. 브라우저 메뉴의 "홈 화면에 추가" 를 쓰면 앱처럼 한 번에 열려요.' },
 ];
 
+/** 단계 카드 머리 — 큰 번호 + 제목 */
+const StepHead = ({ n, title }: { n: number; title: string }) => (
+  <div style={S.stepHead}>
+    <span style={S.stepNum}>{n}</span>
+    <h2 style={S.stepTitle}>{title}</h2>
+  </div>
+);
+
 export const StartGuide = () => {
   const navigate = useNavigate();
   const platform = getPlatform();
   const inApp = detectInApp();
   const stores = STORE_URLS;
 
-  const stepperRef = useRef<HTMLElement>(null);
-  const touchRef = useRef<{ x: number; y: number } | null>(null);
-  const [step, setStep] = useState(0);
   const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState('');
 
@@ -53,31 +53,6 @@ export const StartGuide = () => {
   useEffect(() => {
     if (isNativeApp()) navigate('/', { replace: true });
   }, [navigate]);
-
-  // 현재 단계만 렌더한다. scroll-snap + 프로그램 스크롤은 스크롤 이벤트가 단계를 되돌리는 등
-  // WebView 에서 불안정해서, 상태로 바꾸고 스와이프는 터치 델타로 직접 판정한다.
-  const goTo = (i: number) => {
-    const next = Math.max(0, Math.min(STEPS.length - 1, i));
-    setStep(next);
-    // 긴 단계 아래쪽에서 "다음" 을 눌렀으면 새 단계의 맨 위가 보이게
-    const el = stepperRef.current;
-    if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start' });
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const t = e.touches[0];
-    touchRef.current = { x: t.clientX, y: t.clientY };
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const start = touchRef.current;
-    touchRef.current = null;
-    if (!start) return;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - start.x;
-    const dy = t.clientY - start.y;
-    // 세로 스크롤과 구분: 가로로 충분히, 세로보다 크게 움직였을 때만
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) goTo(step + (dx < 0 ? 1 : -1));
-  };
 
   const handleEscapeInApp = () => {
     // 안드로이드 카톡만 외부 브라우저 열기 스킴이 동작한다. iOS 는 안내 문구로 대신.
@@ -111,7 +86,12 @@ export const StartGuide = () => {
         <header style={S.hero}>
           <div style={S.brand}>CARDIO × CLUB</div>
           <h1 style={S.title}>카디오 클럽<br />시작 가이드</h1>
-          <p style={S.sub}>이 링크 하나로 설치부터 클럽 가입까지, 3단계면 끝나요.</p>
+          <p style={S.sub}>아래 순서대로 따라오면 설치부터 클럽 가입까지 끝나요.</p>
+          <div style={S.flow} aria-hidden="true">
+            <span>앱 설치</span><span style={S.flowArrow}>→</span>
+            <span>카카오 로그인</span><span style={S.flowArrow}>→</span>
+            <span>클럽 가입</span>
+          </div>
         </header>
 
         {inApp === 'kakaotalk' && (
@@ -141,142 +121,82 @@ export const StartGuide = () => {
           </figure>
         </section>
 
-        {/* 3단계 스텝퍼 */}
-        <section ref={stepperRef} style={S.stepper} aria-label="시작하기 3단계">
-          <div style={S.tabs} role="tablist">
-            {STEPS.map(({ label, Icon }, i) => (
-              <button
-                key={label}
-                type="button"
-                role="tab"
-                aria-selected={step === i}
-                onClick={() => goTo(i)}
-                style={{ ...S.tab, ...(step === i ? S.tabOn : null) }}
-              >
-                <span style={{ ...S.tabNum, ...(step === i ? S.tabNumOn : null) }}>
-                  {step > i ? <Check size={14} /> : i + 1}
-                </span>
-                <span style={S.tabLabel}><Icon size={14} /> {label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} style={S.track}>
-            {/* STEP 1 — 설치 */}
-            {step === 0 && (
-            <div style={S.slide}>
-              <div style={S.slideHead}>STEP 1</div>
-              <h2 style={S.slideTitle}>앱 설치하기</h2>
-              {isMobile ? (
-                <>
-                  <a href={primaryStore.url} target="_blank" rel="noopener noreferrer" style={S.primaryBtn}>
-                    {primaryStore.name}에서 설치
-                  </a>
-                  <p style={S.hint}>스토어 검색어: <strong>{primaryStore.search}</strong></p>
-                  <a href={otherStore.url} target="_blank" rel="noopener noreferrer" style={S.textLink}>{otherStore.name}</a>
-                </>
-              ) : (
-                <>
-                  <div style={S.btnRow}>
-                    <a href={stores.android} target="_blank" rel="noopener noreferrer" style={S.primaryBtn}>Google Play</a>
-                    <a href={stores.ios} target="_blank" rel="noopener noreferrer" style={S.primaryBtn}>App Store</a>
-                  </div>
-                  <p style={S.hint}>휴대폰에서 이 링크를 열면 바로 설치할 수 있어요.</p>
-                </>
-              )}
-              <div style={S.infoBox}>
-                운동 기록은 Android 는 <strong>헬스커넥트</strong>, iPhone 은 <strong>건강 앱</strong>에서 자동으로 들어와요.
-                처음 실행할 때 뜨는 권한을 꼭 허용해 주세요.
+        {/* 1 — 설치 */}
+        <section style={S.step} aria-label="1단계 앱 설치">
+          <StepHead n={1} title="앱 설치하기" />
+          {isMobile ? (
+            <>
+              <a href={primaryStore.url} target="_blank" rel="noopener noreferrer" style={S.primaryBtn}>
+                {primaryStore.name}에서 설치
+              </a>
+              <p style={S.hint}>스토어 검색어: <strong>{primaryStore.search}</strong></p>
+              <a href={otherStore.url} target="_blank" rel="noopener noreferrer" style={S.textLink}>{otherStore.name}</a>
+            </>
+          ) : (
+            <>
+              <div style={S.btnRow}>
+                <a href={stores.android} target="_blank" rel="noopener noreferrer" style={S.primaryBtn}>Google Play</a>
+                <a href={stores.ios} target="_blank" rel="noopener noreferrer" style={S.primaryBtn}>App Store</a>
               </div>
-              <div style={S.divider}><span>설치가 어렵다면</span></div>
-              <button type="button" onClick={() => navigate('/')} style={S.secondaryBtn}>
-                <Globe size={16} /> 설치 없이 웹으로 시작
-              </button>
-              <p style={S.hint}>같은 카카오 계정, 같은 기록. 웹은 자동 연동 대신 "+ 기록 추가" 로 입력해요.</p>
-            </div>
-            )}
-
-            {/* STEP 2 — 로그인 */}
-            {step === 1 && (
-            <div style={S.slide}>
-              <div style={S.slideHead}>STEP 2</div>
-              <h2 style={S.slideTitle}>카카오로 가입하기</h2>
-              <p style={S.lead}>아이디·비밀번호를 만들 필요가 없어요. 처음 로그인하면 그대로 가입돼요.</p>
-              <ol style={S.ol}>
-                <li style={S.li}><span style={S.liNum}>1</span>앱(또는 웹)을 열고</li>
-                <li style={S.li}><span style={S.liNum}>2</span><span style={S.kakaoChip}>카카오 로그인하기</span> 누르기</li>
-                <li style={S.li}><span style={S.liNum}>3</span>정보 제공(이름·이메일)에 동의</li>
-                <li style={S.li}><span style={{ ...S.liNum, ...S.liNumDone }}><Check size={14} /></span>가입 완료!</li>
-              </ol>
-              <div style={S.infoBox}>
-                둘러보기만 하고 싶다면 로그인 화면의 <strong>데모 체험하기</strong>로 먼저 구경할 수 있어요.
-              </div>
-              <button type="button" onClick={() => navigate('/')} style={S.secondaryBtn}>
-                <LogIn size={16} /> 웹에서 로그인하기
-              </button>
-            </div>
-            )}
-
-            {/* STEP 3 — 클럽 가입 */}
-            {step === 2 && (
-            <div style={S.slide}>
-              <div style={S.slideHead}>STEP 3</div>
-              <h2 style={S.slideTitle}>클럽 가입하기</h2>
-              <div style={S.codeNotice}>
-                초대코드 6자리는 <strong>클럽 운영진에게 따로 안내</strong>받아 주세요.
-              </div>
-              <form onSubmit={handleCode} style={S.codeForm}>
-                <label htmlFor="start-code" style={S.codeLabel}>받은 초대코드가 있다면</label>
-                <div style={S.codeRow}>
-                  <input
-                    id="start-code"
-                    value={code}
-                    onChange={(e) => { setCode(e.target.value.toUpperCase()); setCodeError(''); }}
-                    maxLength={6}
-                    placeholder="6자리"
-                    autoCapitalize="characters"
-                    autoComplete="off"
-                    style={S.codeInput}
-                  />
-                  <button type="submit" style={S.codeBtn}>클럽 확인</button>
-                </div>
-                {codeError && <p style={S.codeError}>{codeError}</p>}
-              </form>
-              <p style={S.lead}>앱 안에서는 이렇게 입력해요.</p>
-              <ol style={S.ol}>
-                <li style={S.li}><span style={S.liNum}>1</span>하단 <strong>클럽</strong> 탭 → 오른쪽 위 <strong>+</strong></li>
-                <li style={S.li}><span style={S.liNum}>2</span><strong>초대코드로 가입</strong> → 코드 입력</li>
-                <li style={S.li}><span style={{ ...S.liNum, ...S.liNumDone }}><Check size={14} /></span>별명 정하고 <strong>클럽 가입하기</strong></li>
-              </ol>
-            </div>
-            )}
+              <p style={S.hint}>휴대폰에서 이 링크를 열면 바로 설치할 수 있어요.</p>
+            </>
+          )}
+          <div style={S.infoBox}>
+            운동 기록은 Android 는 <strong>헬스커넥트</strong>, iPhone 은 <strong>건강 앱</strong>에서 자동으로 들어와요.
+            처음 실행할 때 뜨는 권한을 꼭 허용해 주세요.
           </div>
-
-          <div style={S.navRow}>
-            <button
-              type="button"
-              onClick={() => goTo(step - 1)}
-              disabled={step === 0}
-              style={{ ...S.navBtn, ...(step === 0 ? S.navBtnOff : null) }}
-              aria-label="이전 단계"
-            >
-              <ChevronLeft size={18} /> 이전
-            </button>
-            <div style={S.dots} aria-hidden="true">
-              {STEPS.map((s, i) => (
-                <span key={s.label} style={{ ...S.dot, ...(step === i ? S.dotOn : null) }} />
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => goTo(step + 1)}
-              disabled={step === STEPS.length - 1}
-              style={{ ...S.navBtn, ...(step === STEPS.length - 1 ? S.navBtnOff : null) }}
-              aria-label="다음 단계"
-            >
-              다음 <ChevronRight size={18} />
-            </button>
+          <div style={S.webBox}>
+            <div style={S.webTitle}><Globe size={16} /> 설치가 어렵다면 웹으로도 돼요</div>
+            <p style={S.webBody}>같은 카카오 계정, 같은 기록이에요. 웹은 자동 연동 대신 "+ 기록 추가" 로 입력해요.</p>
+            <button type="button" onClick={() => navigate('/')} style={S.secondaryBtn}>설치 없이 웹으로 시작</button>
           </div>
+        </section>
+
+        {/* 2 — 로그인 */}
+        <section style={S.step} aria-label="2단계 카카오 로그인">
+          <StepHead n={2} title="카카오로 가입하기" />
+          <p style={S.lead}>아이디·비밀번호를 만들 필요가 없어요. 처음 로그인하면 그대로 가입돼요.</p>
+          <ol style={S.ol}>
+            <li style={S.li}><span style={S.liNum}>1</span>앱(또는 웹)을 열고</li>
+            <li style={S.li}><span style={S.liNum}>2</span><span style={S.kakaoChip}>카카오 로그인하기</span> 누르기</li>
+            <li style={S.li}><span style={S.liNum}>3</span>정보 제공(이름·이메일)에 동의</li>
+            <li style={S.li}><span style={{ ...S.liNum, ...S.liNumDone }}><Check size={14} /></span>가입 완료!</li>
+          </ol>
+          <p style={S.hint}>둘러보기만 하려면 로그인 화면의 <strong>데모 체험하기</strong>를 누르세요.</p>
+          <button type="button" onClick={() => navigate('/')} style={S.secondaryBtn}>
+            <LogIn size={16} /> 웹에서 로그인하기
+          </button>
+        </section>
+
+        {/* 3 — 클럽 가입 */}
+        <section style={S.step} aria-label="3단계 클럽 가입">
+          <StepHead n={3} title="클럽 가입하기" />
+          <div style={S.codeNotice}>
+            초대코드 6자리는 <strong>클럽 운영진에게 따로 안내</strong>받아 주세요.
+          </div>
+          <form onSubmit={handleCode} style={S.codeForm}>
+            <label htmlFor="start-code" style={S.codeLabel}>받은 초대코드가 있다면 여기에</label>
+            <div style={S.codeRow}>
+              <input
+                id="start-code"
+                value={code}
+                onChange={(e) => { setCode(e.target.value.toUpperCase()); setCodeError(''); }}
+                maxLength={6}
+                placeholder="6자리"
+                autoCapitalize="characters"
+                autoComplete="off"
+                style={S.codeInput}
+              />
+              <button type="submit" style={S.codeBtn}>클럽 확인</button>
+            </div>
+            {codeError && <p style={S.codeError}>{codeError}</p>}
+          </form>
+          <p style={S.lead}>앱 안에서는 이렇게 입력해요.</p>
+          <ol style={S.ol}>
+            <li style={S.li}><span style={S.liNum}>1</span><span>하단 <strong>클럽</strong> 탭 → 오른쪽 위 <strong>+</strong></span></li>
+            <li style={S.li}><span style={S.liNum}>2</span><span><strong>초대코드로 가입</strong> → 코드 입력</span></li>
+            <li style={S.li}><span style={{ ...S.liNum, ...S.liNumDone }}><Check size={14} /></span><span>별명 정하고 <strong>클럽 가입하기</strong></span></li>
+          </ol>
         </section>
 
         {/* 자주 묻는 질문 */}
@@ -301,7 +221,7 @@ export const StartGuide = () => {
 };
 
 // 앱 셸 밖 독립 랜딩이라 이 파일 안에서 스타일을 갖는다 (InviteLanding 과 같은 방식).
-// 구조색은 전부 테마 토큰. 상태색(경고)·카카오 브랜드색만 고정값.
+// 구조색은 전부 테마 토큰. 상태색(경고·에러)·카카오 브랜드색만 고정값.
 const S: Record<string, React.CSSProperties> = {
   page: { minHeight: '100%', background: 'var(--body-bg)', padding: '28px 16px 48px', color: 'var(--text-primary)' },
   wrap: { maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 },
@@ -310,6 +230,11 @@ const S: Record<string, React.CSSProperties> = {
   brand: { fontSize: 12, fontWeight: 800, letterSpacing: 3, color: 'var(--primary-color)' },
   title: { margin: '10px 0 8px', fontSize: 34, fontWeight: 800, lineHeight: 1.2, letterSpacing: -0.5 },
   sub: { margin: 0, fontSize: 15, lineHeight: 1.6, color: 'var(--text-secondary)' },
+  flow: {
+    marginTop: 14, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6,
+    fontSize: 14, fontWeight: 700,
+  },
+  flowArrow: { color: 'var(--primary-color)' },
 
   warn: {
     background: 'var(--warning-tint)', border: '1px solid #FFCA28', borderRadius: 14,
@@ -331,32 +256,17 @@ const S: Record<string, React.CSSProperties> = {
   },
   shotCap: { fontSize: 13, fontWeight: 600, textAlign: 'center', color: 'var(--text-secondary)' },
 
-  stepper: {
+  step: {
     background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 20,
-    boxShadow: 'var(--shadow-sm)', overflow: 'hidden',
+    boxShadow: 'var(--shadow-sm)', padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 12,
   },
-  tabs: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', borderBottom: '1px solid var(--border-color)' },
-  tab: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 4px 12px',
-    // 롱핸드로만 쓴다 — 단축속성과 섞으면 선택 해제 시 React 가 borderBottomColor 를 지워 글자색(검정) 선이 남는다
-    background: 'none', borderTop: 0, borderLeft: 0, borderRight: 0,
-    borderBottomWidth: 3, borderBottomStyle: 'solid', borderBottomColor: 'transparent', cursor: 'pointer',
-    color: 'var(--text-secondary)', fontSize: 12.5, fontWeight: 600, minHeight: 44,
+  stepHead: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 2 },
+  stepNum: {
+    width: 36, height: 36, flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', background: 'var(--primary-color)', color: 'var(--on-accent)',
+    fontSize: 18, fontWeight: 800,
   },
-  tabOn: { color: 'var(--primary-color)', borderBottomColor: 'var(--primary-color)' },
-  tabNum: {
-    width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'var(--card-hover-bg)', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 800,
-  },
-  tabNumOn: { background: 'var(--primary-color)', color: 'var(--on-accent)' },
-  tabLabel: { display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' },
-
-  track: { touchAction: 'pan-y' },
-  slide: {
-    boxSizing: 'border-box', padding: '20px 20px 8px', display: 'flex', flexDirection: 'column', gap: 12,
-  },
-  slideHead: { fontSize: 12, fontWeight: 800, letterSpacing: 2, color: 'var(--primary-color)' },
-  slideTitle: { margin: '0 0 4px', fontSize: 24, fontWeight: 800 },
+  stepTitle: { margin: 0, fontSize: 22, fontWeight: 800 },
   lead: { margin: 0, fontSize: 14.5, lineHeight: 1.6, color: 'var(--text-secondary)' },
   hint: { margin: 0, fontSize: 13, lineHeight: 1.55, color: 'var(--text-secondary)', textAlign: 'center' },
 
@@ -376,18 +286,20 @@ const S: Record<string, React.CSSProperties> = {
     background: 'var(--card-hover-bg)', borderRadius: 12, padding: '12px 14px',
     fontSize: 13.5, lineHeight: 1.6, color: 'var(--text-secondary)',
   },
-  divider: {
-    display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: 'var(--text-secondary)',
-    marginTop: 4,
+  webBox: {
+    borderTop: '1px dashed var(--border-color)', paddingTop: 14, marginTop: 2,
+    display: 'flex', flexDirection: 'column', gap: 8,
   },
+  webTitle: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 700 },
+  webBody: { margin: 0, fontSize: 13.5, lineHeight: 1.6, color: 'var(--text-secondary)' },
 
   ol: { listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 },
   li: { display: 'flex', alignItems: 'center', gap: 12, fontSize: 15, lineHeight: 1.5 },
   liNum: {
-    width: 28, height: 28, flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center',
-    justifyContent: 'center', background: 'var(--primary-color)', color: 'var(--on-accent)', fontSize: 13, fontWeight: 800,
+    width: 26, height: 26, flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', background: 'var(--card-hover-bg)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 800,
   },
-  liNumDone: { background: 'var(--secondary-color)' },
+  liNumDone: { background: 'var(--secondary-color)', color: 'var(--on-accent)' },
   kakaoChip: {
     background: '#FEE500', color: '#191919', borderRadius: 8, padding: '3px 10px', fontWeight: 700, fontSize: 14,
     marginRight: 4,
@@ -410,20 +322,6 @@ const S: Record<string, React.CSSProperties> = {
     background: 'var(--primary-color)', color: 'var(--on-accent)', fontSize: 15, fontWeight: 700,
   },
   codeError: { margin: 0, fontSize: 13, color: '#ef4444' },
-
-  navRow: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-    padding: '12px 16px 16px',
-  },
-  navBtn: {
-    display: 'flex', alignItems: 'center', gap: 2, minHeight: 44, padding: '0 14px', borderRadius: 12,
-    border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-primary)',
-    fontSize: 14, fontWeight: 700, cursor: 'pointer',
-  },
-  navBtnOff: { opacity: 0.35, cursor: 'default' },
-  dots: { display: 'flex', gap: 6 },
-  dot: { width: 7, height: 7, borderRadius: 4, background: 'var(--border-color)', transition: 'width 0.2s' },
-  dotOn: { width: 20, background: 'var(--primary-color)' },
 
   faq: { display: 'flex', flexDirection: 'column', gap: 8 },
   faqTitle: { margin: '6px 4px 4px', fontSize: 18, fontWeight: 800 },
